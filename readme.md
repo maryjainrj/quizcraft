@@ -49,12 +49,13 @@
 ### 3. Frontend Setup (Vite with React)
 1. Navigate to frontend:
    cd ../frontend
-2. Initialize Vite with React:
+2. Initialize Vite with React:(already completed ignore)
 
    npm create vite@latest . -- --template react
    - Select **React** and **JavaScript**.
 3. Install dependencies:
    npm install axios react-hook-form jspdf docx
+   npm install react-icons
 4. Run frontend:
    npm run dev
 
