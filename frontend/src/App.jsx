@@ -1,9 +1,15 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; //added fOR UI
+
 import QuestionsList from './components/QuestionsList';
 import QuestionForm from './components/QuestionForm';
 import { fetchAllQuestions, searchQuestionsByTopic, createQuestion, updateQuestion, deleteQuestion } from './services/api';
 import './App.css';
+
+import Login from './components/Login'; //added fOR UI
+import Signup from './components/Signup'; //added fOR UI
+import Dashboard from './components/Dashboard'; //added fOR UI
 
 function App() {
   const [questions, setQuestions] = useState([]);
@@ -91,7 +97,56 @@ function App() {
     loadQuestions();
   }, []);
 
-  return (
+//   return (
+//     <div className="app-container">
+//       <div className="app-content">
+//         <header className="app-header">
+//           <h1>Quiz Admin Panel</h1>
+//         </header>
+
+//         <div className="tabs">
+//           <button
+//             onClick={() => { setActiveTab('list'); setEditingQuestion(null); }}
+//             className={`tab-button ${activeTab === 'list' ? 'active' : ''}`}
+//           >
+//             Questions List
+//           </button>
+//           <button
+//             onClick={() => { setActiveTab('create'); setEditingQuestion(null); }}
+//             className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
+//           >
+//             ➕ Create Question
+//           </button>
+//         </div>
+
+//         <main className="main-content">
+//           {activeTab === 'list' ? (
+//             <QuestionsList
+//               questions={questions}
+//               loading={loading}
+//               searchTopic={searchTopic}
+//               onSearchChange={setSearchTopic}
+//               onSearch={handleSearch}
+//               onClearSearch={() => { setSearchTopic(''); loadQuestions(); }}
+//               onEdit={handleEdit}
+//               onDelete={handleDelete}
+//             />
+//           ) : (
+//             <QuestionForm
+//               editingQuestion={editingQuestion}
+//               loading={loading}
+//               onSubmit={editingQuestion ? handleUpdate : handleCreate}
+//               onCancel={handleCancelEdit}
+//             />
+//           )}
+//         </main>
+//       </div>
+//     </div>
+//   );
+// }
+
+//added for UI
+ const QuizAdmin = () => (
     <div className="app-container">
       <div className="app-content">
         <header className="app-header">
@@ -136,6 +191,23 @@ function App() {
         </main>
       </div>
     </div>
+  );
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* New QuizzCraft pages */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Existing Quiz Admin Panel */}
+        <Route path="/admin" element={<QuizAdmin />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
