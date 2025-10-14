@@ -56,6 +56,9 @@
 3. Install dependencies:
    npm install axios react-hook-form jspdf docx
    npm install react-icons
+   npm install lucide-react
+   npm install -D tailwindcss postcss autoprefixer
+   npx tailwindcss init -p
 4. Run frontend:
    npm run dev
 
