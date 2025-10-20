@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 import quizcraft from "../assets/quizcraft.png";
 import sallyImage from "../assets/sally.png";
@@ -7,13 +7,15 @@ import sallyImage from "../assets/sally.png";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Login UI only — backend not yet connected.");
+    // Temporary bypass: skip verification and go to dashboard
+    navigate('/dashboard');
   };
 
   return (
@@ -37,7 +39,6 @@ const Login = () => {
               className="auth-input"
               value={form.username}
               onChange={handleChange}
-              required
             />
 
             <input
@@ -47,7 +48,6 @@ const Login = () => {
               className="auth-input"
               value={form.password}
               onChange={handleChange}
-              required
             />
 
             <button type="submit" className="auth-btn">
