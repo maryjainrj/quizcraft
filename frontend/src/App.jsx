@@ -9,7 +9,12 @@ import './App.css';
 
 import Login from './components/Login'; //added fOR UI
 import Signup from './components/Signup'; //added fOR UI
-import Dashboard from './components/Dashboard'; //added fOR UI
+// import Dashboard from './components/Dashboard';
+import DashboardLayout from './components/DashboardLayout';
+import QuizList from './components/QuizList';
+import SourceSelect from './components/SourceSelect';
+import UploadFiles from './components/UploadFiles';
+
 
 function App() {
   const [questions, setQuestions] = useState([]);
@@ -202,7 +207,14 @@ function App() {
         {/* New QuizzCraft pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+
+        {/* Dashboard shell with nested pages */}
+    <Route path="/dashboard" element={<DashboardLayout />}>
+      <Route index element={<QuizList />} />                 {/* page 4 */}
+      <Route path="new" element={<SourceSelect />} />        {/* page 5 */}
+      <Route path="new/upload" element={<UploadFiles />} />  {/* page 6+ */}
+    </Route>
 
         {/* Existing Quiz Admin Panel */}
         <Route path="/admin" element={<QuizAdmin />} />
