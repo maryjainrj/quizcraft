@@ -35,9 +35,21 @@ const Signup = () => {
       <div className="auth-left">
         <div className="auth-box">
           <h2 className="auth-title">Welcome to QuizzCraft</h2>
-          <p className="auth-subtitle">Create your account to get started</p>
+          <p className="auth-subtitle">SIGN UP</p>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            <label htmlFor="email" className="auth-label">Email id</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              className="auth-input"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+            
+            <label htmlFor="username" className="auth-label">Username</label>
             <input
               type="text"
               name="username"
@@ -48,16 +60,7 @@ const Signup = () => {
               required
             />
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email address"
-              className="auth-input"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-
+            <label htmlFor="password" className="auth-label">Password</label>
             <input
               type="password"
               name="password"
@@ -68,6 +71,7 @@ const Signup = () => {
               required
             />
 
+            <label htmlFor="confirmPassword" className="auth-label">Confirm Password</label>
             <input
               type="password"
               name="confirmPassword"
@@ -82,6 +86,10 @@ const Signup = () => {
               Sign Up
             </button>
 
+            <div className="auth-footer">
+            Already have an account? <Link to="/login">Login</Link>
+            </div>
+
             <button type="button" className="google-btn">
               <img
                 src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
@@ -90,10 +98,6 @@ const Signup = () => {
               Sign up with Google
             </button>
           </form>
-
-          <div className="auth-footer">
-            Already have an account? <Link to="/login">Login</Link>
-          </div>
         </div>
       </div>
 

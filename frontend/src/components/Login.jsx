@@ -27,19 +27,21 @@ const Login = () => {
       <div className="auth-left">
         <div className="auth-box">
           <h2 className="auth-title">Welcome Back to QuizzCraft</h2>
-          <p className="auth-subtitle">Sign in to access your dashboard</p>
+          <p className="auth-subtitle">SIGN IN</p>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            <label htmlFor="username" className="auth-label">Username</label>
             <input
               type="text"
               name="username"
-              placeholder="Username or Email"
+              placeholder="Username or email address"
               className="auth-input"
               value={form.username}
               onChange={handleChange}
               required
             />
 
+            <label htmlFor="password" className="auth-label">Password</label>
             <input
               type="password"
               name="password"
@@ -54,6 +56,10 @@ const Login = () => {
               Sign In
             </button>
 
+            <div className="auth-footer">
+            Don’t have an account? <Link to="/signup">Register</Link>
+            </div>
+
             <button type="button" className="google-btn">
               <img
                 src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
@@ -62,10 +68,6 @@ const Login = () => {
               Sign in with Google
             </button>
           </form>
-
-          <div className="auth-footer">
-            Don’t have an account? <Link to="/signup">Register</Link>
-          </div>
         </div>
       </div>
 
