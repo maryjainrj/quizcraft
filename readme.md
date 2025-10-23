@@ -71,3 +71,6 @@
 - **MongoDB**: Verify `MONGO_URI` and whitelist IP in Atlas.
 - **Dependencies**: Run `npm install` if errors occur.
 - **Ports**: Change ports in `.env` or Vite config if conflicts.
+
+### added pdfjs 
+**npm install pdfjs-dist**
