@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import QuizSettingsModal from "./QuizSettingsModal";
 
 const MAX_MB = 10;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
@@ -18,6 +19,15 @@ const UploadFiles = () => {
 
   const [files, setFiles] = useState([]);
   const [error, setError] = useState("");
+
+  // NEW: modal visibility + settings state
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState({
+    language: "en",      // only English for now
+    type: "fill",        // 'fill' | 'mcq' | 'tf'
+    difficulty: "hard",  // 'easy' | 'medium' | 'hard'
+    count: 20,           // slider 6..30
+  });
 
   const validate = (list) => {
     for (const f of list) {
@@ -66,7 +76,9 @@ const UploadFiles = () => {
         role="button"
         tabIndex={0}
       >
-        <p className="upload-dropzone__title">Drag your file(s) or <label htmlFor="file" className="browse-link">browse</label></p>
+        <p className="upload-dropzone__title">
+          Drag your file(s) or <label htmlFor="file" className="browse-link">browse</label>
+        </p>
         <p className="upload-dropzone__hint">Max {MAX_MB} MB files are allowed</p>
         <input
           id="file"
@@ -98,11 +110,31 @@ const UploadFiles = () => {
         <button
           className="primary-btn"
           disabled={!files.length}
-          onClick={() => alert("Stub: upload & create quiz")}
+          onClick={() => setShowSettings(true)}   // <<< open the modal
         >
-          Create Quiz
+          Create New Quiz
         </button>
       </div>
+
+      {/* Quiz Settings Modal */}
+      <QuizSettingsModal
+        open={showSettings}
+        values={settings}
+        setValues={setSettings}
+        onClose={() => setShowSettings(false)}
+        onCreate={(vals) => {
+          setShowSettings(false);
+          // TODO: call your API with { files, settings: vals }
+          alert(
+            `Create quiz with:\n` +
+            `- Language: ${vals.language}\n` +
+            `- Type: ${vals.type}\n` +
+            `- Difficulty: ${vals.difficulty}\n` +
+            `- Questions: ${vals.count}\n` +
+            `Files: ${files.map(f => f.name).join(", ")}`
+          );
+        }}
+      />
     </section>
   );
 };

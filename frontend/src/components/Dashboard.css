@@ -352,10 +352,10 @@
 
 /* Buttons */
 .primary-btn {
-  background: #2EAE71; color: #fff; border: none; border-radius: 10px;
-  padding: 0.7rem 1.1rem; font-weight: 600; cursor: pointer;
+  background: #40189D; color: white; border: 1px solid black; border-radius: 15px;
+  padding: 0.7rem 4.1rem; font-weight: 600; cursor: pointer;
 }
-.primary-btn:hover { background: #40189D; }
+.primary-btn:hover { background: #2EAE71; }
 
 .secondary-btn {
   background: #fff; color: #40189D; border: 1.5px solid #40189D;
