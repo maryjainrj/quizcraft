@@ -5,6 +5,7 @@ export class Metadata {
     });
     getRaw(): any;
     get(name: any): any;
-    [Symbol.iterator](): any;
+    getAll(): any;
+    has(name: any): any;
     #private;
 }
