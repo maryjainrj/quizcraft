@@ -14,7 +14,7 @@ import DashboardLayout from './components/DashboardLayout'; // Added: For nested
 import QuizList from './components/QuizList'; // Added: For dashboard index route
 import SourceSelect from './components/SourceSelect'; // Added: For /dashboard/new route
 import UploadFiles from './components/UploadFiles'; // Added: For /dashboard/new/upload route
-
+import QuizPreviewPage from "./components/QuizPreviewPage";; // Added: For /dashboard/quiz-preview route
 function App() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -150,27 +150,29 @@ function App() {
   );
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+  <BrowserRouter>
+    <Routes>
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* New QuizzCraft pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+      {/* Auth */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
 
-        {/* Dashboard shell with nested pages (Updated: Replaced single Dashboard with nested routes) */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<QuizList />} />                 {/* page 4 */}
-          <Route path="new" element={<SourceSelect />} />        {/* page 5 */}
-          <Route path="new/upload" element={<UploadFiles />} />  {/* page 6+ */}
-        </Route>
+      {/* Dashboard with Nested Routes */}
+      <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route index element={<QuizList />} />
+        <Route path="new" element={<SourceSelect />} />
+        <Route path="new/upload" element={<UploadFiles />} />
+        <Route path="quiz-preview" element={<QuizPreviewPage />} /> {/* Fixed */}
+        {/* Add more dashboard pages here */}
+      </Route>
 
-        {/* Existing Quiz Admin Panel */}
-        <Route path="/admin" element={<QuizAdmin />} />
-      </Routes>
-    </BrowserRouter>
-  );
+      {/* Admin Panel */}
+      <Route path="/admin" element={<QuizAdmin />} />
+    </Routes>
+  </BrowserRouter>
+);
 }
 
 export default App;

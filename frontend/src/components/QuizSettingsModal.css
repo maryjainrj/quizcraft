@@ -53,12 +53,15 @@
   padding: 12px 14px; border-radius: 10px; border: 1px solid #e5e7eb;
   cursor: pointer; user-select: none; color: #111827; font-weight: 500;
   background: #fff;
+  transition: all 0.2s;
 }
 .qs-option input { display: none; }
 
+/* Radio button styling */
 .qs-radio {
   width: 18px; height: 18px; border-radius: 50%;
   border: 2px solid #9ca3af; display: inline-block; position: relative;
+  flex-shrink: 0;
 }
 .qs-option.is-selected .qs-radio {
   border-color: #4b1fb5;
@@ -67,7 +70,33 @@
   content: ""; position: absolute; inset: 3px;
   background: #4b1fb5; border-radius: 50%;
 }
-.qs-option:hover { border-color: #d1d5db; }
+
+/* Checkbox styling */
+.qs-checkbox {
+  width: 20px; height: 20px; border-radius: 4px;
+  border: 2px solid #9ca3af; display: flex;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.qs-option.is-selected .qs-checkbox {
+  border-color: #4b1fb5;
+  background: #4b1fb5;
+}
+.qs-checkmark {
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.qs-option:hover { 
+  border-color: #d1d5db; 
+  background: #f9fafb;
+}
+.qs-option.is-selected {
+  border-color: #4b1fb5;
+  background: #f5f3ff;
+}
 
 /* Range */
 .qs-range-labels {

@@ -1,6 +1,8 @@
 import React, { useCallback, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import QuizSettingsModal from "./QuizSettingsModal";
+import QuizSettingsModal from "../components/QuizSettingsModal";
+import { generateQuiz } from "../api/quiz";
+import { shuffleOptions } from "../utils/Shuffle";
 
 const MAX_MB = 10;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
@@ -20,30 +22,34 @@ const UploadFiles = () => {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState("");
 
-  // NEW: modal visibility + settings state
+  // Modal visibility + settings state - UPDATED to support array
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
-    language: "en",      // only English for now
-    type: "fill",        // 'fill' | 'mcq' | 'tf'
-    difficulty: "hard",  // 'easy' | 'medium' | 'hard'
-    count: 20,           // slider 6..30
+    language: "english",
+    type: ["mcq"], // Default to array with one type
+    difficulty: "medium",
+    count: 5,
   });
 
-  // INTEGRATED: File upload / OCR states for "From File" flow
-  const [extractedTexts, setExtractedTexts] = useState({}); // {fileName: text}
-  const [previews, setPreviews] = useState({}); // {fileName: preview}
+  // File upload / OCR states
+  const [extractedTexts, setExtractedTexts] = useState({});
+  const [previews, setPreviews] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [extractionError, setExtractionError] = useState('');
-  const [fileInfos, setFileInfos] = useState({}); // {fileName: info}
+  const [fileInfos, setFileInfos] = useState({});
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
-  // INTEGRATED: Try to extract text client-side for PDFs (fast for text PDFs)
+  // Quiz generation states
+  const [generatedQuiz, setGeneratedQuiz] = useState([]);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState("");
+
+  // Extract text from PDF client-side
   const extractTextFromPdfClient = async (file) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      // dynamic import to avoid bundling when not needed
       const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf');
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
@@ -65,7 +71,7 @@ const UploadFiles = () => {
     }
   };
 
-  // INTEGRATED: Handle file selection with validation and preview
+  // Handle file selection with validation
   const handleFileSelect = (selectedFiles) => {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/bmp', 'image/webp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain'];
     const newFiles = Array.from(selectedFiles || []);
@@ -113,7 +119,7 @@ const UploadFiles = () => {
     handleFileSelect(fileList);
   }, []);
 
-  // INTEGRATED: Drag and drop handlers
+  // Drag and drop handlers
   const onDrop = (e) => {
     e.preventDefault();
     setIsDragActive(false);
@@ -136,7 +142,7 @@ const UploadFiles = () => {
     setIsDragActive(false);
   };
 
-  // INTEGRATED: Extract text for all selected files
+  // Extract text for all selected files
   const handleExtractText = async () => {
     if (!files.length) {
       setExtractionError('Please select files first');
@@ -149,23 +155,19 @@ const UploadFiles = () => {
     const newExtractedTexts = { ...extractedTexts };
 
     try {
-      // Process files sequentially to avoid overwhelming the server
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileName = file.name;
         setProgress(((i / files.length) * 100));
 
-        // If PDF, try client-side extraction first
         if (file.type === 'application/pdf') {
           const clientText = await extractTextFromPdfClient(file);
           if (clientText && clientText.trim()) {
             newExtractedTexts[fileName] = clientText;
             continue;
           }
-          // else fall through to server
         }
 
-        // Server-side extraction for non-text PDFs or other formats
         const fd = new FormData();
         fd.append('file', file);
         const res = await fetch('http://localhost:5000/api/upload', {
@@ -188,7 +190,7 @@ const UploadFiles = () => {
     }
   };
 
-  // INTEGRATED: Copy and download handlers per file
+  // Copy and download handlers
   const handleCopy = (fileName) => {
     const text = extractedTexts[fileName];
     navigator.clipboard.writeText(text).then(() => {
@@ -211,10 +213,10 @@ const UploadFiles = () => {
     URL.revokeObjectURL(url);
   };
 
-  // INTEGRATED: Clear extraction for a file or all
+  // Clear extraction
   const handleClearFile = (fileName) => {
-    setExtractedTexts(prev => ({ ...prev, [fileName]: '' }));
-    setPreviews(prev => ({ ...prev, [fileName]: null }));
+    setExtractedTexts(prev => { const newTexts = { ...prev }; delete newTexts[fileName]; return newTexts; });
+    setPreviews(prev => { const newPreviews = { ...prev }; delete newPreviews[fileName]; return newPreviews; });
     setFileInfos(prev => { const newInfo = { ...prev }; delete newInfo[fileName]; return newInfo; });
     setFiles(prev => prev.filter(f => f.name !== fileName));
   };
@@ -227,16 +229,8 @@ const UploadFiles = () => {
     setExtractionError('');
     setProgress(0);
     setIsDragActive(false);
+    setGeneratedQuiz([]);
   };
-
-  const validate = (list) => {
-    for (const f of list) {
-      if (f.size > MAX_BYTES) {
-        return `“${f.name}” exceeds ${MAX_MB} MB limit.`;
-    }
-  }
-  return "";
-};
 
   return (
     <section className="flow">
@@ -245,7 +239,7 @@ const UploadFiles = () => {
         <p className="flow__subtitle">Upload your study notes, PDFs, lesson slides, and more.</p>
       </header>
 
-      {/* INTEGRATED: Enhanced dropzone with drag active state */}
+      {/* Dropzone */}
       <div
         className={`upload-dropzone ${isDragActive ? 'active' : ''}`}
         onDrop={onDrop}
@@ -272,26 +266,24 @@ const UploadFiles = () => {
 
       {error && <div className="alert error">{error}</div>}
 
-      {/* INTEGRATED: File list with previews and extraction controls */}
+      {/* File list */}
       {!!files.length && (
         <ul className="file-list">
           {files.map((f) => (
             <li key={f.name} className="file-item">
               <span className="file-item__name">{f.name}</span>
               <span className="file-item__size">{formatSize(f.size)}</span>
-              {/* Preview */}
               {previews[f.name] && previews[f.name] !== 'pdf' && (
                 <img src={previews[f.name]} alt="Preview" style={{ maxWidth: '50px', maxHeight: '50px' }} />
               )}
               {previews[f.name] === 'pdf' && <span>PDF</span>}
-              {/* Per-file clear */}
               <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: 'auto' }}>Remove</button>
             </li>
           ))}
         </ul>
       )}
 
-      {/* INTEGRATED: Extraction button and progress */}
+      {/* Extraction button */}
       {!!files.length && (
         <div className="extraction-section">
           <button 
@@ -315,7 +307,7 @@ const UploadFiles = () => {
         </div>
       )}
 
-      {/* INTEGRATED: Display extracted texts per file */}
+      {/* Extracted texts */}
       {Object.keys(extractedTexts).length > 0 && (
         <div className="extracted-texts">
           <h4>Extracted Texts</h4>
@@ -339,35 +331,96 @@ const UploadFiles = () => {
         <button 
           className="primary-btn"
           disabled={!files.length || isProcessing || Object.keys(extractedTexts).length < files.length}
-          onClick={() => setShowSettings(true)}   // Open settings after extraction
+          onClick={() => setShowSettings(true)}
         >
           Create New Quiz
         </button>
         {!!files.length && <button className="btn" onClick={handleClearAll}>Clear All</button>}
       </div>
 
-      {/* Quiz Settings Modal - Pass extracted texts if needed */}
+      {/* Quiz Settings Modal - FIXED onCreate */}
       <QuizSettingsModal
         open={showSettings}
         values={settings}
         setValues={setSettings}
         onClose={() => setShowSettings(false)}
-        onCreate={(vals) => {
+        onCreate={async (vals) => {
           setShowSettings(false);
-          // INTEGRATED: Include extracted texts in the create call
-          const allTexts = Object.values(extractedTexts).join('\n\n---\n\n');
-          // TODO: call your API with { files, extractedTexts: allTexts, settings: vals }
-          alert(
-            `Create quiz with:\n` +
-            `- Language: ${vals.language}\n` +
-            `- Type: ${vals.type}\n` +
-            `- Difficulty: ${vals.difficulty}\n` +
-            `- Questions: ${vals.count}\n` +
-            `Files: ${files.map(f => f.name).join(", ")}\n` +
-            `Extracted Text Length: ${allTexts.length} chars`
-          );
+          setQuizLoading(true);
+          setQuizError("");
+
+          try {
+            const allTexts = Object.values(extractedTexts).join("\n\n---\n\n");
+            
+            // Handle multiple question types
+            const selectedTypes = Array.isArray(vals.type) ? vals.type : [vals.type];
+            const questionsPerType = Math.ceil(vals.count / selectedTypes.length);
+            
+            let allQuestions = [];
+            
+            // Generate questions for each selected type
+            for (const type of selectedTypes) {
+              const questionType = 
+                type === "mcq" ? "multiple-choice" :
+                type === "tf" ? "true-false" :
+                "fill-in-blank";
+              
+              const { questions: rawQuestions } = await generateQuiz(allTexts, {
+                questionCount: questionsPerType,
+                questionType: questionType,
+                difficulty: vals.difficulty,
+                language: vals.language,
+              });
+              
+              // Process questions with proper type and shuffle MCQ options
+              const processedQuestions = rawQuestions.map((q) => {
+                const question = { ...q, type: questionType };
+                
+                if (questionType === "multiple-choice" && question.options?.length > 0) {
+                  return shuffleOptions(question);
+                }
+                return question;
+              });
+              
+              allQuestions = [...allQuestions, ...processedQuestions];
+            }
+            
+            // Shuffle mix and trim to exact count
+            allQuestions = allQuestions
+              .sort(() => Math.random() - 0.5)
+              .slice(0, vals.count)
+              .map((q, idx) => ({ ...q, id: idx + 1 }));
+
+            navigate("/dashboard/quiz-preview", {
+              state: {
+                questions: allQuestions,
+                fileNames: files.map(f => f.name),
+                settings: {
+                  questionTypes: selectedTypes,
+                  difficulty: vals.difficulty,
+                  count: vals.count,
+                },
+              },
+            });
+          } catch (e) {
+            setQuizError(e.message || "Failed to generate quiz");
+          } finally {
+            setQuizLoading(false);
+          }
         }}
       />
+
+      {quizLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <p className="text-lg font-semibold">Generating quiz...</p>
+          </div>
+        </div>
+      )}
+
+      {quizError && (
+        <div className="alert error mt-4">{quizError}</div>
+      )}
     </section>
   );
 };
