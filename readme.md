@@ -59,6 +59,40 @@
    npm install lucide-react
    npm install -D tailwindcss postcss autoprefixer
    npx tailwindcss init -p
+
+   ## tail wind integration ##########
+cd client
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+Step 2: Configure Tailwind
+Open client/tailwind.config.js and replace with:
+javascript/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+Step 3: Add Tailwind to CSS
+Open client/src/index.css and replace everything with:
+css@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Add any custom styles below */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+}
 4. Run frontend:
    npm run dev
 

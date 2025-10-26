@@ -216,6 +216,21 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// NEW: Generate Quiz Endpoint
+const { generateQuiz: generateQuizFromModule } = require('./quizGenerator');
+app.post('/api/generate-quiz', async (req, res) => {
+  try {
+    const { text, settings } = req.body;
+    if (!text?.trim()) return res.status(400).json({ error: 'No text provided' });
+
+    const questions = await generateQuizFromModule(text, settings);
+    res.json({ questions });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
