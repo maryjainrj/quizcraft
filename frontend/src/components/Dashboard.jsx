@@ -1,12 +1,16 @@
+// src/components/Dashboard.jsx
 import React, { useState } from "react";
 import "./Dashboard.css";
 import "./Auth.css";
 import quizcraftwhite from "../assets/quizcraftwhite.png";
 import { FaSearch, FaChevronDown } from "react-icons/fa";
 
+// NEW: live user badge + robust logout
+import UserBadge from "./UserBadge";
+import LogoutButton from "./LogoutButton";
+
 const Dashboard = () => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const profilePic = "https://i.pravatar.cc/150?img=3";
 
   return (
     <div className="dashboard-page">
@@ -32,13 +36,19 @@ const Dashboard = () => {
             <FaSearch className="search-icon" />
           </div>
 
-          <div className="profile-container" onClick={() => setShowDropdown(!showDropdown)}>
-            <img src={profilePic} alt="Profile" className="profile-pic" />
-            <span className="username">John Doe</span>
+          <div
+            className="profile-container"
+            onClick={() => setShowDropdown((v) => !v)}
+          >
+            {/* Replaces manual localStorage logic:
+               - Shows avatar/initials + name ("Guest" if not logged in)
+               - Reacts live to login/logout via onAuthChange */}
+            <UserBadge />
             <FaChevronDown className="dropdown-icon" />
             {showDropdown && (
-              <div className="dropdown-menu">
-                <button>Logout</button>
+              <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                {/* Robust logout that clears storage, emits change event, and redirects */}
+                <LogoutButton className="dropdown-item">Logout</LogoutButton>
               </div>
             )}
           </div>

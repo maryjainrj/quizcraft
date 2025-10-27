@@ -11,6 +11,20 @@ const schema = buildSchema(`
     createdAt: String
   }
 
+  # --- Added: User & Auth payloads ---
+  type User {
+    id: ID!
+    name: String
+    email: String!
+    provider: String!
+    avatarUrl: String
+  }
+
+  type AuthPayload {
+    token: String!
+    user: User!
+  }
+
   type Query {
     questions: [Question]
     question(id: ID!): Question
@@ -18,6 +32,7 @@ const schema = buildSchema(`
   }
 
   type Mutation {
+    # existing question mutations
     createQuestion(
       question: String!
       options: [String!]
@@ -36,6 +51,11 @@ const schema = buildSchema(`
     ): Question
 
     deleteQuestion(id: ID!): Boolean
+
+    # --- Added: auth mutations (mirror quizcraft_mine) ---
+    register(name: String!, email: String!, password: String!): AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+    googleLogin(credential: String!): AuthPayload!
   }
 `);
 
