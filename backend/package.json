@@ -24,8 +24,8 @@
     "mammoth": "^1.11.0",
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",
-    "pdf-parse": "^1.1.1",
-"pdfjs-dist": "^3.11.174",
+    "pdf-parse": "1.1.1",
+    "pdfjs-dist": "^3.4.120",
     "tesseract.js": "^6.0.1",
     "zod": "^4.1.12"
   },

@@ -18,14 +18,14 @@ async function generateQuiz(text, settings = {}) {
     language = 'english'
   } = settings;
 
-  console.log('\n🎯 AI Quiz Generation Started...');
+  console.log('\nAI Quiz Generation Started...');
   console.log(`   Questions: ${questionCount}`);
   console.log(`   Type: ${questionType}`);
   console.log(`   Difficulty: ${difficulty}`);
 
   try {
     const prompt = createPrompt(text, questionCount, questionType, difficulty, language);
-    console.log('📡 Sending request to Hugging Face AI...');
+    console.log('Sending request to Hugging Face AI...');
     
     // Use chatCompletion instead of textGeneration for Mistral models
     const response = await hf.chatCompletion({
@@ -41,14 +41,14 @@ async function generateQuiz(text, settings = {}) {
       top_p: 0.95
     });
 
-    console.log('✅ AI response received!');
+    console.log('AI response received!');
     const generatedText = response.choices[0].message.content;
     const questions = parseAIResponse(generatedText, questionType);
     console.log(`✨ Successfully parsed ${questions.length} questions`);
     
     // If we got fewer questions than requested, try fallback
     if (questions.length < questionCount) {
-      console.log(`⚠️ Only got ${questions.length}/${questionCount} questions, adding fallback...`);
+      console.log(`Only got ${questions.length}/${questionCount} questions, adding fallback...`);
       const fallbackNeeded = questionCount - questions.length;
       const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType);
       return [...questions, ...fallbackQuestions];
@@ -57,8 +57,8 @@ async function generateQuiz(text, settings = {}) {
     return questions.slice(0, questionCount);
 
   } catch (error) {
-    console.error('❌ AI Quiz generation error:', error.message);
-    console.log('🔧 Falling back to rule-based generation...');
+    console.error('AI Quiz generation error:', error.message);
+    console.log('Falling back to rule-based generation...');
     return generateFallbackQuestions(text, questionCount, questionType);
   }
 }
@@ -268,7 +268,7 @@ function generateFallbackQuestions(text, count, type = 'multiple-choice') {
     });
   }
   
-  console.log(`✅ Generated ${questions.length} fallback questions`);
+  console.log(`Generated ${questions.length} fallback questions`);
   return questions;
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizSettingsModal from "../components/QuizSettingsModal";
 import { generateQuiz } from "../api/quiz";
@@ -190,28 +190,12 @@ const UploadFiles = () => {
     }
   };
 
-  // Copy and download handlers
-  const handleCopy = (fileName) => {
-    const text = extractedTexts[fileName];
-    navigator.clipboard.writeText(text).then(() => {
-      alert(`Text from ${fileName} copied to clipboard!`);
-    }).catch(() => {
-      alert('Failed to copy text');
-    });
-  };
-
-  const handleDownload = (fileName) => {
-    const text = extractedTexts[fileName];
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `extracted-${fileName.replace(/\.[^/.]+$/, "")}-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // Auto-extract text when files are selected
+  useEffect(() => {
+    if (files.length > 0 && Object.keys(extractedTexts).length === 0 && !isProcessing) {
+      handleExtractText();
+    }
+  }, [files]);
 
   // Clear extraction
   const handleClearFile = (fileName) => {
@@ -250,7 +234,7 @@ const UploadFiles = () => {
         onClick={() => fileInputRef.current?.click()}
       >
         <p className="upload-dropzone__title">
-          Drag your file(s) or <label htmlFor="file" className="browse-link">browse</label>
+          Drag your file(s) or <label htmlFor="file" className="browse-link" onClick={(e) => e.stopPropagation()}>browse</label>
         </p>
         <p className="upload-dropzone__hint">Max {MAX_MB} MB files are allowed (PDF, images, DOC, PPT, TXT)</p>
         <input
@@ -283,44 +267,23 @@ const UploadFiles = () => {
         </ul>
       )}
 
-      {/* Extraction button */}
-      {!!files.length && (
-        <div className="extraction-section">
-          <button 
-            className="btn" 
-            onClick={handleExtractText} 
-            disabled={isProcessing || Object.keys(extractedTexts).length === files.length}
-          >
-            {isProcessing ? 'Extracting...' : 'Extract Text from Files'}
-          </button>
-          {isProcessing && (
-            <div className="progress-container">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${progress}%` }}>
-                  {progress}%
-                </div>
-              </div>
-              <p>Processing files...</p>
+      {/* Auto-extraction progress */}
+      {isProcessing && (
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${progress}%` }}>
+              {progress}%
             </div>
-          )}
-          {extractionError && <div className="alert error">{extractionError}</div>}
+          </div>
+          <p>Processing files...</p>
         </div>
       )}
+      {extractionError && <div className="alert error">{extractionError}</div>}
 
-      {/* Extracted texts */}
-      {Object.keys(extractedTexts).length > 0 && (
-        <div className="extracted-texts">
-          <h4>Extracted Texts</h4>
-          {Object.entries(extractedTexts).map(([fileName, text]) => (
-            <div key={fileName} className="result-section">
-              <h5>{fileName}</h5>
-              <div className="result-box" style={{ maxHeight: 150, overflow: 'auto' }}>{text}</div>
-              <div>
-                <button className="btn" onClick={() => handleCopy(fileName)}>Copy</button>
-                <button className="btn" onClick={() => handleDownload(fileName)}>Download</button>
-              </div>
-            </div>
-          ))}
+      {/* Post-file selection message */}
+      {!!files.length && !isProcessing && Object.keys(extractedTexts).length === files.length && (
+        <div className="info-message">
+          <p>Files added successfully. Click "Create New Quiz" to generate your quiz.</p>
         </div>
       )}
 
