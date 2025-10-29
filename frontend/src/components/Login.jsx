@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 import quizcraft from "../assets/quizcraft.png";
 import sallyImage from "../assets/sally.png";
@@ -7,13 +7,15 @@ import sallyImage from "../assets/sally.png";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Login UI only — backend not yet connected.");
+    // Temporary bypass: skip verification and go to dashboard
+    navigate('/dashboard');
   };
 
   return (
@@ -27,19 +29,20 @@ const Login = () => {
       <div className="auth-left">
         <div className="auth-box">
           <h2 className="auth-title">Welcome Back to QuizzCraft</h2>
-          <p className="auth-subtitle">Sign in to access your dashboard</p>
+          <p className="auth-subtitle">SIGN IN</p>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            <label htmlFor="username" className="auth-label">Username</label>
             <input
               type="text"
               name="username"
-              placeholder="Username or Email"
+              placeholder="Username or email address"
               className="auth-input"
               value={form.username}
               onChange={handleChange}
-              required
             />
 
+            <label htmlFor="password" className="auth-label">Password</label>
             <input
               type="password"
               name="password"
@@ -47,12 +50,15 @@ const Login = () => {
               className="auth-input"
               value={form.password}
               onChange={handleChange}
-              required
             />
 
             <button type="submit" className="auth-btn">
               Sign In
             </button>
+
+            <div className="auth-footer">
+            Don’t have an account? <Link to="/signup">Register</Link>
+            </div>
 
             <button type="button" className="google-btn">
               <img
@@ -62,10 +68,6 @@ const Login = () => {
               Sign in with Google
             </button>
           </form>
-
-          <div className="auth-footer">
-            Don’t have an account? <Link to="/signup">Register</Link>
-          </div>
         </div>
       </div>
 

@@ -59,22 +59,32 @@
 }
 
 .auth-title {
-  color: #40189D;
-  font-weight: 700;
-  font-size: 1.8rem;
+  color: #04010e;
+  font-weight: 500;
+  font-size: 1rem;
   margin-bottom: 0.25rem;
+  text-align: left;
 }
 
 .auth-subtitle {
-  color: #555;
+  color: #0a0000;
+  font-weight: 800;
   margin-bottom: 1.5rem;
-  font-size: 0.95rem;
+  font-size: 3rem;
+  text-align: left;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.auth-label {
+color: #04010e;
+font-size: 1rem;
+font-weight: 500;
+text-align: left;
 }
 
 .auth-input {
