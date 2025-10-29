@@ -28,6 +28,7 @@
 3. Install dependencies:
    npm install express multer pdf-parse mammoth mongoose dotenv zod @huggingface/inference jszip docx jspdf tesseract.js cors
    npm install --save-dev nodemon
+   npm install pdfjs-dist@3.4.120
 
 4. Create `.env` file:
    
