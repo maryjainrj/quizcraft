@@ -109,3 +109,7 @@ body {
 
 ### added pdfjs 
 **npm install pdfjs-dist**
+
+**if pdf parse error comes in**
+**npm install pdfjs-dist@3.4.120**
+**npm install pdf-parse**

@@ -13,7 +13,7 @@
     "axios": "^1.12.2",
     "docx": "^9.5.1",
     "jspdf": "^3.0.3",
-    "pdfjs-dist": "^5.4.296",
+    "pdfjs-dist": "3.4.120",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.65.0",
