@@ -14,7 +14,7 @@ const vision = require('@google-cloud/vision');
 
 // Initialize Google Cloud Vision with service account
 const visionClient = new vision.ImageAnnotatorClient({
-  keyFilename: path.join(__dirname, 'service-account.json') 
+  keyFilename: path.join(__dirname, 'service-account.json')
 });
 
 // NodeCanvasFactory for pdfjs-dist in Node.js (from working model)
