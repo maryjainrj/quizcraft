@@ -1,3 +1,6 @@
+export type OptionalContentConfig = import("../src/display/optional_content_config").OptionalContentConfig;
+export type PageViewport = import("../src/display/display_utils").PageViewport;
+export type EventBus = import("./event_utils").EventBus;
 export type IL10n = import("./interfaces").IL10n;
 export type IPDFLinkService = import("./interfaces").IPDFLinkService;
 export type IRenderableView = import("./interfaces").IRenderableView;
@@ -7,6 +10,10 @@ export type PDFThumbnailViewOptions = {
      * - The viewer element.
      */
     container: HTMLDivElement;
+    /**
+     * - The application event bus.
+     */
+    eventBus: EventBus;
     /**
      * - The thumbnail's unique ID (normally its number).
      */
@@ -20,7 +27,7 @@ export type PDFThumbnailViewOptions = {
      * A promise that is resolved with an {@link OptionalContentConfig } instance.
      * The default value is `null`.
      */
-    optionalContentConfigPromise?: Promise<OptionalContentConfig> | undefined;
+    optionalContentConfigPromise?: Promise<import("../src/display/optional_content_config").OptionalContentConfig> | undefined;
     /**
      * - The navigation/linking service.
      */
@@ -47,28 +54,29 @@ export class PDFThumbnailView implements IRenderableView {
     /**
      * @param {PDFThumbnailViewOptions} options
      */
-    constructor({ container, id, defaultViewport, optionalContentConfigPromise, linkService, renderingQueue, l10n, pageColors, }: PDFThumbnailViewOptions);
+    constructor({ container, eventBus, id, defaultViewport, optionalContentConfigPromise, linkService, renderingQueue, l10n, pageColors, }: PDFThumbnailViewOptions);
     id: number;
     renderingId: string;
     pageLabel: string | null;
     pdfPage: any;
     rotation: number;
-    viewport: PageViewport;
-    pdfPageRotate: any;
-    _optionalContentConfigPromise: Promise<OptionalContentConfig> | null;
+    viewport: import("../src/display/display_utils").PageViewport;
+    pdfPageRotate: number;
+    _optionalContentConfigPromise: Promise<import("../src/display/optional_content_config").OptionalContentConfig> | null;
     pageColors: Object | null;
+    eventBus: import("./event_utils").EventBus;
     linkService: import("./interfaces").IPDFLinkService;
     renderingQueue: import("./pdf_rendering_queue").PDFRenderingQueue;
     renderTask: any;
     renderingState: number;
     resume: (() => void) | null;
-    canvasWidth: number;
-    canvasHeight: number;
-    scale: number;
     l10n: import("./interfaces").IL10n;
     anchor: HTMLAnchorElement;
     div: HTMLDivElement;
-    ring: HTMLDivElement;
+    _placeholderImg: HTMLDivElement;
+    canvasWidth: number | undefined;
+    canvasHeight: number | undefined;
+    scale: number | undefined;
     setPdfPage(pdfPage: any): void;
     reset(): void;
     update({ rotation }: {
@@ -88,7 +96,7 @@ export class PDFThumbnailView implements IRenderableView {
      */
     private _convertCanvasToImage;
     image: HTMLImageElement | undefined;
-    draw(): any;
+    draw(): Promise<any>;
     setImage(pageView: any): void;
     /**
      * @private
@@ -100,10 +108,12 @@ export class PDFThumbnailView implements IRenderableView {
      * @param {string|null} label
      */
     setPageLabel(label: string | null): void;
+    #private;
 }
 /**
  * @typedef {Object} PDFThumbnailViewOptions
  * @property {HTMLDivElement} container - The viewer element.
+ * @property {EventBus} eventBus - The application event bus.
  * @property {number} id - The thumbnail's unique ID (normally its number).
  * @property {PageViewport} defaultViewport - The page viewport.
  * @property {Promise<OptionalContentConfig>} [optionalContentConfigPromise] -
@@ -117,7 +127,7 @@ export class PDFThumbnailView implements IRenderableView {
  *   mode.
  */
 export class TempImageFactory {
-    static "__#36@#tempCanvas": null;
+    static "__#52@#tempCanvas": null;
     static getCanvas(width: any, height: any): (HTMLCanvasElement | CanvasRenderingContext2D | null)[];
     static destroyCanvas(): void;
 }

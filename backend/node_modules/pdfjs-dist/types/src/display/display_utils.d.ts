@@ -55,7 +55,6 @@ export type PageViewportCloneParameters = {
      */
     dontFlip?: boolean | undefined;
 };
-export const AnnotationPrefix: "pdfjs_internal_id_";
 export function deprecated(details: any): void;
 export class DOMCanvasFactory extends BaseCanvasFactory {
     constructor({ ownerDocument }?: {
@@ -75,6 +74,25 @@ export class DOMCMapReaderFactory extends BaseCMapReaderFactory {
         cMapData: any;
         compressionType: any;
     }>;
+}
+/**
+ * FilterFactory aims to create some SVG filters we can use when drawing an
+ * image (or whatever) on a canvas.
+ * Filters aren't applied with ctx.putImageData because it just overwrites the
+ * underlying pixels.
+ * With these filters, it's possible for example to apply some transfer maps on
+ * an image without the need to apply them on the pixel arrays: the renderer
+ * does the magic for us.
+ */
+export class DOMFilterFactory extends BaseFilterFactory {
+    constructor({ docId, ownerDocument }?: {
+        docId: any;
+        ownerDocument?: Document | undefined;
+    });
+    addFilter(maps: any): any;
+    addHCMFilter(fgColor: any, bgColor: any): any;
+    addHighlightHCMFilter(fgColor: any, bgColor: any, newFgColor: any, newBgColor: any): any;
+    #private;
 }
 export class DOMStandardFontDataFactory extends BaseStandardFontDataFactory {
     /**
@@ -123,6 +141,10 @@ export function isValidFetchUrl(url: any, baseUrl: any): boolean;
  * @returns {Promise<void>}
  */
 export function loadScript(src: string, removeScriptElement?: boolean | undefined): Promise<void>;
+/**
+ * Event handler to suppress context menu.
+ */
+export function noContextMenu(e: any): void;
 /**
  * @typedef {Object} PageViewportParameters
  * @property {Array<number>} viewBox - The xMin, yMin, xMax and
@@ -181,12 +203,12 @@ export class PageViewport {
      * converting PDF location into canvas pixel coordinates.
      * @param {number} x - The x-coordinate.
      * @param {number} y - The y-coordinate.
-     * @returns {Object} Object containing `x` and `y` properties of the
+     * @returns {Array} Array containing `x`- and `y`-coordinates of the
      *   point in the viewport coordinate space.
      * @see {@link convertToPdfPoint}
      * @see {@link convertToViewportRectangle}
      */
-    convertToViewportPoint(x: number, y: number): Object;
+    convertToViewportPoint(x: number, y: number): any[];
     /**
      * Converts PDF rectangle to the viewport coordinates.
      * @param {Array} rect - The xMin, yMin, xMax and yMax coordinates.
@@ -200,11 +222,11 @@ export class PageViewport {
      * for converting canvas pixel location into PDF one.
      * @param {number} x - The x-coordinate.
      * @param {number} y - The y-coordinate.
-     * @returns {Object} Object containing `x` and `y` properties of the
+     * @returns {Array} Array containing `x`- and `y`-coordinates of the
      *   point in the PDF coordinate space.
      * @see {@link convertToViewportPoint}
      */
-    convertToPdfPoint(x: number, y: number): Object;
+    convertToPdfPoint(x: number, y: number): any[];
 }
 export class PDFDateString {
     /**
@@ -233,8 +255,7 @@ export class PixelsPerInch {
 declare const RenderingCancelledException_base: any;
 export class RenderingCancelledException extends RenderingCancelledException_base {
     [x: string]: any;
-    constructor(msg: any, type: any, extraDelay?: number);
-    type: any;
+    constructor(msg: any, extraDelay?: number);
     extraDelay: number;
 }
 /**
@@ -253,6 +274,7 @@ export class StatTimer {
 }
 import { BaseCanvasFactory } from "./base_factory.js";
 import { BaseCMapReaderFactory } from "./base_factory.js";
+import { BaseFilterFactory } from "./base_factory.js";
 import { BaseStandardFontDataFactory } from "./base_factory.js";
 import { BaseSVGFactory } from "./base_factory.js";
 export {};

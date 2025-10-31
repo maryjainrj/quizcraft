@@ -3,12 +3,14 @@ export type PageViewport = import("../src/display/display_utils").PageViewport;
 export type AnnotationEditorUIManager = import("../src/display/editor/tools.js").AnnotationEditorUIManager;
 export type TextAccessibilityManager = import("./text_accessibility.js").TextAccessibilityManager;
 export type IL10n = import("./interfaces").IL10n;
+export type AnnotationLayer = import("../src/display/annotation_layer.js").AnnotationLayer;
 export type AnnotationEditorLayerBuilderOptions = {
     uiManager?: import("../src/display/editor/tools.js").AnnotationEditorUIManager | undefined;
     pageDiv: HTMLDivElement;
     pdfPage: PDFPageProxy;
     l10n?: import("./interfaces").IL10n | undefined;
     accessibilityManager?: import("./text_accessibility.js").TextAccessibilityManager | undefined;
+    annotationLayer?: import("../src/display/annotation_layer.js").AnnotationLayer | undefined;
 };
 /**
  * @typedef {Object} AnnotationEditorLayerBuilderOptions
@@ -17,6 +19,7 @@ export type AnnotationEditorLayerBuilderOptions = {
  * @property {PDFPageProxy} pdfPage
  * @property {IL10n} [l10n]
  * @property {TextAccessibilityManager} [accessibilityManager]
+ * @property {AnnotationLayer} [annotationLayer]
  */
 export class AnnotationEditorLayerBuilder {
     /**
@@ -32,7 +35,7 @@ export class AnnotationEditorLayerBuilder {
         get(key: any, args?: null, fallback?: any): Promise<any>;
         translate(element: any): Promise<void>;
     };
-    annotationEditorLayer: any;
+    annotationEditorLayer: AnnotationEditorLayer | null;
     div: HTMLDivElement | null;
     _cancelled: boolean;
     /**
@@ -45,3 +48,4 @@ export class AnnotationEditorLayerBuilder {
     show(): void;
     #private;
 }
+import { AnnotationEditorLayer } from "../src/pdf";

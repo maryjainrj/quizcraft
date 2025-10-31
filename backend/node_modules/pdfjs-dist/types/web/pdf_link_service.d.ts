@@ -51,11 +51,11 @@ export type PDFLinkServiceOptions = {
     ignoreDestinationZoom?: boolean | undefined;
 };
 export namespace LinkTarget {
-    const NONE: number;
-    const SELF: number;
-    const BLANK: number;
-    const PARENT: number;
-    const TOP: number;
+    let NONE: number;
+    let SELF: number;
+    let BLANK: number;
+    let PARENT: number;
+    let TOP: number;
 }
 /**
  * @typedef {Object} PDFLinkServiceOptions
@@ -75,7 +75,7 @@ export namespace LinkTarget {
  * @implements {IPDFLinkService}
  */
 export class PDFLinkService implements IPDFLinkService {
-    static "__#26@#isValidExplicitDestination"(dest: any): boolean;
+    static "__#43@#isValidExplicitDestination"(dest: any): boolean;
     /**
      * @param {PDFLinkServiceOptions} options
      */
@@ -168,14 +168,6 @@ export class PDFLinkService implements IPDFLinkService {
      * @ignore
      */
     _cachedPageNumber(pageRef: any): any;
-    /**
-     * @param {number} pageNumber
-     */
-    isPageVisible(pageNumber: number): any;
-    /**
-     * @param {number} pageNumber
-     */
-    isPageCached(pageNumber: number): any;
     #private;
 }
 /**
@@ -248,12 +240,4 @@ export class SimpleLinkService implements IPDFLinkService {
      * @param {Object} pageRef - reference to the page.
      */
     cachePageRef(pageNum: number, pageRef: Object): void;
-    /**
-     * @param {number} pageNumber
-     */
-    isPageVisible(pageNumber: number): boolean;
-    /**
-     * @param {number} pageNumber
-     */
-    isPageCached(pageNumber: number): boolean;
 }

@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
     "docx": "^9.5.1",
+    "google-auth-library": "^10.4.2",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "pdfjs-dist": "3.4.120",
     "react": "^19.1.1",

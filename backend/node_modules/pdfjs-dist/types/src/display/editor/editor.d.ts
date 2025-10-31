@@ -34,9 +34,43 @@ export type AnnotationEditorParameters = {
  * Base class for editors.
  */
 export class AnnotationEditor {
+    static _borderLineWidth: number;
     static _colorManager: ColorManager;
     static _zIndex: number;
+    static SMALL_EDITOR_SIZE: number;
     static get _defaultLineColor(): any;
+    static deleteAnnotationElement(editor: any): void;
+    /**
+     * Initialize the l10n stuff for this type of editor.
+     * @param {Object} l10n
+     */
+    static initialize(l10n: Object, options?: null): void;
+    /**
+     * Update the default parameters for this type of editor.
+     * @param {number} _type
+     * @param {*} _value
+     */
+    static updateDefaultParams(_type: number, _value: any): void;
+    /**
+     * Get the default properties to set in the UI for this type of editor.
+     * @returns {Array}
+     */
+    static get defaultPropertiesToUpdate(): any[];
+    /**
+     * Check if this kind of editor is able to handle the given mime type for
+     * pasting.
+     * @param {string} mime
+     * @returns {boolean}
+     */
+    static isHandlingMimeForPasting(mime: string): boolean;
+    /**
+     * Extract the data from the clipboard item and delegate the creation of the
+     * editor to the parent.
+     * @param {DataTransferItem} item
+     * @param {AnnotationEditorLayer} parent
+     */
+    static paste(item: DataTransferItem, parent: AnnotationEditorLayer): void;
+    static "__#24@#rotatePoint"(x: any, y: any, angle: any): any[];
     /**
      * Deserialize the editor.
      * The result of the deserialization is a new editor.
@@ -47,11 +81,15 @@ export class AnnotationEditor {
      * @returns {AnnotationEditor}
      */
     static deserialize(data: Object, parent: AnnotationEditorLayer, uiManager: AnnotationEditorUIManager): AnnotationEditor;
+    static get MIN_SIZE(): number;
     /**
      * @param {AnnotationEditorParameters} parameters
      */
     constructor(parameters: AnnotationEditorParameters);
+    _initialOptions: any;
     _uiManager: null;
+    _focusEventsAllowed: boolean;
+    _l10nPromise: null;
     parent: import("./annotation_editor_layer.js").AnnotationEditorLayer;
     id: string;
     width: any;
@@ -59,12 +97,26 @@ export class AnnotationEditor {
     pageIndex: number;
     name: any;
     div: HTMLDivElement | null;
-    rotation: any;
+    annotationElementId: any;
+    _willKeepAspectRatio: boolean;
+    _structTreeParentId: any;
+    rotation: number;
+    pageRotation: number;
     pageDimensions: any[];
     pageTranslation: any[];
     x: number;
     y: number;
     isAttachedToDOM: boolean;
+    deleted: boolean;
+    get editorType(): any;
+    /**
+     * Get the properties to update in the UI for this editor.
+     * @returns {Array}
+     */
+    get propertiesToUpdate(): any[];
+    set _isDraggable(arg: boolean);
+    get _isDraggable(): boolean;
+    center(): void;
     /**
      * Add some commands into the CommandManager (undo/redo stuff).
      * @param {Object} params
@@ -96,13 +148,6 @@ export class AnnotationEditor {
     commit(): void;
     addToAnnotationStorage(): void;
     /**
-     * We use drag-and-drop in order to move an editor on a page.
-     * @param {DragEvent} event
-     */
-    dragstart(event: DragEvent): void;
-    startX: number | undefined;
-    startY: number | undefined;
-    /**
      * Set the editor position within its parent.
      * @param {number} x
      * @param {number} y
@@ -117,13 +162,28 @@ export class AnnotationEditor {
      */
     translate(x: number, y: number): void;
     /**
+     * Translate the editor position within its page and adjust the scroll
+     * in order to have the editor in the view.
+     * @param {number} x - x-translation in page coordinates.
+     * @param {number} y - y-translation in page coordinates.
+     */
+    translateInPage(x: number, y: number): void;
+    drag(tx: any, ty: any): void;
+    fixAndSetPosition(): void;
+    /**
      * Convert a screen translation into a page one.
      * @param {number} x
      * @param {number} y
      */
-    screenToPageTranslation(x: number, y: number): number[];
+    screenToPageTranslation(x: number, y: number): any[];
+    /**
+     * Convert a page translation into a screen one.
+     * @param {number} x
+     * @param {number} y
+     */
+    pageTranslationToScreen(x: number, y: number): any[];
     get parentScale(): any;
-    get parentRotation(): any;
+    get parentRotation(): number;
     get parentDimensions(): number[];
     /**
      * Set the dimensions of this editor.
@@ -137,6 +197,16 @@ export class AnnotationEditor {
      * @returns {Array<number>}
      */
     getInitialTranslation(): Array<number>;
+    addAltTextButton(): Promise<void>;
+    getClientDimensions(): DOMRect;
+    set altTextData(arg: {
+        altText: string;
+        decorative: boolean;
+    });
+    get altTextData(): {
+        altText: string;
+        decorative: boolean;
+    };
     /**
      * Render this editor in a div.
      * @returns {HTMLDivElement}
@@ -147,6 +217,11 @@ export class AnnotationEditor {
      * @param {PointerEvent} event
      */
     pointerdown(event: PointerEvent): void;
+    moveInDOM(): void;
+    _setParentAndPosition(parent: any, x: any, y: any): void;
+    /**
+     * Convert the current rect into a page one.
+     */
     getRect(tx: any, ty: any): any[];
     getRectInCurrentCoords(rect: any, pageHeight: any): any[];
     /**
@@ -194,13 +269,23 @@ export class AnnotationEditor {
      * new annotation to add to the pdf document.
      *
      * To implement in subclasses.
+     * @param {boolean} isForCopying
+     * @param {Object} [context]
      */
-    serialize(): void;
+    serialize(isForCopying?: boolean, context?: Object | undefined): void;
     /**
      * Remove this editor.
      * It's used on ctrl+backspace action.
      */
     remove(): void;
+    /**
+     * @returns {boolean} true if this editor can be resized.
+     */
+    get isResizable(): boolean;
+    /**
+     * Add the resizers to this editor.
+     */
+    makeResizable(): void;
     /**
      * Select this editor.
      */
@@ -226,10 +311,9 @@ export class AnnotationEditor {
      */
     enableEditing(): void;
     /**
-     * Get some properties to update in the UI.
-     * @returns {Object}
+     * The editor is about to be edited.
      */
-    get propertiesToUpdate(): Object;
+    enterInEditMode(): void;
     /**
      * Get the div which really contains the displayed content.
      */
@@ -244,6 +328,12 @@ export class AnnotationEditor {
      * @type {boolean}
      */
     get isEditing(): boolean;
+    /**
+     * Set the aspect ratio to use when resizing.
+     * @param {number} width
+     * @param {number} height
+     */
+    setAspectRatio(width: number, height: number): void;
     #private;
 }
 import { ColorManager } from "./tools.js";

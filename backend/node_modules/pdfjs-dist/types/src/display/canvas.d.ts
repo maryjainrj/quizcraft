@@ -1,5 +1,5 @@
 export class CanvasGraphics {
-    constructor(canvasCtx: any, commonObjs: any, objs: any, canvasFactory: any, { optionalContentConfig, markedContentStack }: {
+    constructor(canvasCtx: any, commonObjs: any, objs: any, canvasFactory: any, filterFactory: any, { optionalContentConfig, markedContentStack }: {
         optionalContentConfig: any;
         markedContentStack?: null | undefined;
     }, annotationCanvasMap: any, pageColors: any);
@@ -13,6 +13,7 @@ export class CanvasGraphics {
     commonObjs: any;
     objs: any;
     canvasFactory: any;
+    filterFactory: any;
     groupStack: any[];
     processingType3: any;
     baseTransform: any;
@@ -31,9 +32,8 @@ export class CanvasGraphics {
     viewportScale: number;
     outputScaleX: number;
     outputScaleY: number;
-    backgroundColor: any;
-    foregroundColor: any;
-    _cachedScaleForStroking: number[] | null;
+    pageColors: any;
+    _cachedScaleForStroking: number[];
     _cachedGetSinglePixelWidth: number | null;
     _cachedBitmapsMap: Map<any, any>;
     getObject(data: any, fallback?: null): any;
@@ -43,7 +43,6 @@ export class CanvasGraphics {
         transparency?: boolean | undefined;
         background?: null | undefined;
     }): void;
-    selectColor: ((r: any, g: any, b: any) => any) | undefined;
     compositeCtx: any;
     transparentCanvas: any;
     executeOperatorList(operatorList: any, executionStartIdx: any, continueCallback: any, stepper: any): any;
@@ -110,7 +109,6 @@ export class CanvasGraphics {
     setTextMatrix(a: any, b: any, c: any, d: any, e: any, f: any): void;
     nextLine(): void;
     paintChar(character: any, x: any, y: any, patternTransform: any): void;
-    pendingTextPaths: any[] | undefined;
     get isFontSubpixelAAEnabled(): any;
     showText(glyphs: any): void;
     showType3Text(glyphs: any): void;
@@ -137,6 +135,8 @@ export class CanvasGraphics {
     paintImageMaskXObjectGroup(images: any): void;
     paintImageXObject(objId: any): void;
     paintImageXObjectRepeat(objId: any, scaleX: any, scaleY: any, positions: any): void;
+    applyTransferMapsToCanvas(ctx: any): any;
+    applyTransferMapsToBitmap(imgData: any): any;
     paintInlineImageXObject(imgData: any): void;
     paintInlineImageXObjectGroup(imgData: any, map: any): void;
     paintSolidColorImageMask(): void;
@@ -179,7 +179,7 @@ declare class CanvasExtraState {
     strokeAlpha: number;
     lineWidth: number;
     activeSMask: any;
-    transferMaps: any;
+    transferMaps: string;
     clone(): any;
     setCurrentPoint(x: any, y: any): void;
     updatePathMinMax(transform: any, x: any, y: any): void;

@@ -189,3 +189,24 @@ text-align: left;
     min-height: 100vh;
   }
 }
+/* Inline field error (keeps layout intact) */
+/* Inline field error (keeps layout intact) */
+.field-error {
+  color: #d00000;
+  font-size: 0.85rem;
+  text-align: left;
+  margin-top: -0.5rem;
+}
+
+/* Compact global error box above the form (if not already present) */
+.auth-error {
+  color: #d00000;
+  background: #ffecec;
+  border: 1px solid #ffb4b4;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 0.8rem;
+  text-align: left;
+}
+
+

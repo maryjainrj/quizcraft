@@ -1,36 +1,34 @@
 export class FontFaceObject {
-    constructor(translatedData: any, { isEvalSupported, disableFontFace, ignoreErrors, onUnsupportedFeature, fontRegistry, }: {
+    constructor(translatedData: any, { isEvalSupported, disableFontFace, ignoreErrors, inspectFont, }: {
         isEvalSupported?: boolean | undefined;
         disableFontFace?: boolean | undefined;
         ignoreErrors?: boolean | undefined;
-        onUnsupportedFeature: any;
-        fontRegistry?: null | undefined;
+        inspectFont?: null | undefined;
     });
     compiledGlyphs: any;
     isEvalSupported: boolean;
     disableFontFace: boolean;
     ignoreErrors: boolean;
-    _onUnsupportedFeature: any;
-    fontRegistry: any;
+    _inspectFont: any;
     createNativeFontFace(): FontFace | null;
     createFontFaceRule(): string | null;
     getPathGenerator(objs: any, character: any): any;
 }
 export class FontLoader {
-    constructor({ onUnsupportedFeature, ownerDocument, styleElement, }: {
-        onUnsupportedFeature: any;
+    constructor({ ownerDocument, styleElement, }: {
         ownerDocument?: Document | undefined;
         styleElement?: null | undefined;
     });
-    _onUnsupportedFeature: any;
     _document: Document;
-    nativeFontFaces: any[];
+    nativeFontFaces: Set<any>;
     styleElement: HTMLStyleElement | null;
     loadingRequests: any[] | undefined;
     loadTestFontId: number | undefined;
     addNativeFontFace(nativeFontFace: any): void;
+    removeNativeFontFace(nativeFontFace: any): void;
     insertRule(rule: any): void;
     clear(): void;
+    loadSystemFont(info: any): Promise<void>;
     bind(font: any): Promise<void>;
     get isFontLoadingAPISupported(): any;
     get isSyncFontLoadingSupported(): any;
@@ -41,4 +39,5 @@ export class FontLoader {
     };
     get _loadTestFont(): any;
     _prepareFontLoadEvent(font: any, request: any): void;
+    #private;
 }
