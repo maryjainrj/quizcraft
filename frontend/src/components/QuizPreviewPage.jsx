@@ -1,5 +1,5 @@
 // src/pages/QuizPreviewPage.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp } from "react-icons/fi";
 
@@ -10,13 +10,20 @@ const QuizPreviewPage = () => {
 
   const { questions = [], fileNames = [], settings = {} } = state || {};
 
+  // Save to localStorage
+  useEffect(() => {
+    if (questions.length > 0) {
+      localStorage.setItem("lastQuiz", JSON.stringify({ questions, fileNames, settings }));
+    }
+  }, [questions, fileNames, settings]);
+
   if (!questions.length) {
     return (
       <div className="p-6 text-center">
         <p className="text-red-600 mb-4">No quiz generated yet.</p>
         <button
           onClick={() => navigate("/dashboard/new/upload")}
-          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition"
+          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
         >
           Back to Upload
         </button>
@@ -24,7 +31,6 @@ const QuizPreviewPage = () => {
     );
   }
 
-  // Get unique question types in the quiz
   const uniqueTypes = [...new Set(questions.map(q => q.type))];
   const typeLabels = {
     'multiple-choice': 'Multiple Choice',
@@ -42,7 +48,6 @@ const QuizPreviewPage = () => {
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
 
-      {/* Available Questions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Questions</h2>
         <div className="space-y-4">
@@ -52,8 +57,7 @@ const QuizPreviewPage = () => {
               <div className="flex-1">
                 <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">{q.question}</p>
 
-                {/* Multiple Choice Options */}
-                {q.type === "multiple-choice" && q.options && q.options.length > 0 && (
+                {q.type === "multiple-choice" && q.options && (
                   <ul className="space-y-2 text-sm text-gray-700">
                     {q.options.map((opt, idx) => {
                       const letter = String.fromCharCode(65 + idx);
@@ -67,7 +71,6 @@ const QuizPreviewPage = () => {
                   </ul>
                 )}
 
-                {/* True/False Options - LARGER RADIO BUTTONS - LEFT ALIGNED */}
                 {q.type === "true-false" && (
                   <div className="flex justify-start gap-8 mt-4 mb-2">
                     <label className="flex items-center gap-3 cursor-pointer group py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
@@ -85,7 +88,6 @@ const QuizPreviewPage = () => {
                   </div>
                 )}
 
-                {/* Fill in the Blank */}
                 {q.type === "fill-in-blank" && (
                   <div className="ml-6 mt-2">
                     <div className="w-full max-w-md h-10 border-2 border-dashed border-gray-300 rounded-md bg-gray-50 relative">
@@ -96,7 +98,6 @@ const QuizPreviewPage = () => {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-2 flex-shrink-0">
                 <button className="text-blue-600 hover:text-blue-800 transition p-2 rounded hover:bg-blue-50">
                   <FiEdit2 size={18} />
@@ -110,7 +111,6 @@ const QuizPreviewPage = () => {
         </div>
       </div>
 
-      {/* View Answers */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <button
           onClick={() => setShowAnswers(!showAnswers)}
@@ -124,22 +124,12 @@ const QuizPreviewPage = () => {
           <div className="mt-4 space-y-3 border-t border-gray-200 pt-4">
             {questions.map((q, i) => {
               let answerText = "";
-
               if (q.type === "multiple-choice") {
-                if (q.correctAnswer && q.options) {
-                  const correctIdx = q.options.findIndex(
-                    (_, idx) => String.fromCharCode(65 + idx) === q.correctAnswer
-                  );
-                  if (correctIdx >= 0) {
-                    answerText = `${q.correctAnswer}) ${q.options[correctIdx]}`;
-                  } else {
-                    const textIdx = q.options.findIndex(opt => opt === q.correctAnswer);
-                    if (textIdx >= 0) {
-                      answerText = `${String.fromCharCode(65 + textIdx)}) ${q.correctAnswer}`;
-                    } else {
-                      answerText = q.correctAnswer;
-                    }
-                  }
+                const correctIdx = q.options?.findIndex(
+                  (_, idx) => String.fromCharCode(65 + idx) === q.correctAnswer
+                );
+                if (correctIdx >= 0) {
+                  answerText = `${q.correctAnswer}) ${q.options[correctIdx]}`;
                 } else {
                   answerText = q.correctAnswer || "Not specified";
                 }
@@ -162,7 +152,6 @@ const QuizPreviewPage = () => {
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="mt-6 flex justify-end gap-3">
         <button
           onClick={() => navigate("/dashboard/new/upload")}
@@ -170,8 +159,11 @@ const QuizPreviewPage = () => {
         >
           Back
         </button>
-        <button className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5">
-          Save Quiz
+        <button
+          onClick={() => {}}
+          className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5"
+        >
+         Save Quiz
         </button>
       </div>
     </div>

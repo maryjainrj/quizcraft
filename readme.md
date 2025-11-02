@@ -60,6 +60,8 @@
    npm install lucide-react
    npm install -D tailwindcss postcss autoprefixer
    npx tailwindcss init -p
+   npm i jspdf html2canvas
+   npm install jspdf
 
    ## tail wind integration ##########
 cd client

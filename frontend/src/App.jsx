@@ -15,6 +15,8 @@ import QuizList from './components/QuizList'; // Added: For dashboard index rout
 import SourceSelect from './components/SourceSelect'; // Added: For /dashboard/new route
 import UploadFiles from './components/UploadFiles'; // Added: For /dashboard/new/upload route
 import QuizPreviewPage from "./components/QuizPreviewPage";; // Added: For /dashboard/quiz-preview route
+import ExportQuizPage from "./components/ExportQuizPage";
+import ShareQuizPage from "./components/ShareQuizPage";
 function App() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -165,6 +167,8 @@ function App() {
         <Route path="new" element={<SourceSelect />} />
         <Route path="new/upload" element={<UploadFiles />} />
         <Route path="quiz-preview" element={<QuizPreviewPage />} /> {/* Fixed */}
+        <Route path="exportquiz" element={<ExportQuizPage />} />
+        <Route path="sharequiz" element={<ShareQuizPage />} />
         {/* Add more dashboard pages here */}
       </Route>
 

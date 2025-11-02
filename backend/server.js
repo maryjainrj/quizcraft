@@ -505,7 +505,24 @@ try {
 } catch (e) {
   console.log('GraphQL files not found or failed to load. Skipping /graphql mount.');
 }
+// Add this route in server.js (after other routes)
 
+app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+
+    const filePath = req.file.path;
+    const publicUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${req.file.filename}`;
+
+    // Optional: Save to DB later
+    // await QuizShare.create({ url: publicUrl, type: req.body.type, userId: req.user?.id });
+
+    res.json({ url: publicUrl });
+  } catch (err) {
+    console.error('PDF upload error:', err);
+    res.status(500).json({ error: 'Failed to upload PDF' });
+  }
+});
 // ---------- Error handling ----------
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
@@ -513,6 +530,7 @@ app.use((error, req, res, next) => {
   }
   res.status(500).json({ error: error.message || 'Server error' });
 });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ---------- Start ----------
 app.listen(PORT, () => {
