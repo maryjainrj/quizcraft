@@ -404,3 +404,32 @@
 @media (max-width: 600px) {
   .flow__actions { flex-direction: column; }
 }
+
+/* Paste Text zone (reuses dropzone look) */
+.paste-zone { margin-top: 1rem; }
+
+.paste-textarea {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-radius: 12px;
+  border: 1.5px solid #CFCFE6;
+  padding: 0.9rem 1rem;
+  font-size: 0.98rem;
+  resize: vertical;
+  min-height: 160px;
+  outline: none;
+  background: #fff;
+}
+
+.paste-textarea:focus {
+  border-color: #40189D;
+  box-shadow: 0 0 0 3px rgba(64, 24, 157, 0.12);
+}
+
+.paste-meta {
+  margin-top: 0.45rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #808080;
+}
