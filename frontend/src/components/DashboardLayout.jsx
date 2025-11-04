@@ -4,6 +4,12 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import "./Auth.css";
 import quizcraftwhite from "../assets/quizcraftwhite.png";
+import dashboardImgPurple from "../assets/dashboardImgPurple.png";
+import dashboardImgWhite from "../assets/dashboardImgWhite.png";
+import exportQuizPurple from "../assets/exportQuizPurple.png";
+import exportQuizWhite from "../assets/exportQuizWhite.png";
+import shareQuizPurple from "../assets/shareQuizPurple.png";
+import shareQuizWhite from "../assets/shareQuizWhite.png";
 import { FaSearch, FaChevronDown } from "react-icons/fa";
 
 const getDisplayName = () => {
@@ -37,6 +43,11 @@ const DashboardLayout = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  const isDashboard = location.pathname === "/dashboard";
+  const isShare = location.pathname.startsWith("/dashboard/sharequiz");
+  const isExport = location.pathname.startsWith("/dashboard/exportquiz");
+
+
   return (
     <div className="dashboard-page">
       <aside className="dashboard-sidebar">
@@ -45,25 +56,40 @@ const DashboardLayout = () => {
         </div>
         <nav className="sidebar-nav">
           <Link
-            to="/dashboard"
-            className={`nav-btn ${location.pathname === "/dashboard" ? "active" : ""}`}
-          >
-            Dashboard
+              to="/dashboard"
+              className={`nav-btn ${location.pathname === "/dashboard" ? "active" : ""}`}
+            >
+            <img
+              className="nav-icon"
+              src={isDashboard ? dashboardImgPurple : dashboardImgWhite}
+              alt=""
+            />
+            <span>Dashboard</span>
           </Link>
           
-        <Link
-           to="/dashboard/sharequiz"
-           className={`nav-btn ${location.pathname.startsWith("/dashboard/sharequiz") ? "active" : ""}`}
-    >
-        Share Quiz
-  </Link>
+          <Link
+            to="/dashboard/sharequiz"
+            className={`nav-btn ${isShare ? "active" : ""}`}
+          >
+            <img
+              className="nav-icon"
+              src={isShare ? shareQuizPurple : shareQuizWhite}
+              alt=""
+            />
+            <span>Share Quiz</span>
+          </Link>
           <Link
             to="/dashboard/exportquiz"
-            className={`nav-btn ${location.pathname.startsWith("/dashboard/exportquiz") ? "active" : ""}`}
+            className={`nav-btn ${isExport ? "active" : ""}`}
           >
-            Export Quiz
+            <img
+              className="nav-icon"
+              src={isExport ? exportQuizPurple : exportQuizWhite}
+              alt=""
+            />
+            <span>Export Quiz</span>
           </Link>
-        </nav>
+        </nav>  
       </aside>
 
       <div className="dashboard-main">
