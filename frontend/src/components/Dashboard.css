@@ -433,3 +433,105 @@
   align-items: center;
   color: #808080;
 }
+
+
+/* ==== Additions START (append to end of file) ==== */
+
+/* Drag & drop: active highlight */
+.upload-dropzone.active {
+  border-color: #40189D;
+  background: #faf9ff;
+  box-shadow: 0 0 0 3px rgba(64, 24, 157, 0.08);
+}
+
+/* Make source cards selectable and show selection */
+.source-card.selectable {
+  appearance: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.12s ease;
+}
+.source-card.selectable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+.source-card.selectable.active {
+  outline: 3px solid rgba(64, 24, 157, 0.18);
+  box-shadow: 0 12px 26px rgba(64, 24, 157, 0.14);
+}
+
+/* Link-style small button (used for "Clear text") */
+.link-btn {
+  background: none;
+  border: none;
+  color: #40189D;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Generic small button (used for "Clear All") */
+.btn {
+  background: #fff;
+  color: #04103B;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: #f9fafb; }
+
+/* Progress bar (file processing) */
+.progress-container { max-width: 680px; margin: 0.9rem auto 0; }
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #40189D;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 10px;
+  text-align: center;
+}
+
+/* Informational callout */
+.info-message {
+  max-width: 680px;
+  margin: 0.75rem auto;
+  padding: 0.75rem 1rem;
+  background: #f6f6fb;
+  border: 1px solid #e6e6f8;
+  color: #40189D;
+  border-radius: 0.5rem;
+}
+
+/* File item remove button (right side) */
+.file-item { position: relative; }
+
+/* If you add className="remove-btn" to the Remove button, it will use these styles: */
+.file-item .remove-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #b42318;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+}
+.file-item .remove-btn:hover { background: #fff5f5; }
+
+/* Paste zone tweaks on small screens */
+@media (max-width: 600px) {
+  .paste-textarea { min-height: 140px; }
+}
+
