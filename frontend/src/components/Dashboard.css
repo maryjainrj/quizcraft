@@ -346,7 +346,7 @@
 
 /* Empty state */
 .empty-state { text-align: center; max-width: 560px; margin: 0 auto; }
-.empty-state__img { display: block; margin: 0 auto 0.75rem; width: 220px; max-width: 60%; height: auto; }
+.empty-state__img { width: 220px; max-width: 60%; height: auto;  margin: 0 auto; margin-bottom: 0.75rem;}
 .empty-state__title { color: #04103B; margin-bottom: 0.25rem; }
 .empty-state__desc { color: #808080; margin-bottom: 1rem; }
 

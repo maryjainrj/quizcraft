@@ -1,3 +1,4 @@
+// src/components/UploadFiles.jsx - Pass extractedTexts to preview
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizSettingsModal from "../components/QuizSettingsModal";
@@ -22,11 +23,11 @@ export default function UploadFiles() {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState("");
 
-  // settings modal
+  // Modal visibility + settings state
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
     language: "english",
-    type: ["mcq"], // ['mcq','tf','fill']
+    type: ["mcq"],
     difficulty: "medium",
     count: 5,
   });
@@ -248,7 +249,7 @@ export default function UploadFiles() {
         {!!files.length && <button className="btn" onClick={handleClearAll}>Clear All</button>}
       </div>
 
-      {/* Settings modal */}
+      {/* Quiz Settings Modal */}
       <QuizSettingsModal
         open={showSettings}
         values={settings}
@@ -283,9 +284,13 @@ export default function UploadFiles() {
             navigate("/dashboard/quiz-preview", {
               state: {
                 questions: allQuestions,
-                fileNames: files.map((f) => f.name),
-                pasted: false,
-                settings: { questionTypes: selectedTypes, difficulty: vals.difficulty, count: vals.count },
+                fileNames: files.map(f => f.name),
+                extractedTexts: extractedTexts, // PASS THIS
+                settings: {
+                  questionTypes: selectedTypes,
+                  difficulty: vals.difficulty,
+                  count: vals.count,
+                },
               },
             });
           } catch (e) {
