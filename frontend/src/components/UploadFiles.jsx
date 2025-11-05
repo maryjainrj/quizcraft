@@ -14,7 +14,7 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const UploadFiles = () => {
+export default function UploadFiles() {
   const navigate = useNavigate();
   const { search } = useLocation();
   const params = new URLSearchParams(search);
@@ -32,49 +32,45 @@ const UploadFiles = () => {
     count: 5,
   });
 
-  // File upload / OCR states
+  // upload/extraction state
   const [extractedTexts, setExtractedTexts] = useState({});
   const [previews, setPreviews] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [extractionError, setExtractionError] = useState('');
+  const [extractionError, setExtractionError] = useState("");
   const [fileInfos, setFileInfos] = useState({});
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Quiz generation states
-  const [generatedQuiz, setGeneratedQuiz] = useState([]);
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [quizError, setQuizError] = useState("");
-
-  // Extract text from PDF client-side
   const extractTextFromPdfClient = async (file) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf');
+      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
-      let fullText = '';
+      let fullText = "";
       for (let i = 1; i <= pdf.numPages; i++) {
         try {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const strings = content.items.map((it) => it.str || '').join(' ');
-          fullText += '\n--- Page ' + i + ' ---\n' + strings;
-        } catch (e) {
-          // ignore page errors
-        }
+          const strings = content.items.map((it) => it.str || "").join(" ");
+          fullText += "\n--- Page " + i + " ---\n" + strings;
+        } catch {}
       }
       return fullText.trim();
-    } catch (err) {
-      console.error('Client PDF extraction failed:', err);
-      return '';
+    } catch {
+      return "";
     }
   };
 
-  // Handle file selection with validation
   const handleFileSelect = (selectedFiles) => {
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/bmp', 'image/webp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain'];
+    const allowedTypes = [
+      "application/pdf",
+      "image/png", "image/jpeg", "image/jpg", "image/bmp", "image/webp",
+      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "text/plain",
+    ];
     const newFiles = Array.from(selectedFiles || []);
     const validationErrors = [];
 
@@ -87,135 +83,92 @@ const UploadFiles = () => {
       }
     });
 
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join('\n'));
+    if (validationErrors.length) {
+      setError(validationErrors.join("\n"));
       return;
     }
 
-    setError('');
+    setError("");
     setFiles(newFiles);
 
-    // Set previews and file info
     newFiles.forEach((file) => {
       const fileName = file.name;
-      setFileInfos(prev => ({ ...prev, [fileName]: {
-        name: file.name,
-        size: formatSize(file.size),
-        type: file.type
-      } }));
+      setFileInfos((prev) => ({
+        ...prev,
+        [fileName]: { name: file.name, size: formatSize(file.size), type: file.type },
+      }));
 
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith("image/")) {
         const reader = new FileReader();
-        reader.onload = (e) => setPreviews(prev => ({ ...prev, [fileName]: e.target.result }));
+        reader.onload = (e) => setPreviews((p) => ({ ...p, [fileName]: e.target.result }));
         reader.readAsDataURL(file);
-      } else if (file.type === 'application/pdf') {
-        setPreviews(prev => ({ ...prev, [fileName]: 'pdf' }));
+      } else if (file.type === "application/pdf") {
+        setPreviews((p) => ({ ...p, [fileName]: "pdf" }));
       } else {
-        setPreviews(prev => ({ ...prev, [fileName]: null }));
+        setPreviews((p) => ({ ...p, [fileName]: null }));
       }
     });
   };
 
-  const onFiles = useCallback((fileList) => {
-    handleFileSelect(fileList);
-  }, []);
+  const onFiles = useCallback((fileList) => handleFileSelect(fileList), []);
+  const onDrop = (e) => { e.preventDefault(); setIsDragActive(false); if (e.dataTransfer.files?.length) onFiles(e.dataTransfer.files); };
+  const onBrowse = (e) => onFiles(e.target.files);
+  const onDragOver = (e) => { e.preventDefault(); setIsDragActive(true); };
+  const onDragLeave = (e) => { e.preventDefault(); setIsDragActive(false); };
 
-  // Drag and drop handlers
-  const onDrop = (e) => {
-    e.preventDefault();
-    setIsDragActive(false);
-    if (e.dataTransfer.files?.length) {
-      onFiles(e.dataTransfer.files);
-    }
-  };
-
-  const onBrowse = (e) => {
-    onFiles(e.target.files);
-  };
-
-  const onDragOver = (e) => {
-    e.preventDefault();
-    setIsDragActive(true);
-  };
-
-  const onDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragActive(false);
-  };
-
-  // Extract text for all selected files
   const handleExtractText = async () => {
-    if (!files.length) {
-      setExtractionError('Please select files first');
-      return;
-    }
-
+    if (!files.length) { setExtractionError("Please select files first"); return; }
     setIsProcessing(true);
     setProgress(0);
-    setExtractionError('');
+    setExtractionError("");
     const newExtractedTexts = { ...extractedTexts };
-
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileName = file.name;
         setProgress(((i / files.length) * 100));
 
-        if (file.type === 'application/pdf') {
+        if (file.type === "application/pdf") {
           const clientText = await extractTextFromPdfClient(file);
-          if (clientText && clientText.trim()) {
-            newExtractedTexts[fileName] = clientText;
-            continue;
-          }
+          if (clientText?.trim()) { newExtractedTexts[fileName] = clientText; continue; }
         }
 
         const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('http://localhost:5000/api/upload', {
-          method: 'POST',
-          body: fd,
-        });
+        fd.append("file", file);
+        const res = await fetch("http://localhost:5000/api/upload", { method: "POST", body: fd });
         const data = await res.json();
-        if (res.ok && data.success) {
-          newExtractedTexts[fileName] = data.text || '';
-        } else {
-          setExtractionError(`Failed to extract text from ${fileName}: ${data.error || data.message || 'Unknown error'}`);
-        }
+        if (res.ok && data.success) newExtractedTexts[fileName] = data.text || "";
+        else setExtractionError(`Failed to extract text from ${fileName}: ${data.error || data.message || "Unknown error"}`);
       }
       setExtractedTexts(newExtractedTexts);
       setProgress(100);
     } catch (e) {
-      setExtractionError(e.message || 'Extraction failed');
+      setExtractionError(e.message || "Extraction failed");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Auto-extract text when files are selected
   useEffect(() => {
     if (files.length > 0 && Object.keys(extractedTexts).length === 0 && !isProcessing) {
       handleExtractText();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
 
-  // Clear extraction
   const handleClearFile = (fileName) => {
-    setExtractedTexts(prev => { const newTexts = { ...prev }; delete newTexts[fileName]; return newTexts; });
-    setPreviews(prev => { const newPreviews = { ...prev }; delete newPreviews[fileName]; return newPreviews; });
-    setFileInfos(prev => { const newInfo = { ...prev }; delete newInfo[fileName]; return newInfo; });
-    setFiles(prev => prev.filter(f => f.name !== fileName));
+    setExtractedTexts((prev) => { const n = { ...prev }; delete n[fileName]; return n; });
+    setPreviews((prev) => { const n = { ...prev }; delete n[fileName]; return n; });
+    setFileInfos((prev) => { const n = { ...prev }; delete n[fileName]; return n; });
+    setFiles((prev) => prev.filter((f) => f.name !== fileName));
+  };
+  const handleClearAll = () => {
+    setFiles([]); setExtractedTexts({}); setPreviews({});
+    setFileInfos({}); setExtractionError(""); setProgress(0);
+    setIsDragActive(false);
   };
 
-  const handleClearAll = () => {
-    setFiles([]);
-    setExtractedTexts({});
-    setPreviews({});
-    setFileInfos({});
-    setExtractionError('');
-    setProgress(0);
-    setIsDragActive(false);
-    setGeneratedQuiz([]);
-  };
+  const uploadsReady = !!files.length && !isProcessing && Object.keys(extractedTexts).length >= files.length;
 
   return (
     <section className="flow">
@@ -226,7 +179,7 @@ const UploadFiles = () => {
 
       {/* Dropzone */}
       <div
-        className={`upload-dropzone ${isDragActive ? 'active' : ''}`}
+        className={`upload-dropzone ${isDragActive ? "active" : ""}`}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -235,7 +188,10 @@ const UploadFiles = () => {
         onClick={() => fileInputRef.current?.click()}
       >
         <p className="upload-dropzone__title">
-          Drag your file(s) or <label htmlFor="file" className="browse-link" onClick={(e) => e.stopPropagation()}>browse</label>
+          Drag your file(s) or{" "}
+          <label htmlFor="file" className="browse-link" onClick={(e) => e.stopPropagation()}>
+            browse
+          </label>
         </p>
         <p className="upload-dropzone__hint">Max {MAX_MB} MB files are allowed (PDF, images, DOC, PPT, TXT)</p>
         <input
@@ -251,37 +207,34 @@ const UploadFiles = () => {
 
       {error && <div className="alert error">{error}</div>}
 
-      {/* File list */}
       {!!files.length && (
         <ul className="file-list">
           {files.map((f) => (
             <li key={f.name} className="file-item">
               <span className="file-item__name">{f.name}</span>
               <span className="file-item__size">{formatSize(f.size)}</span>
-              {previews[f.name] && previews[f.name] !== 'pdf' && (
-                <img src={previews[f.name]} alt="Preview" style={{ maxWidth: '50px', maxHeight: '50px' }} />
+              {previews[f.name] && previews[f.name] !== "pdf" && (
+                <img src={previews[f.name]} alt="Preview" style={{ maxWidth: "50px", maxHeight: "50px" }} />
               )}
-              {previews[f.name] === 'pdf' && <span>PDF</span>}
-              <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: 'auto' }}>Remove</button>
+              {previews[f.name] === "pdf" && <span>PDF</span>}
+              <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: "auto" }}>
+                Remove
+              </button>
             </li>
           ))}
         </ul>
       )}
 
-      {/* Auto-extraction progress */}
       {isProcessing && (
         <div className="progress-container">
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }}>
-              {progress}%
-            </div>
+            <div className="progress-fill" style={{ width: `${progress}%` }}>{progress}%</div>
           </div>
           <p>Processing files...</p>
         </div>
       )}
       {extractionError && <div className="alert error">{extractionError}</div>}
 
-      {/* Post-file selection message */}
       {!!files.length && !isProcessing && Object.keys(extractedTexts).length === files.length && (
         <div className="info-message">
           <p>Files added successfully. Click "Create New Quiz" to generate your quiz.</p>
@@ -289,14 +242,8 @@ const UploadFiles = () => {
       )}
 
       <div className="flow__actions">
-        <button className="secondary-btn" onClick={() => navigate("/dashboard/new")}>
-          Back
-        </button>
-        <button 
-          className="primary-btn"
-          disabled={!files.length || isProcessing || Object.keys(extractedTexts).length < files.length}
-          onClick={() => setShowSettings(true)}
-        >
+        <button className="secondary-btn" onClick={() => navigate("/dashboard/new")}>Back</button>
+        <button className="primary-btn" disabled={!uploadsReady} onClick={() => setShowSettings(true)}>
           Create New Quiz
         </button>
         {!!files.length && <button className="btn" onClick={handleClearAll}>Clear All</button>}
@@ -310,50 +257,29 @@ const UploadFiles = () => {
         onClose={() => setShowSettings(false)}
         onCreate={async (vals) => {
           setShowSettings(false);
-          setQuizLoading(true);
-          setQuizError("");
-
           try {
             const allTexts = Object.values(extractedTexts).join("\n\n---\n\n");
-            
-            // Handle multiple question types
             const selectedTypes = Array.isArray(vals.type) ? vals.type : [vals.type];
-            const questionsPerType = Math.ceil(vals.count / selectedTypes.length);
-            
+            const perType = Math.ceil(vals.count / selectedTypes.length);
             let allQuestions = [];
-            
-            // Generate questions for each selected type
-            for (const type of selectedTypes) {
-              const questionType = 
-                type === "mcq" ? "multiple-choice" :
-                type === "tf" ? "true-false" :
-                "fill-in-blank";
-              
-              const { questions: rawQuestions } = await generateQuiz(allTexts, {
-                questionCount: questionsPerType,
-                questionType: questionType,
+
+            for (const t of selectedTypes) {
+              const questionType = t === "mcq" ? "multiple-choice" : t === "tf" ? "true-false" : "fill-in-blank";
+              const { questions: raw } = await generateQuiz(allTexts, {
+                questionCount: perType,
+                questionType,
                 difficulty: vals.difficulty,
                 language: vals.language,
               });
-              
-              // Process questions with proper type and shuffle MCQ options
-              const processedQuestions = rawQuestions.map((q) => {
-                const question = { ...q, type: questionType };
-                
-                if (questionType === "multiple-choice" && question.options?.length > 0) {
-                  return shuffleOptions(question);
-                }
-                return question;
+              const processed = raw.map((q) => {
+                const base = { ...q, type: questionType };
+                if (questionType === "multiple-choice" && base.options?.length > 0) return shuffleOptions(base);
+                return base;
               });
-              
-              allQuestions = [...allQuestions, ...processedQuestions];
+              allQuestions = [...allQuestions, ...processed];
             }
-            
-            // Shuffle mix and trim to exact count
-            allQuestions = allQuestions
-              .sort(() => Math.random() - 0.5)
-              .slice(0, vals.count)
-              .map((q, idx) => ({ ...q, id: idx + 1 }));
+
+            allQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, vals.count).map((q, i) => ({ ...q, id: i + 1 }));
 
             navigate("/dashboard/quiz-preview", {
               state: {
@@ -368,26 +294,10 @@ const UploadFiles = () => {
               },
             });
           } catch (e) {
-            setQuizError(e.message || "Failed to generate quiz");
-          } finally {
-            setQuizLoading(false);
+            alert(e.message || "Failed to generate quiz");
           }
         }}
       />
-
-      {quizLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <p className="text-lg font-semibold">Generating quiz...</p>
-          </div>
-        </div>
-      )}
-
-      {quizError && (
-        <div className="alert error mt-4">{quizError}</div>
-      )}
     </section>
   );
-};
-
-export default UploadFiles;
+}
