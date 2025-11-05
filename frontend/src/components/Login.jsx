@@ -94,7 +94,12 @@ const Login = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Login failed");
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
 
+    // PRINT TOKEN FOR TESTING
+    console.log('%c JWT TOKEN (copy this):', 'background: #222; color: #bada55; font-size: 14px');
+    console.log(data.token);
       // save token + user + 24h expiry
       persistAuth(data, id);
 

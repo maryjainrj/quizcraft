@@ -157,9 +157,7 @@ const ExportQuizPage = () => {
             <FiDownload size={22} className="group-hover:animate-bounce" />
             <span className="font-semibold text-lg">Export PDF Questions</span>
           </div>
-          <span className="text-xs max-w-[160px] text-right">
-            Download the questions in PDF format. With your logo and colors.
-          </span>
+          
         </button>
 
         <button
@@ -173,9 +171,7 @@ const ExportQuizPage = () => {
             <FiDownload size={22} className="group-hover:animate-bounce" />
             <span className="font-semibold text-lg">Export PDF Answers</span>
           </div>
-          <span className="text-xs max-w-[160px] text-right">
-            Download the questions and answers in PDF format. With your logo and colors.
-          </span>
+          
         </button>
       </div>
     </div>

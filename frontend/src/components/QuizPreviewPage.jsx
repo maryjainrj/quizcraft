@@ -1,14 +1,19 @@
 // src/pages/QuizPreviewPage.jsx
 import React, { useState, useEffect } from "react";
+import { saveQuestionSetToDB } from '../services/quizER';
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload } from "react-icons/fi";
+import jsPDF from 'jspdf';
+import QuizNameModal from '../components/QuizNameModal';
 
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [showAnswers, setShowAnswers] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
 
-  const { questions = [], fileNames = [], settings = {} } = state || {};
+  const { questions = [], fileNames = [], extractedTexts = {}, settings = {} } = state || {};
 
   // Save to localStorage
   useEffect(() => {
@@ -16,6 +21,165 @@ const QuizPreviewPage = () => {
       localStorage.setItem("lastQuiz", JSON.stringify({ questions, fileNames, settings }));
     }
   }, [questions, fileNames, settings]);
+
+  // Generate PDF from quiz
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let yPos = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('Quiz', margin, yPos);
+    yPos += 10;
+
+    // Metadata
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Questions: ${questions.length}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Source: ${fileNames.join(', ')}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPos);
+    yPos += 15;
+
+    // Questions
+    questions.forEach((q, idx) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      const questionText = `${idx + 1}. ${q.question}`;
+      const splitQuestion = doc.splitTextToSize(questionText, pageWidth - 2 * margin);
+      doc.text(splitQuestion, margin, yPos);
+      yPos += splitQuestion.length * 7 + 5;
+
+      if (q.type === 'multiple-choice' && q.options) {
+        doc.setFont(undefined, 'normal');
+        q.options.forEach((opt, optIdx) => {
+          const letter = String.fromCharCode(65 + optIdx);
+          const optionText = `${letter}) ${opt}`;
+          const splitOption = doc.splitTextToSize(optionText, pageWidth - 2 * margin - 5);
+          doc.text(splitOption, margin + 5, yPos);
+          yPos += splitOption.length * 6 + 3;
+        });
+      }
+
+      if (q.type === 'true-false') {
+        doc.setFont(undefined, 'normal');
+        doc.text('○ True', margin + 5, yPos);
+        yPos += 7;
+        doc.text('○ False', margin + 5, yPos);
+        yPos += 7;
+      }
+
+      if (q.type === 'fill-in-blank') {
+        doc.setFont(undefined, 'normal');
+        doc.text('Answer: _________________________', margin + 5, yPos);
+        yPos += 10;
+      }
+
+      yPos += 5;
+    });
+
+    // Answer key
+    doc.addPage();
+    yPos = 20;
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Answer Key', margin, yPos);
+    yPos += 15;
+
+    doc.setFontSize(11);
+    questions.forEach((q, idx) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      let answerText = '';
+      if (q.type === 'multiple-choice') {
+        const correctIdx = q.options?.findIndex(
+          (_, i) => String.fromCharCode(65 + i) === q.correctAnswer
+        );
+        answerText = correctIdx >= 0
+          ? `${q.correctAnswer}) ${q.options[correctIdx]}`
+          : q.correctAnswer;
+      } else if (q.type === 'true-false') {
+        answerText = q.correctAnswer === 'TRUE' ? 'True' : 'False';
+      } else {
+        answerText = q.correctAnswer;
+      }
+
+      doc.setFont(undefined, 'bold');
+      doc.text(`${idx + 1}.`, margin, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.text(answerText, margin + 10, yPos);
+      yPos += 8;
+    });
+
+    return doc;
+  };
+
+  const downloadPDF = () => {
+    const doc = generatePDF();
+    doc.save('quiz.pdf');
+  };
+
+  const uploadPDF = async () => {
+    try {
+      const doc = generatePDF();
+      const pdfBlob = doc.output('blob');
+      
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, 'quiz.pdf');
+
+      const response = await fetch('http://localhost:5000/api/upload-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      
+      return data.url;
+    } catch (err) {
+      console.error('PDF upload error:', err);
+      throw err;
+    }
+  };
+
+  const handleSave = () => {
+    setShowNameModal(true);
+  };
+
+  const handleSaveWithName = async (quizName) => {
+    if (!questions?.length) {
+      alert("No questions to save.");
+      return;
+    }
+
+    setSaving(true);
+    setShowNameModal(false);
+
+    try {
+      const pdfUrl = await uploadPDF();
+      await saveQuestionSetToDB(quizName, questions, fileNames, extractedTexts, settings, pdfUrl);
+      
+      alert('Quiz and PDF saved successfully!');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert('Failed to save quiz: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!questions.length) {
     return (
@@ -48,14 +212,20 @@ const QuizPreviewPage = () => {
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
 
+      {/* Questions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Questions</h2>
         <div className="space-y-4">
           {questions.map((q, i) => (
-            <div key={q.id} className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:shadow-md">
+            <div
+              key={q.id || i}
+              className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:shadow-md"
+            >
               <span className="font-medium text-gray-700 min-w-[20px]">{i + 1}.</span>
               <div className="flex-1">
-                <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">{q.question}</p>
+                <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">
+                  {q.question}
+                </p>
 
                 {q.type === "multiple-choice" && q.options && (
                   <ul className="space-y-2 text-sm text-gray-700">
@@ -93,7 +263,7 @@ const QuizPreviewPage = () => {
                     <div className="w-full max-w-md h-10 border-2 border-dashed border-gray-300 rounded-md bg-gray-50 relative">
                       <div className="absolute bottom-2 left-3 right-3 h-[2px] bg-gradient-to-r from-gray-300 via-transparent to-gray-300 opacity-50"></div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 italic">Student fills in the answer</p>
+                  
                   </div>
                 )}
               </div>
@@ -111,6 +281,7 @@ const QuizPreviewPage = () => {
         </div>
       </div>
 
+      {/* Answers Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <button
           onClick={() => setShowAnswers(!showAnswers)}
@@ -128,11 +299,9 @@ const QuizPreviewPage = () => {
                 const correctIdx = q.options?.findIndex(
                   (_, idx) => String.fromCharCode(65 + idx) === q.correctAnswer
                 );
-                if (correctIdx >= 0) {
-                  answerText = `${q.correctAnswer}) ${q.options[correctIdx]}`;
-                } else {
-                  answerText = q.correctAnswer || "Not specified";
-                }
+                answerText = correctIdx >= 0
+                  ? `${q.correctAnswer}) ${q.options[correctIdx]}`
+                  : q.correctAnswer || "Not specified";
               } else if (q.type === "true-false") {
                 answerText = q.correctAnswer === "TRUE" ? "True" : "False";
               } else if (q.type === "fill-in-blank") {
@@ -140,7 +309,10 @@ const QuizPreviewPage = () => {
               }
 
               return (
-                <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
+                <div
+                  key={q.id || i}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
                   <span className="font-semibold text-gray-700 min-w-[24px]">{i + 1}.</span>
                   <div className="flex-1 text-left">
                     <span className="text-gray-900 font-semibold text-base">{answerText}</span>
@@ -152,20 +324,34 @@ const QuizPreviewPage = () => {
         )}
       </div>
 
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          onClick={() => navigate("/dashboard/new/upload")}
-          className="px-6 py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
-        >
-          Back
-        </button>
-        <button
-          onClick={() => {}}
-          className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5"
-        >
-         Save Quiz
-        </button>
+      {/* Action Buttons */}
+      <div className="mt-6 flex justify-between items-center gap-3">
+      
+        
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/dashboard/new/upload")}
+            className="px-6 py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save Quiz'}
+          </button>
+        </div>
       </div>
+
+      {/* Quiz Name Modal */}
+      <QuizNameModal
+        open={showNameModal}
+        defaultName={fileNames.length > 0 ? `Quiz from ${fileNames.join(', ')}` : 'My Quiz'}
+        onClose={() => setShowNameModal(false)}
+        onSave={handleSaveWithName}
+      />
     </div>
   );
 };

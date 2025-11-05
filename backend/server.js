@@ -1,16 +1,15 @@
-// server.js
+// server.js - Main server file for OCR and Auth
 require('dotenv').config();
 
 // ===== Core / existing OCR deps =====
 const express = require('express');
 const multer = require('multer');
-const pdfParse = require('pdf-parse'); // v1 callable
-const Tesseract = require('tesseract.js'); // (kept if you use it elsewhere)
+const pdfParse = require('pdf-parse');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { createCanvas, Image } = require('canvas');
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js'); // legacy build in v4
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 const vision = require('@google-cloud/vision');
 
 // ===== Auth/DB/GraphQL deps =====
@@ -29,14 +28,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 // Google OAuth
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-// OLD flow: verify ID token sent by client
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-// NEW flow: code → tokens; requires secret + 'postmessage'
-const googleCodeClient = new OAuth2Client(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  'postmessage'
-);
+const googleCodeClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 'postmessage');
 
 // ---------- CORS & Parsers ----------
 app.use(
@@ -71,7 +64,7 @@ try {
       name: String,
       email: { type: String, required: true, unique: true, index: true, lowercase: true, trim: true },
       passwordHash: String,
-      password: String, // legacy
+      password: String,
       provider: { type: String, enum: ['local', 'google'], default: 'local', index: true },
       googleId: String,
     },
@@ -158,8 +151,7 @@ function preprocessImage(imageBuffer) {
   ctx.drawImage(img, 0, 0);
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
   for (let i = 0; i < imageData.data.length; i += 4) {
-    const avg =
-      (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
+    const avg = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
     const contrast = 1.5;
     const newVal = Math.min(255, Math.max(0, contrast * (avg - 128) + 128));
     imageData.data[i] = imageData.data[i + 1] = imageData.data[i + 2] = newVal;
@@ -274,7 +266,7 @@ app.post('/api/generate-quiz', async (req, res) => {
 const signToken = (u) =>
   jwt.sign({ id: u._id, email: u.email }, JWT_SECRET, { expiresIn: '7d' });
 
-// ---------- Local Auth (REGISTER with email normalization) ----------
+// ---------- Local Auth (REGISTER) ----------
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
@@ -282,12 +274,7 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Email & password required' });
     }
 
-    // Normalize/sanitize email (fixes trailing comma/semicolon, mixed case, spaces)
-    const cleanEmail = String(email)
-      .trim()
-      .toLowerCase()
-      .replace(/[,;]+$/g, '');
-
+    const cleanEmail = String(email).trim().toLowerCase().replace(/[,;]+$/g, '');
     const exists = await User.findOne({ email: cleanEmail });
     if (exists) return res.status(409).json({ message: 'Email already in use' });
 
@@ -295,7 +282,7 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await User.create({
       username,
       email: cleanEmail,
-      passwordHash,          // new field
+      passwordHash,
       provider: 'local',
     });
 
@@ -309,7 +296,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// ---------- Local Auth (LOGIN: email OR username) ----------
+// ---------- Local Auth (LOGIN) ----------
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, email, username, password } = req.body || {};
@@ -318,18 +305,16 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Email/username and password required' });
     }
 
-    // Build query: if looks like email, normalize; else use username/legacy name
     const query = { provider: 'local' };
     if (id.includes('@')) {
       query.email = id.toLowerCase().replace(/[,;]+$/g, '');
     } else {
-      query.$or = [{ username: id }, { name: id }]; // supports legacy "name"
+      query.$or = [{ username: id }, { name: id }];
     }
 
     const user = await User.findOne(query);
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Compare against new or legacy hash field (must be bcrypt: $2*)
     const hash = user.passwordHash || user.password || '';
     if (!hash || !hash.startsWith('$2')) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -348,16 +333,12 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ---------- Google Auth: OLD (ID token sent by client) ----------
+// ---------- Google Auth (ID Token) ----------
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { credential } = req.body || {};
-    if (!credential)
-      return res.status(400).json({ message: 'Missing Google credential' });
-    if (!GOOGLE_CLIENT_ID)
-      return res
-        .status(500)
-        .json({ message: 'Server missing GOOGLE_CLIENT_ID' });
+    if (!credential) return res.status(400).json({ message: 'Missing Google credential' });
+    if (!GOOGLE_CLIENT_ID) return res.status(500).json({ message: 'Server missing GOOGLE_CLIENT_ID' });
 
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
@@ -365,8 +346,7 @@ app.post('/api/auth/google', async (req, res) => {
     });
     const payload = ticket.getPayload();
     if (!payload) return res.status(401).json({ message: 'Invalid Google token' });
-    if (payload.aud !== GOOGLE_CLIENT_ID)
-      return res.status(401).json({ message: 'Google token audience mismatch' });
+    if (payload.aud !== GOOGLE_CLIENT_ID) return res.status(401).json({ message: 'Google token audience mismatch' });
 
     const { sub: googleId, email, name } = payload;
     if (!email) return res.status(400).json({ message: 'Google did not provide an email' });
@@ -390,7 +370,7 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// ---------- Google Auth: NEW (Authorization Code Flow with postmessage) ----------
+// ---------- Google Auth (Code Flow) ----------
 app.post('/api/auth/google/code', async (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(500).json({
@@ -405,23 +385,20 @@ app.post('/api/auth/google/code', async (req, res) => {
       return res.status(400).json({ step: 'client', message: 'Missing authorization code' });
     }
 
-    // 1) Exchange code → tokens
     let tokens;
     try {
       const out = await googleCodeClient.getToken(code);
-      tokens = out.tokens; // { id_token, access_token, ... }
+      tokens = out.tokens;
       if (!tokens?.id_token) throw new Error('No id_token returned from Google');
     } catch (err) {
       console.error('[Google getToken] error:', err?.response?.data || err.message || err);
       return res.status(401).json({
         step: 'exchange',
         message: 'Code exchange failed (invalid_grant or client mismatch).',
-        hint:
-          'Use SAME client id/secret as frontend, keep OAuth2Client(...,"postmessage"), click once, and sync system time.',
+        hint: 'Use SAME client id/secret as frontend, keep OAuth2Client(...,"postmessage"), click once, and sync system time.',
       });
     }
 
-    // 2) Verify id_token
     let payload;
     try {
       const ticket = await googleCodeClient.verifyIdToken({
@@ -435,7 +412,6 @@ app.post('/api/auth/google/code', async (req, res) => {
       return res.status(401).json({ step: 'verify', message: 'ID token verification failed' });
     }
 
-    // 3) Upsert user
     let userDoc;
     try {
       userDoc = await User.findOne({ email: payload.email });
@@ -461,7 +437,6 @@ app.post('/api/auth/google/code', async (req, res) => {
       });
     }
 
-    // 4) Issue app token
     const token = jwt.sign(
       { id: userDoc._id, email: userDoc.email },
       JWT_SECRET,
@@ -477,36 +452,7 @@ app.post('/api/auth/google/code', async (req, res) => {
   }
 });
 
-// ---------- OPTIONAL: GraphQL ----------
-try {
-  const schema = require('./graphql/schema');
-  const questionResolvers = require('./graphql/resolvers');
-
-  let mergedResolvers = { ...questionResolvers };
-  try {
-    const authResolvers = require('./graphql/authResolvers');
-    mergedResolvers = { ...mergedResolvers, ...authResolvers };
-    console.log('Auth resolvers loaded and merged.');
-  } catch {
-    console.log('Auth resolvers not found. Using question resolvers only.');
-  }
-
-  app.use(
-    '/graphql',
-    graphqlHTTP((req) => ({
-      schema,
-      rootValue: mergedResolvers,
-      graphiql: true,
-      context: { req },
-    }))
-  );
-
-  console.log('GraphQL mounted at /graphql');
-} catch (e) {
-  console.log('GraphQL files not found or failed to load. Skipping /graphql mount.');
-}
-// Add this route in server.js (after other routes)
-
+// ---------- PDF Upload Route (for sharing) ----------
 app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
@@ -514,15 +460,46 @@ app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
     const filePath = req.file.path;
     const publicUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${req.file.filename}`;
 
-    // Optional: Save to DB later
-    // await QuizShare.create({ url: publicUrl, type: req.body.type, userId: req.user?.id });
-
     res.json({ url: publicUrl });
   } catch (err) {
     console.error('PDF upload error:', err);
     res.status(500).json({ error: 'Failed to upload PDF' });
   }
 });
+
+// ---------- Static Uploads ----------
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ---------- GraphQL ----------
+let schema, mergedResolvers;
+try {
+  schema = require('./graphql/schema');
+
+  const questionResolvers = require('./graphql/resolvers');
+  const authResolvers = require('./graphql/authResolvers');
+  const questionSetResolvers = require('./graphql/questionSetResolvers'); // NEW: ER Diagram resolvers
+
+  mergedResolvers = {
+    ...questionResolvers,
+    ...authResolvers,
+    ...questionSetResolvers, // NEW: ER Diagram resolvers
+  };
+
+  // ONE AND ONLY GRAPHQL ENDPOINT
+  app.use(
+    '/graphql',
+    graphqlHTTP((req) => ({
+      schema,
+      rootValue: mergedResolvers,
+      graphiql: true,
+      context: req, // Pass req directly as context
+    }))
+  );
+
+  console.log('GraphQL endpoint: http://localhost:5000/graphql');
+} catch (e) {
+  console.error('Failed to mount GraphQL:', e.message);
+}
+
 // ---------- Error handling ----------
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
@@ -530,7 +507,6 @@ app.use((error, req, res, next) => {
   }
   res.status(500).json({ error: error.message || 'Server error' });
 });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ---------- Start ----------
 app.listen(PORT, () => {

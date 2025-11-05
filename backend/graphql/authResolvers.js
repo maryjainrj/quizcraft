@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-// ---- Normalize the User import (supports default, named, or direct export)
+// ---- Normalize the User import
 let ImportedUser = null;
 try {
   ImportedUser = require('../models/User');
@@ -21,7 +21,7 @@ let User =
   (ImportedUser && (ImportedUser.User || ImportedUser.default || ImportedUser)) ||
   null;
 
-// Fallback model definition if import didn’t resolve properly
+// Fallback model definition if import didn't resolve properly
 if (!User || typeof User.findOne !== 'function') {
   const userSchema = new mongoose.Schema(
     {
@@ -63,11 +63,14 @@ const getUserFromReq = async (req) => {
 
 // ---- Resolvers
 module.exports = {
+  // Export the helper so other resolvers can use it
+  getUserFromReq,
+  
   // Queries
   _health: () => 'OK',
 
-  me: async (_args, req) => {
-    const user = await getUserFromReq(req);
+  me: async (_args, context) => {
+    const user = await getUserFromReq(context);
     if (!user) return null;
     return {
       id: user._id.toString(),
@@ -81,35 +84,34 @@ module.exports = {
 
   // Mutations
   register: async ({ input }) => {
-  const { username, email, password } = input || {};
-  const errs = [];
+    const { username, email, password } = input || {};
+    const errs = [];
 
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRe.test(String(email).trim())) errs.push("Valid email required");
-  if (!username || String(username).trim().length < 3) errs.push("Username min 3 chars");
-  if (!password || password.length < 8) errs.push("Password min 8 chars");
-  if (password && (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)))
-    errs.push("Password must include letters and numbers");
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRe.test(String(email).trim())) errs.push("Valid email required");
+    if (!username || String(username).trim().length < 3) errs.push("Username min 3 chars");
+    if (!password || password.length < 8) errs.push("Password min 8 chars");
+    if (password && (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)))
+      errs.push("Password must include letters and numbers");
 
-  if (errs.length) throw new Error(errs.join(" | "));
+    if (errs.length) throw new Error(errs.join(" | "));
 
-  const exists = await User.findOne({ email: String(email).toLowerCase() });
-  if (exists) throw new Error("Email already in use");
+    const exists = await User.findOne({ email: String(email).toLowerCase() });
+    if (exists) throw new Error("Email already in use");
 
-  const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await User.create({
-    username,
-    name: username,
-    email: String(email).toLowerCase().trim(),
-    passwordHash,           // new field
-    password: passwordHash, // legacy field (hash)
-    provider: 'local',
-  });
+    const user = await User.create({
+      username,
+      name: username,
+      email: String(email).toLowerCase().trim(),
+      passwordHash,
+      password: passwordHash,
+      provider: 'local',
+    });
 
-  return { token: signToken(user), user };
-},
-
+    return { token: signToken(user), user };
+  },
 
   login: async ({ email, password }) => {
     const user = await User.findOne({ email, provider: 'local' });
@@ -142,12 +144,11 @@ module.exports = {
       user = await User.create({
         email,
         username: name,
-        name,            // legacy field
+        name,
         provider: 'google',
         googleId,
       });
     } else if (!user.googleId) {
-      // Link Google to an existing local account
       user.googleId = googleId;
       if (!user.username && user.name) user.username = user.name;
       await user.save();

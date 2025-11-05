@@ -1,3 +1,4 @@
+// src/components/UploadFiles.jsx - Pass extractedTexts to preview
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizSettingsModal from "../components/QuizSettingsModal";
@@ -22,11 +23,11 @@ const UploadFiles = () => {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState("");
 
-  // Modal visibility + settings state - UPDATED to support array
+  // Modal visibility + settings state
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
     language: "english",
-    type: ["mcq"], // Default to array with one type
+    type: ["mcq"],
     difficulty: "medium",
     count: 5,
   });
@@ -301,7 +302,7 @@ const UploadFiles = () => {
         {!!files.length && <button className="btn" onClick={handleClearAll}>Clear All</button>}
       </div>
 
-      {/* Quiz Settings Modal - FIXED onCreate */}
+      {/* Quiz Settings Modal */}
       <QuizSettingsModal
         open={showSettings}
         values={settings}
@@ -358,6 +359,7 @@ const UploadFiles = () => {
               state: {
                 questions: allQuestions,
                 fileNames: files.map(f => f.name),
+                extractedTexts: extractedTexts, // PASS THIS
                 settings: {
                   questionTypes: selectedTypes,
                   difficulty: vals.difficulty,
