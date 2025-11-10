@@ -1,12 +1,12 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; //added fOR UI
-
+ 
 import QuestionsList from './components/QuestionsList';
 import QuestionForm from './components/QuestionForm';
 import { fetchAllQuestions, searchQuestionsByTopic, createQuestion, updateQuestion, deleteQuestion } from './services/api';
 import './App.css';
-
+ 
 import Login from './components/Login'; //added fOR UI
 import Signup from './components/Signup'; //added fOR UI
 // import Dashboard from './components/Dashboard'; // Removed: Replaced by DashboardLayout
@@ -18,14 +18,16 @@ import QuizPreviewPage from "./components/QuizPreviewPage";; // Added: For /dash
 import ExportQuizPage from "./components/ExportQuizPage";
 import ShareQuizPage from "./components/ShareQuizPage";
 import WrittenText from './components/WrittenText';
-
+import * as ForgotPasswordMod from "./components/ForgotPassword.jsx";
+const ForgotPassword = ForgotPasswordMod.default ?? ForgotPasswordMod.ForgotPassword;
+ 
 function App() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('list');
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [searchTopic, setSearchTopic] = useState('');
-
+ 
   const loadQuestions = async () => {
     setLoading(true);
     try {
@@ -36,7 +38,7 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const handleSearch = async () => {
     if (!searchTopic.trim()) {
       return loadQuestions();
@@ -50,7 +52,7 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const handleCreate = async (formData) => {
     setLoading(true);
     try {
@@ -63,7 +65,7 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const handleUpdate = async (id, formData) => {
     setLoading(true);
     try {
@@ -77,7 +79,7 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this question?')) {
       return;
@@ -91,20 +93,20 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const handleEdit = (question) => {
     setEditingQuestion(question);
     setActiveTab('create');
   };
-
+ 
   const handleCancelEdit = () => {
     setEditingQuestion(null);
   };
-
+ 
   useEffect(() => {
     loadQuestions();
   }, []);
-
+ 
   //added for UI
   const QuizAdmin = () => (
     <div className="app-container">
@@ -112,7 +114,7 @@ function App() {
         <header className="app-header">
           <h1>Quiz Admin Panel</h1>
         </header>
-
+ 
         <div className="tabs">
           <button
             onClick={() => { setActiveTab('list'); setEditingQuestion(null); }}
@@ -127,7 +129,7 @@ function App() {
             ➕ Create Question
           </button>
         </div>
-
+ 
         <main className="main-content">
           {activeTab === 'list' ? (
             <QuestionsList
@@ -152,17 +154,19 @@ function App() {
       </div>
     </div>
   );
-
+ 
   return (
   <BrowserRouter>
     <Routes>
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/login" replace />} />
-
+ 
       {/* Auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
+ 
       {/* Dashboard with Nested Routes */}
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<QuizList />} />
@@ -172,15 +176,19 @@ function App() {
         <Route path="quiz-preview" element={<QuizPreviewPage />} /> {/* Fixed */}
         <Route path="exportquiz" element={<ExportQuizPage />} />
         <Route path="sharequiz" element={<ShareQuizPage />} />
-
+ 
         {/* Add more dashboard pages here */}
       </Route>
-
+ 
       {/* Admin Panel */}
       <Route path="/admin" element={<QuizAdmin />} />
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    
+
   </BrowserRouter>
 );
 }
-
+ 
 export default App;
