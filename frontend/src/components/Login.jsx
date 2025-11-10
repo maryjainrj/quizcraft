@@ -7,7 +7,7 @@ import sallyImage from "../assets/sally.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-// Robust Google Client ID resolver (env -> <meta> -> window)
+// Robust Google Client ID resolver 
 const GOOGLE_CLIENT_ID =
   (import.meta.env?.VITE_GOOGLE_CLIENT_ID || "").trim() ||
   (typeof document !== "undefined"
@@ -19,29 +19,30 @@ const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPw, setShowPw] = useState(false); // eye toggle
   const navigate = useNavigate();
 
   // Refs for Google
-  const codeClientRef = useRef(null);       // OAuth Code Flow client
-  const idClientReadyRef = useRef(false);   // optional fallback readiness
-  const googleBtnHostRef = useRef(null);    // off-screen official button (kept, but unused)
+  const codeClientRef = useRef(null);       
+  const idClientReadyRef = useRef(false);   
+  const googleBtnHostRef = useRef(null);    
 
   // Debug (can remove later)
   useEffect(() => {
     console.log("Resolved GOOGLE_CLIENT_ID →", GOOGLE_CLIENT_ID || "(empty)");
   }, []);
 
-  // Always start with empty fields (even after back navigation)
+  //  start with empty fields 
   useEffect(() => {
     setForm({ username: "", password: "" });
   }, []);
 
-  // ---- helper: persist auth (token + user + 24h expiry) ----
+  //  helper auth (token + user + 24h expiry) 
   const persistAuth = (data, fallbackId = "") => {
     try {
       if (data?.token) localStorage.setItem("token", data.token);
 
-      // Accept common server shapes; otherwise derive name from entered id
+      //  common server 
       const derivedName = (() => {
         if (data?.user?.name) return data.user.name;
         if (data?.name) return data.name;
@@ -63,7 +64,6 @@ const Login = () => {
       const expiryTime = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
       localStorage.setItem("sessionExpiry", String(expiryTime));
 
-      // (optional) quick sanity log
       console.log("[persistAuth] saved:", {
         tokenSaved: !!data?.token,
         user: userToStore,
@@ -74,7 +74,7 @@ const Login = () => {
     }
   };
 
-  // -------------- Local (username/email + password) sign-in --------------
+  //  Local (username/email + password) sign-in 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -95,7 +95,7 @@ const Login = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Login failed");
 
-      // save token + user + 24h expiry
+      // token + user + 24h expiry
       persistAuth(data, id);
 
       navigate("/dashboard");
@@ -106,7 +106,7 @@ const Login = () => {
     }
   };
 
-  // -------------- Google OAuth (Code Flow, account chooser on click) --------------
+  //  Google OAuth 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
       setErr("Missing Google Client ID. Set VITE_GOOGLE_CLIENT_ID or <meta name='google-client-id'>.");
@@ -135,12 +135,12 @@ const Login = () => {
       });
 
     const initClients = () => {
-      // A) Primary: OAuth Code Client (recommended by Google)
+      // OAuth Code Client 
       try {
         codeClientRef.current = window.google?.accounts?.oauth2?.initCodeClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: "openid email profile",
-          ux_mode: "popup", // don't redirect
+          ux_mode: "popup", 
           callback: async ({ code, error, error_description }) => {
             try {
               if (error) throw new Error(error_description || error);
@@ -159,7 +159,7 @@ const Login = () => {
 
               navigate("/dashboard");
             } catch (e) {
-              console.error("[GIS code flow] error:", e);
+              console.error("[GIS code flow] error]:", e);
               setErr(e.message || "Google sign-in failed");
             }
           },
@@ -168,7 +168,7 @@ const Login = () => {
         console.warn("[GIS] initCodeClient failed:", e);
       }
 
-      // B) Optional fallback: ID token flow initialize only (no auto prompt)
+      
       try {
         const id = window.google?.accounts?.id;
         if (id) {
@@ -223,7 +223,7 @@ const Login = () => {
     };
   }, [navigate]);
 
-  // Only show chooser when user clicks
+  
   const handleGoogleClick = () => {
     setErr("");
     if (codeClientRef.current) {
@@ -237,7 +237,7 @@ const Login = () => {
     setErr("Google Sign-In not ready yet. Please reload and try again.");
   };
 
-  // --------------------------------- UI (unchanged layout) ---------------------------------
+  
   return (
     <div className="auth-page">
       <div className="auth-logo">
@@ -276,21 +276,44 @@ const Login = () => {
             />
 
             <label htmlFor="password" className="auth-label">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="passField"
-              className="auth-input"
-              placeholder="Password"
-              autoComplete="new-password"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-              title="Enter your password"
-            />
+
+            {/*  password input */}
+            <div className="input-with-addon">
+              <input
+                type={showPw ? "text" : "password"}
+                id="password"
+                name="passField"
+                className="auth-input"
+                placeholder="Password"
+                autoComplete="new-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+                title="Enter your password"
+              />
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label={showPw ? "Hide password" : "Show password"}
+                aria-pressed={showPw}
+                onClick={() => setShowPw(v => !v)}
+                title={showPw ? "Hide password" : "Show password"}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5c-5 0-9 4.5-9 7s4 7 9 7 9-4.5 9-7-4-7-9-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="#444"/>
+                  <circle cx="12" cy="12" r="2.5" fill="#444"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* password,*/}
+           <div className="forgot-wrap">
+  <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
+</div>
+
 
             <button type="submit" className="auth-btn" aria-busy={submitting} disabled={submitting}>
               Sign In
@@ -300,7 +323,7 @@ const Login = () => {
               Don’t have an account? <Link to="/signup">Register</Link>
             </div>
 
-            {/* Your custom-styled Google button (unchanged visually) */}
+            {/* custom-styled Google button */}
             <button
               type="button"
               className="google-btn"

@@ -54,9 +54,9 @@ const Signup = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const gisReadyRef = useRef(false);
-  const googleBtnHostRef = useRef(null); // off-screen official btn host
+  const googleBtnHostRef = useRef(null); 
 
-  // Always start clean (prevents any autosaved text on SPA back/forward)
+  // prevents any autosaved text 
   useEffect(() => {
     setForm({ username: "", email: "", password: "", confirmPassword: "" });
     setTouched({});
@@ -208,7 +208,7 @@ const Signup = () => {
           {/* global  */}
           {err ? <div className="auth-error">{err}</div> : null}
 
-          {/* Keep your layout; only adds aria + small error rows */}
+          {/*  only adds aria + small error rows */}
           <form
             onSubmit={handleSubmit}
             className="auth-form"
@@ -326,7 +326,7 @@ const Signup = () => {
               Sign up with Google
             </button>
 
-            {/* Off-screen official Google button host (no visual change) */}
+            {/* Off-screen official Google button host  */}
             <div ref={googleBtnHostRef} style={{ position: "fixed", left: -9999, top: -9999 }} />
           </form>
         </div>

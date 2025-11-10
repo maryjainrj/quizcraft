@@ -28,6 +28,7 @@
     "mammoth": "^1.11.0",
     "mongoose": "^8.19.2",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
     "pdf-parse": "1.1.1",
     "pdfjs-dist": "^3.4.120",
     "tesseract.js": "^6.0.1",

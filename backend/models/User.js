@@ -1,11 +1,7 @@
 // backend/models/User.js
 const mongoose = require('mongoose');
 
-/**
- * User schema that works with BOTH:
- * - your existing docs: { name, email, password, provider }
- * - new fields: { username, passwordHash, googleId }
- */
+
 const userSchema = new mongoose.Schema(
   {
     // New-style username
@@ -26,7 +22,7 @@ const userSchema = new mongoose.Schema(
     // New-style hashed password
     passwordHash: { type: String },
 
-    // Legacy hashed password
+    // Legacy hashed password 
     password: { type: String },
 
     provider: {
@@ -38,6 +34,12 @@ const userSchema = new mongoose.Schema(
 
     // Present for Google accounts
     googleId: { type: String, index: true },
+
+    /* ======== Added for OTP password reset ======== */
+    passwordOtpHash: { type: String, select: false },   // SHA-256 of OTP
+    passwordOtpExpires: { type: Date },                 // expiry timestamp
+    passwordOtpAttempts: { type: Number, default: 0, select: false }, 
+    
   },
   { timestamps: true }
 );
@@ -59,9 +61,11 @@ userSchema.set('toJSON', {
     delete ret._id;
     delete ret.password;
     delete ret.passwordHash;
+    delete ret.passwordOtpHash;     // keep OTP hash out of responses
+    delete ret.passwordOtpAttempts; // keep attempts hidden
     return ret;
   },
 });
 
-// ✅ Export the model itself (not a named export)
+// export)
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

@@ -210,3 +210,65 @@ text-align: left;
 }
 
 
+/* === Password eye + alignment (add below everything else) === */
+
+/* Make username & password inputs the exact same width */
+.auth-form .auth-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Wrapper that holds the input and the eye button */
+.input-with-addon {
+  position: relative;
+}
+
+/* Give room inside the password input for the icon button */
+.input-with-addon > .auth-input {
+  padding-right: 52px; /* 34px button + gaps */
+}
+
+/* Rounded-square eye button (like your screenshot) */
+.icon-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;       /* rounded square */
+  background: #f6f6f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Hover + focus ring (blue outline) */
+.icon-btn:hover { background: #eeeeee; }
+.icon-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(47,128,237,0.45);
+  border-color: #2f80ed;
+}
+
+/* Keep the "Forgot password?" link neatly aligned under the field */
+.forgot-wrap {
+  width: 100%;
+  text-align: right;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.auth-link {
+  font-size: 0.85rem;
+  color: #5a4fcf;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+

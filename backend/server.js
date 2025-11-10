@@ -20,6 +20,10 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { graphqlHTTP } = require('express-graphql');
 
+// ===== Added for password reset (Mailtrap) =====
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+
 // ---------- Config ----------
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,6 +78,10 @@ try {
       password: String, // legacy
       provider: { type: String, enum: ['local', 'google'], default: 'local', index: true },
       googleId: String,
+      // minimal OTP fields if model missing (safe fallback)
+      passwordOtpHash: { type: String, select: false },
+      passwordOtpExpires: { type: Date },
+      passwordOtpAttempts: { type: Number, default: 0, select: false },
     },
     { timestamps: true }
   );
@@ -270,11 +278,11 @@ app.post('/api/generate-quiz', async (req, res) => {
   }
 });
 
-// ---------- Auth helpers ----------
+//  Auth helpers 
 const signToken = (u) =>
   jwt.sign({ id: u._id, email: u.email }, JWT_SECRET, { expiresIn: '7d' });
 
-// ---------- Local Auth (REGISTER with email normalization) ----------
+// Local Auth (REGISTER with email normalization) 
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
@@ -282,11 +290,10 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Email & password required' });
     }
 
-    // Normalize/sanitize email (fixes trailing comma/semicolon, mixed case, spaces)
-    const cleanEmail = String(email)
-      .trim()
-      .toLowerCase()
-      .replace(/[,;]+$/g, '');
+    const cleanEmail = String(email).trim().toLowerCase().replace(/[,;]+$/g, '');
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
 
     const exists = await User.findOne({ email: cleanEmail });
     if (exists) return res.status(409).json({ message: 'Email already in use' });
@@ -295,21 +302,25 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await User.create({
       username,
       email: cleanEmail,
-      passwordHash,          // new field
+      passwordHash,
+      password: passwordHash,   
       provider: 'local',
     });
 
     return res.json({
-      token: signToken(user),
+      token: jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' }),
       user: { id: user._id, email: user.email, username: user.username },
     });
   } catch (e) {
-    console.error('register error:', e.message);
+    if (e && e.code === 11000) {
+      return res.status(409).json({ message: 'Email already in use' });
+    }
+    console.error('register error:', e?.message || e);
     return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ---------- Local Auth (LOGIN: email OR username) ----------
+// Local Auth (LOGIN: email OR username) 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, email, username, password } = req.body || {};
@@ -318,18 +329,17 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Email/username and password required' });
     }
 
-    // Build query: if looks like email, normalize; else use username/legacy name
     const query = { provider: 'local' };
     if (id.includes('@')) {
       query.email = id.toLowerCase().replace(/[,;]+$/g, '');
     } else {
-      query.$or = [{ username: id }, { name: id }]; // supports legacy "name"
+      query.$or = [{ username: id }, { name: id }]; 
     }
 
     const user = await User.findOne(query);
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Compare against new or legacy hash field (must be bcrypt: $2*)
+
     const hash = user.passwordHash || user.password || '';
     if (!hash || !hash.startsWith('$2')) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -345,6 +355,201 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (e) {
     console.error('login error:', e.message);
     return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Password Reset: Mailer + helpers
+
+const mailer = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 2525), // Mailtrap default
+  secure: false, // STARTTLS
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  logger: process.env.MAIL_DEBUG === '1',
+  debug: process.env.MAIL_DEBUG === '1',
+});
+
+mailer.verify()
+  .then(() => console.log('[MAILER] SMTP verify: OK'))
+  .catch(e => console.error('[MAILER] SMTP verify FAILED:', e?.message || e));
+
+const sendMail = async (opts) => {
+
+  const forcedTo = process.env.MAILTRAP_FORCE_TO && process.env.MAILTRAP_FORCE_TO.trim();
+  const to = forcedTo || opts.to;
+
+  const info = await mailer.sendMail({
+    from: process.env.MAIL_FROM || 'QuizCraft <no-reply@quizcraft.local>',
+    ...opts,
+    to,
+  });
+
+  console.log('[MAILER] sent', JSON.stringify({
+    to,
+    messageId: info?.messageId,
+    envelope: info?.envelope,
+    accepted: info?.accepted,
+    rejected: info?.rejected,
+  }));
+
+  return info;
+};
+
+const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
+const sixDigit = () => Math.floor(100000 + Math.random() * 900000).toString();
+const OTP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_MAX_ATTEMPTS = 5;
+
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/debug/smtp-status', async (req, res) => {
+    try {
+      await mailer.verify();
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  app.get('/api/debug/send-test', async (req, res) => {
+    try {
+      const to = req.query.to || process.env.DEBUG_TO || 'test@inbox.mailtrap.io';
+      const info = await sendMail({
+        to,
+        subject: 'QuizCraft SMTP test',
+        text: 'This is a Mailtrap test message from QuizCraft.',
+      });
+      res.json({ sent: true, to, messageId: info?.messageId });
+    } catch (e) {
+      console.error('send-test error:', e.message);
+      res.status(500).json({ sent: false, error: e.message });
+    }
+  });
+
+
+
+  //  Test
+  app.get('/api/debug/send-test', async (req, res) => {
+    try {
+      const to =
+        req.query.to ||
+        process.env.DEBUG_TO ||
+        'test@inbox.mailtrap.io';
+      const info = await sendMail({
+        to,
+        subject: 'QuizCraft SMTP test',
+        text: 'This is a Mailtrap test message from QuizCraft.',
+      });
+      console.log('Mailtrap messageId:', info && info.messageId);
+      res.json({ sent: true, messageId: info && info.messageId, to });
+    } catch (e) {
+      console.error('send-test error:', e.message);
+      res.status(500).json({ sent: false, error: e.message });
+    }
+  });
+}
+
+// ---------- Password Reset: request OTP ----------
+app.post('/api/auth/request-password-otp', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email });
+    // don't reveal if user exists
+    if (!user) return res.json({ message: 'If the email exists, an OTP has been sent.' });
+
+    // generate + store OTP
+    const code = sixDigit();
+
+    // Optional: log OTP in dev only if you explicitly allow it
+    if (process.env.DEV_LOG_OTP === '1') {
+      console.log('[OTP] generated for', email, '→', code);
+    }
+
+    user.passwordOtpHash = sha256(code);
+    user.passwordOtpExpires = new Date(Date.now() + OTP_WINDOW_MS);
+    user.passwordOtpAttempts = 0;
+    await user.save();
+
+    // DEV bypass prints code when mail disabled
+    if (process.env.DEV_BYPASS_MAIL === '1') {
+      console.log('[DEV_BYPASS_MAIL] OTP for', email, '→', code);
+    } else {
+      await sendMail({
+        to: email,
+        subject: 'Your QuizCraft password reset code',
+        text: `Your OTP is ${code}. It expires in 10 minutes.`,
+      });
+    }
+
+    return res.json({ message: 'OTP sent to your email.' });
+  } catch (e) {
+    console.error('request-password-otp ERROR →', e && (e.stack || e.message || e));
+    return res.status(500).json({
+      message: 'Failed to send OTP',
+      detail: String(e && (e.message || e))
+    });
+  }
+});
+
+//  Password Reset: verify OTP & set new password ----------
+app.post('/api/auth/reset-password-otp', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const newPassword = String(req.body?.password || '');
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP and password are required' });
+    }
+
+    // include select:false fields explicitly
+    const user = await User.findOne({ email }).select('+passwordOtpHash +passwordOtpAttempts');
+    if (!user || !user.passwordOtpHash || !user.passwordOtpExpires) {
+      return res.status(400).json({ message: 'Invalid OTP or expired' });
+    }
+
+    // Expired
+    if (Date.now() > new Date(user.passwordOtpExpires).getTime()) {
+      user.passwordOtpHash = undefined;
+      user.passwordOtpExpires = undefined;
+      user.passwordOtpAttempts = 0;
+      await user.save();
+      return res.status(400).json({ message: 'OTP expired. Request a new one.' });
+    }
+
+    // Too many attempts
+    if (user.passwordOtpAttempts >= OTP_MAX_ATTEMPTS) {
+      user.passwordOtpHash = undefined;
+      user.passwordOtpExpires = undefined;
+      user.passwordOtpAttempts = 0;
+      await user.save();
+      return res.status(429).json({ message: 'Too many attempts. Request a new code.' });
+    }
+
+    const ok = sha256(otp) === user.passwordOtpHash;
+    user.passwordOtpAttempts = (user.passwordOtpAttempts || 0) + 1;
+
+    if (!ok) {
+      await user.save();
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // ✅ Hash new password and persist (keep legacy in sync if used)
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = hash;  // preferred new field
+    user.password = hash;      
+
+    // clear OTP data
+    user.passwordOtpHash = undefined;
+    user.passwordOtpExpires = undefined;
+    user.passwordOtpAttempts = 0;
+
+    await user.save();
+    return res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    console.error('reset-password-otp:', err);
+    return res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 
@@ -435,7 +640,7 @@ app.post('/api/auth/google/code', async (req, res) => {
       return res.status(401).json({ step: 'verify', message: 'ID token verification failed' });
     }
 
-    // 3) Upsert user
+   
     let userDoc;
     try {
       userDoc = await User.findOne({ email: payload.email });
@@ -477,7 +682,7 @@ app.post('/api/auth/google/code', async (req, res) => {
   }
 });
 
-// ---------- OPTIONAL: GraphQL ----------
+//  GraphQL ----------
 try {
   const schema = require('./graphql/schema');
   const questionResolvers = require('./graphql/resolvers');
@@ -505,7 +710,7 @@ try {
 } catch (e) {
   console.log('GraphQL files not found or failed to load. Skipping /graphql mount.');
 }
-// Add this route in server.js (after other routes)
+
 
 app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
   try {
@@ -523,6 +728,7 @@ app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
     res.status(500).json({ error: 'Failed to upload PDF' });
   }
 });
+
 // ---------- Error handling ----------
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
