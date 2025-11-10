@@ -17,14 +17,20 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 
 import DashboardLayout from "./components/DashboardLayout";
-import QuizzesPage from "./components/QuizzesPage";        // <-- default import
-import QuizDetailPage from "./components/QuizDetailPage";  // <-- default import
+import QuizzesPage from "./components/QuizzesPage";          // list of quizzes
+import QuizDetailPage from "./components/QuizDetailPage";    // single quiz detail
 import SourceSelect from "./components/SourceSelect";
 import UploadFiles from "./components/UploadFiles";
 import WrittenText from "./components/WrittenText";
 import QuizPreviewPage from "./components/QuizPreviewPage";
 import ExportQuizPage from "./components/ExportQuizPage";
 import ShareQuizPage from "./components/ShareQuizPage";
+
+// Some builds export ForgotPassword as default, others as named.
+// This keeps it robust either way.
+import * as ForgotPasswordMod from "./components/ForgotPassword.jsx";
+const ForgotPassword =
+  ForgotPasswordMod.default ?? ForgotPasswordMod.ForgotPassword;
 
 function App() {
   const [questions, setQuestions] = useState([]);
@@ -107,27 +113,35 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Legacy demo admin
+  // Legacy demo admin panel (kept from previous version)
   const QuizAdmin = () => (
     <div className="app-container">
       <div className="app-content">
         <header className="app-header">
           <h1>Quiz Admin Panel</h1>
         </header>
+
         <div className="tabs">
           <button
-            onClick={() => { setActiveTab("list"); setEditingQuestion(null); }}
+            onClick={() => {
+              setActiveTab("list");
+              setEditingQuestion(null);
+            }}
             className={`tab-button ${activeTab === "list" ? "active" : ""}`}
           >
             Questions List
           </button>
           <button
-            onClick={() => { setActiveTab("create"); setEditingQuestion(null); }}
+            onClick={() => {
+              setActiveTab("create");
+              setEditingQuestion(null);
+            }}
             className={`tab-button ${activeTab === "create" ? "active" : ""}`}
           >
             ➕ Create Question
           </button>
         </div>
+
         <main className="main-content">
           {activeTab === "list" ? (
             <QuestionsList
@@ -136,7 +150,10 @@ function App() {
               searchTopic={searchTopic}
               onSearchChange={setSearchTopic}
               onSearch={handleSearch}
-              onClearSearch={() => { setSearchTopic(""); loadQuestions(); }}
+              onClearSearch={() => {
+                setSearchTopic("");
+                loadQuestions();
+              }}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
@@ -162,14 +179,17 @@ function App() {
         {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        {ForgotPassword && (
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        )}
 
         {/* Dashboard + nested pages */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<QuizzesPage />} />                 {/* list of quizzes */}
-          <Route path="quiz/:id" element={<QuizDetailPage />} />    {/* single quiz detail */}
+          <Route index element={<QuizzesPage />} />
+          <Route path="quiz/:id" element={<QuizDetailPage />} />
           <Route path="new" element={<SourceSelect />} />
           <Route path="new/upload" element={<UploadFiles />} />
-          <Route path="new/text" element={<WrittenText />} />       {/* relative path */}
+          <Route path="new/text" element={<WrittenText />} />
           <Route path="quiz-preview" element={<QuizPreviewPage />} />
           <Route path="exportquiz" element={<ExportQuizPage />} />
           <Route path="sharequiz" element={<ShareQuizPage />} />
@@ -177,6 +197,9 @@ function App() {
 
         {/* Legacy admin panel */}
         <Route path="/admin" element={<QuizAdmin />} />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,24 +1,41 @@
-// src/services/graphql.js
+// frontend/src/services/graphql.js
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+
 export const graphqlQuery = async (query, variables = {}) => {
-  const token = localStorage.getItem('token'); // Retrieve JWT from localStorage
+  const token = localStorage.getItem("token"); // JWT from login
 
   if (!token) {
-    throw new Error('No authentication token found. Please log in.');
+    throw new Error("No authentication token found. Please log in.");
   }
 
-  const response = await fetch('http://localhost:5000/graphql', {
-    method: 'POST',
+  const response = await fetch(`${API_BASE}/graphql`, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`, // Include JWT for authentication
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`, // include JWT
     },
     body: JSON.stringify({ query, variables }),
   });
 
-  const { data, errors } = await response.json();
+  let json;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error(`GraphQL HTTP error ${response.status}`);
+  }
 
-  if (errors) {
-    throw new Error(errors[0]?.message || 'GraphQL error occurred');
+  const { data, errors } = json;
+
+  if (!response.ok) {
+    const msg =
+      errors?.[0]?.message ||
+      json?.message ||
+      `GraphQL HTTP error ${response.status}`;
+    throw new Error(msg);
+  }
+
+  if (errors && errors.length) {
+    throw new Error(errors[0]?.message || "GraphQL error occurred");
   }
 
   return data;
