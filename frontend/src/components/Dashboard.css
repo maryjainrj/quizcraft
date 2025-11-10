@@ -545,3 +545,211 @@
   object-fit: contain;
   flex: 0 0 18px;
 }
+
+/* --- Quizzes list (cards) --- */
+.feed-header {
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.feed-title { color: #04103B; margin: 0 0 0.25rem; }
+.feed-subtitle { color: #808080; margin: 0; }
+.feed-cta { align-self: center; }
+
+.quiz-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+.quiz-item-card {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eee;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+  padding: 1.25rem 1rem 1.25rem 1.25rem;
+}
+.quiz-item-main { flex: 1; cursor: pointer; }
+.quiz-item-title { color: #04103B; margin: 0 0 .4rem; }
+.quiz-item-summary { color: #6b7280; margin: 0 0 .8rem; }
+.quiz-item-meta { display: flex; gap: .5rem; flex-wrap: wrap; }
+.badge {
+  display: inline-block;
+  padding: .35rem .6rem;
+  border-radius: 999px;
+  background: #ffe9c7;
+  color: #8a5a10;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.badge.soft { background: #fde2e4; color: #8a1c32; }
+
+.kebab {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 1.25rem;
+  padding: .25rem .5rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+/* --- Detail page panels --- */
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+.back-btn { margin-right: .25rem; }
+
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: .75rem 0;
+  margin: 1rem 0;
+}
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .5rem 1rem .75rem;
+  color: #04103B;
+  font-weight: 600;
+}
+.chevron {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.question-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.question-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .75rem;
+  padding: .9rem 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+.question-row:first-child { border-top: none; }
+.q-index { color: #6b7280; }
+.q-text { color: #1f2937; }
+
+/* responsive */
+@media (max-width: 640px) {
+  .feed-header { flex-direction: column; align-items: flex-start; }
+  .feed-cta { align-self: flex-start; }
+}
+
+/* ===== Detail header & actions ===== */
+.detail-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.detail-heading { text-align: left; }
+.detail-actions { display: flex; gap: 0.5rem; }
+
+/* Buttons variants used here */
+.danger-btn {
+  background: #e11d48;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.danger-btn:hover { background: #be123c; }
+
+/* ===== Panels already exist: .panel, .panel__header, .question-list, etc. ===== */
+
+/* ===== Generic modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 16, 59, 0.45); /* dark blur */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal {
+  width: min(720px, 92vw);
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal-title {
+  color: #04103B;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 .25rem;
+  text-align: center;
+}
+.modal-subtitle {
+  color: #808080;
+  text-align: center;
+  margin: 0 0 1rem;
+}
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: .6rem;
+  justify-content: center;
+}
+
+/* ===== Export list look (soft purple rows) ===== */
+.export-list { display: grid; gap: .75rem; margin-top: .5rem; }
+.export-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  text-align: left;
+  padding: .9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #e9e7ff;
+  background: #f6f4ff;
+  cursor: pointer;
+}
+.export-item:hover { background: #efecff; }
+.export-icon { font-size: 1.3rem; }
+.export-title { color: #04103B; font-weight: 600; }
+.export-desc { color: #808080; font-size: .92rem; }
+
+/* ===== Share row ===== */
+.share-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .5rem;
+  margin-top: .75rem;
+}
+.share-input {
+  padding: .7rem .9rem;
+  border: 1.5px solid #CFCFE6;
+  border-radius: 10px;
+  outline: none;
+  font-size: .95rem;
+  color: #04103B;
+}
+.share-input:focus {
+  border-color: #40189D;
+  box-shadow: 0 0 0 3px rgba(64, 24, 157, 0.12);
+}
