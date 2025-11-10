@@ -7,7 +7,7 @@ import sallyImage from "../assets/sally.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-// Robust Google Client ID resolver 
+// Robust Google Client ID resolver
 const GOOGLE_CLIENT_ID =
   (import.meta.env?.VITE_GOOGLE_CLIENT_ID || "").trim() ||
   (typeof document !== "undefined"
@@ -23,31 +23,35 @@ const Login = () => {
   const navigate = useNavigate();
 
   // Refs for Google
-  const codeClientRef = useRef(null);       
-  const idClientReadyRef = useRef(false);   
-  const googleBtnHostRef = useRef(null);    
+  const codeClientRef = useRef(null);
+  const idClientReadyRef = useRef(false);
+  const googleBtnHostRef = useRef(null);
 
-  // Debug (can remove later)
+  // Debug (optional)
   useEffect(() => {
     console.log("Resolved GOOGLE_CLIENT_ID →", GOOGLE_CLIENT_ID || "(empty)");
   }, []);
 
-  //  start with empty fields 
+  // always start with empty fields
   useEffect(() => {
     setForm({ username: "", password: "" });
   }, []);
 
-  //  helper auth (token + user + 24h expiry) 
+  // Helper: persist token + user + 24h expiry
   const persistAuth = (data, fallbackId = "") => {
     try {
       if (data?.token) localStorage.setItem("token", data.token);
 
-      //  common server 
       const derivedName = (() => {
         if (data?.user?.name) return data.user.name;
+        if (data?.user?.username) return data.user.username;
         if (data?.name) return data.name;
         if (data?.username) return data.username;
-        if (fallbackId) return fallbackId.includes("@") ? fallbackId.split("@")[0] : fallbackId;
+        if (fallbackId) {
+          return fallbackId.includes("@")
+            ? fallbackId.split("@")[0]
+            : fallbackId;
+        }
         return "User";
       })();
 
@@ -58,9 +62,12 @@ const Login = () => {
         return "";
       })();
 
-      const userToStore = data?.user || { name: derivedName, email: derivedEmail };
-      localStorage.setItem("user", JSON.stringify(userToStore));
+      const userToStore = data?.user || {
+        name: derivedName,
+        email: derivedEmail,
+      };
 
+      localStorage.setItem("user", JSON.stringify(userToStore));
       const expiryTime = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
       localStorage.setItem("sessionExpiry", String(expiryTime));
 
@@ -74,16 +81,20 @@ const Login = () => {
     }
   };
 
-  //  Local (username/email + password) sign-in 
+  // Local (username/email + password) sign-in
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
     setErr("");
     setSubmitting(true);
+
     try {
       const id = (form.username || "").trim();
       const payload = id.includes("@")
-        ? { email: id.toLowerCase().replace(/[,;]+$/g, ""), password: form.password }
+        ? {
+            email: id.toLowerCase().replace(/[,;]+$/g, ""),
+            password: form.password,
+          }
         : { username: id, password: form.password };
 
       const res = await fetch(`${API_BASE}/api/auth/login`, {
@@ -92,10 +103,11 @@ const Login = () => {
         body: JSON.stringify(payload),
         credentials: "include",
       });
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Login failed");
 
-      // token + user + 24h expiry
+      // save token + user + 24h expiry (single source of truth)
       persistAuth(data, id);
 
       navigate("/dashboard");
@@ -106,10 +118,12 @@ const Login = () => {
     }
   };
 
-  //  Google OAuth 
+  // Google OAuth (code flow + optional ID flow)
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
-      setErr("Missing Google Client ID. Set VITE_GOOGLE_CLIENT_ID or <meta name='google-client-id'>.");
+      setErr(
+        "Missing Google Client ID. Set VITE_GOOGLE_CLIENT_ID or <meta name='google-client-id'>."
+      );
       return;
     }
 
@@ -135,40 +149,51 @@ const Login = () => {
       });
 
     const initClients = () => {
-      // OAuth Code Client 
+      // OAuth Code Client
       try {
-        codeClientRef.current = window.google?.accounts?.oauth2?.initCodeClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: "openid email profile",
-          ux_mode: "popup", 
-          callback: async ({ code, error, error_description }) => {
-            try {
-              if (error) throw new Error(error_description || error);
-              if (!code) throw new Error("No authorization code returned");
-              const res = await fetch(`${API_BASE}/api/auth/google/code`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code }),
-                credentials: "include",
-              });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok) throw new Error(data.message || "Google sign-in failed");
+        codeClientRef.current =
+          window.google?.accounts?.oauth2?.initCodeClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: "openid email profile",
+            ux_mode: "popup",
+            callback: async ({ code, error, error_description }) => {
+              try {
+                if (error) throw new Error(error_description || error);
+                if (!code) throw new Error("No authorization code returned");
 
-              const fallbackName = data?.user?.name || data?.profile?.name || data?.name || "";
-              persistAuth(data, fallbackName);
+                const res = await fetch(
+                  `${API_BASE}/api/auth/google/code`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code }),
+                    credentials: "include",
+                  }
+                );
 
-              navigate("/dashboard");
-            } catch (e) {
-              console.error("[GIS code flow] error]:", e);
-              setErr(e.message || "Google sign-in failed");
-            }
-          },
-        });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok)
+                  throw new Error(data.message || "Google sign-in failed");
+
+                const fallbackName =
+                  data?.user?.name ||
+                  data?.profile?.name ||
+                  data?.name ||
+                  "";
+
+                persistAuth(data, fallbackName);
+                navigate("/dashboard");
+              } catch (e) {
+                console.error("[GIS code flow] error:", e);
+                setErr(e.message || "Google sign-in failed");
+              }
+            },
+          });
       } catch (e) {
         console.warn("[GIS] initCodeClient failed:", e);
       }
 
-      
+      // ID token flow (optional backup)
       try {
         const id = window.google?.accounts?.id;
         if (id) {
@@ -179,19 +204,28 @@ const Login = () => {
             cancel_on_tap_outside: false,
             callback: async ({ credential }) => {
               try {
-                if (!credential) throw new Error("No Google credential received.");
+                if (!credential)
+                  throw new Error("No Google credential received.");
+
+                // 🔧 Backend expects "credential", not "id_token"
                 const res = await fetch(`${API_BASE}/api/auth/google`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id_token: credential }),
+                  body: JSON.stringify({ credential }),
                   credentials: "include",
                 });
+
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data.message || "Google sign-in failed");
+                if (!res.ok)
+                  throw new Error(data.message || "Google sign-in failed");
 
-                const fallbackName = data?.user?.name || data?.profile?.name || data?.name || "";
+                const fallbackName =
+                  data?.user?.name ||
+                  data?.profile?.name ||
+                  data?.name ||
+                  "";
+
                 persistAuth(data, fallbackName);
-
                 navigate("/dashboard");
               } catch (e) {
                 console.error("[GIS id flow] error:", e);
@@ -199,8 +233,12 @@ const Login = () => {
               }
             },
           });
+
           if (googleBtnHostRef.current) {
-            id.renderButton(googleBtnHostRef.current, { theme: "outline", size: "large" });
+            id.renderButton(googleBtnHostRef.current, {
+              theme: "outline",
+              size: "large",
+            });
           }
           idClientReadyRef.current = true;
         }
@@ -214,7 +252,11 @@ const Login = () => {
         await ensureScript();
         if (!cancelled) initClients();
       } catch (e) {
-        if (!cancelled) setErr("Google Sign-In script blocked. Disable ad-block/privacy for localhost.");
+        if (!cancelled) {
+          setErr(
+            "Google Sign-In script blocked. Disable ad-block/privacy for localhost."
+          );
+        }
       }
     })();
 
@@ -223,7 +265,6 @@ const Login = () => {
     };
   }, [navigate]);
 
-  
   const handleGoogleClick = () => {
     setErr("");
     if (codeClientRef.current) {
@@ -237,7 +278,6 @@ const Login = () => {
     setErr("Google Sign-In not ready yet. Please reload and try again.");
   };
 
-  
   return (
     <div className="auth-page">
       <div className="auth-logo">
@@ -254,10 +294,26 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="auth-form" autoComplete="off">
             {/* hidden decoys */}
-            <input type="text" name="username" autoComplete="username" tabIndex={-1} aria-hidden="true" style={{ display: "none" }} />
-            <input type="password" name="password" autoComplete="current-password" tabIndex={-1} aria-hidden="true" style={{ display: "none" }} />
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ display: "none" }}
+            />
+            <input
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ display: "none" }}
+            />
 
-            <label htmlFor="username" className="auth-label">Username</label>
+            <label htmlFor="username" className="auth-label">
+              Username
+            </label>
             <input
               type="text"
               id="username"
@@ -270,14 +326,18 @@ const Login = () => {
               spellCheck={false}
               inputMode="email"
               value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, username: e.target.value })
+              }
               required
               title="Enter your username or email"
             />
 
-            <label htmlFor="password" className="auth-label">Password</label>
+            <label htmlFor="password" className="auth-label">
+              Password
+            </label>
 
-            {/*  password input */}
+            {/* password input with eye icon */}
             <div className="input-with-addon">
               <input
                 type={showPw ? "text" : "password"}
@@ -290,7 +350,9 @@ const Login = () => {
                 autoCorrect="off"
                 spellCheck={false}
                 value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
                 required
                 title="Enter your password"
               />
@@ -299,23 +361,36 @@ const Login = () => {
                 className="icon-btn"
                 aria-label={showPw ? "Hide password" : "Show password"}
                 aria-pressed={showPw}
-                onClick={() => setShowPw(v => !v)}
+                onClick={() => setShowPw((v) => !v)}
                 title={showPw ? "Hide password" : "Show password"}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 5c-5 0-9 4.5-9 7s4 7 9 7 9-4.5 9-7-4-7-9-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="#444"/>
-                  <circle cx="12" cy="12" r="2.5" fill="#444"/>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 5c-5 0-9 4.5-9 7s4 7 9 7 9-4.5 9-7-4-7-9-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
+                    fill="#444"
+                  />
+                  <circle cx="12" cy="12" r="2.5" fill="#444" />
                 </svg>
               </button>
             </div>
 
-            {/* password,*/}
-           <div className="forgot-wrap">
-  <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
-</div>
+            <div className="forgot-wrap">
+              <Link to="/forgot-password" className="auth-link">
+                Forgot password?
+              </Link>
+            </div>
 
-
-            <button type="submit" className="auth-btn" aria-busy={submitting} disabled={submitting}>
+            <button
+              type="submit"
+              className="auth-btn"
+              aria-busy={submitting}
+              disabled={submitting}
+            >
               Sign In
             </button>
 
@@ -337,8 +412,11 @@ const Login = () => {
               Sign in with Google
             </button>
 
-            {/* Off-screen official button host (kept, but hidden) */}
-            <div ref={googleBtnHostRef} style={{ position: "fixed", left: -9999, top: -9999 }} />
+            {/* Off-screen official button host (hidden but kept) */}
+            <div
+              ref={googleBtnHostRef}
+              style={{ position: "fixed", left: -9999, top: -9999 }}
+            />
           </form>
         </div>
       </div>

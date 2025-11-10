@@ -203,7 +203,7 @@ const ShareQuizPage = () => {
                 </button>
               </div>
             ) : (
-              <span className="text-xs">Generate & Share</span>
+              <span className="text-xs"> Share</span>
             )}
           </button>
         </div>
@@ -239,7 +239,7 @@ const ShareQuizPage = () => {
                 </button>
               </div>
             ) : (
-              <span className="text-xs">Generate & Share</span>
+              <span className="text-xs">Share</span>
             )}
           </button>
         </div>
