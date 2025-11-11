@@ -494,5 +494,5 @@ const QuizPreviewPage = () => {
     </div>
   );
 };
-
+      
 export default QuizPreviewPage;
