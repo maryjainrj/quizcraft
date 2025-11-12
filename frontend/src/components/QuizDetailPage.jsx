@@ -96,12 +96,12 @@ export default function QuizDetailPage() {
         </div>
 
         <div className="detail-actions">
-          <button className="secondary-btn" onClick={() => setShowExport(true)}>
+          {/* <button className="secondary-btn" onClick={() => setShowExport(true)}>
             Export
           </button>
           <button className="secondary-btn" onClick={() => setShowShare(true)}>
             Share
-          </button>
+          </button> */}
           <button
             className="danger-btn"
             onClick={() => setShowDelete(true)}

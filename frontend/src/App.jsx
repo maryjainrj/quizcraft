@@ -26,13 +26,17 @@ import QuizPreviewPage from "./components/QuizPreviewPage";
 import ExportQuizPage from "./components/ExportQuizPage";
 import ShareQuizPage from "./components/ShareQuizPage";
 
+// Toasts
+import { useToast } from "./components/ToastProvider.jsx";
+
 // Some builds export ForgotPassword as default, others as named.
-// This keeps it robust either way.
 import * as ForgotPasswordMod from "./components/ForgotPassword.jsx";
 const ForgotPassword =
   ForgotPasswordMod.default ?? ForgotPasswordMod.ForgotPassword;
 
 function App() {
+  const toast = useToast();
+
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("list");
@@ -45,7 +49,7 @@ function App() {
       const data = await fetchAllQuestions();
       setQuestions(data);
     } catch (error) {
-      alert("Error loading questions: " + error.message);
+      toast.error(`Error loading questions: ${error.message}`);
     }
     setLoading(false);
   };
@@ -57,7 +61,7 @@ function App() {
       const data = await searchQuestionsByTopic(searchTopic);
       setQuestions(data);
     } catch (error) {
-      alert("Error searching questions: " + error.message);
+      toast.error(`Error searching questions: ${error.message}`);
     }
     setLoading(false);
   };
@@ -66,11 +70,11 @@ function App() {
     setLoading(true);
     try {
       await createQuestion(formData);
-      alert("Question created successfully!");
+      toast.success("Question created successfully!");
       loadQuestions();
       setActiveTab("list");
     } catch (error) {
-      alert("Error creating question: " + error.message);
+      toast.error(`Error creating question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -79,12 +83,12 @@ function App() {
     setLoading(true);
     try {
       await updateQuestion(id, formData);
-      alert("Question updated successfully!");
+      toast.success("Question updated successfully!");
       setEditingQuestion(null);
       loadQuestions();
       setActiveTab("list");
     } catch (error) {
-      alert("Error updating question: " + error.message);
+      toast.error(`Error updating question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -94,9 +98,10 @@ function App() {
     setLoading(true);
     try {
       await deleteQuestion(id);
+      toast.info("Question deleted.");
       loadQuestions();
     } catch (error) {
-      alert("Error deleting question: " + error.message);
+      toast.error(`Error deleting question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -113,7 +118,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Legacy demo admin panel (kept from previous version)
+  // Legacy demo admin panel
   const QuizAdmin = () => (
     <div className="app-container">
       <div className="app-content">

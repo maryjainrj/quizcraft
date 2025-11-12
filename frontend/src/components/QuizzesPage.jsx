@@ -1,10 +1,9 @@
-import React from "react";
+// src/components/QuizzesPage.jsx
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import emptyImg from "../assets/empty_quiz.png";
 
-// TODO: replace this with real data from API/store
 const mockQuizzes = [
-//   Leave [] to see the empty state
   {
     id: "1",
     title: "Entry-Level Accounting Professional Seeking Opportunities",
@@ -25,16 +24,20 @@ const mockQuizzes = [
 
 export default function QuizzesPage() {
   const navigate = useNavigate();
-  const quizzes = mockQuizzes; // swap to real data later
+
+  useEffect(() => {
+    // Hide the sidebar on this page and show header brand
+    document.body.classList.add("hide-sidebar");
+    return () => document.body.classList.remove("hide-sidebar");
+  }, []);
+
+  const quizzes = mockQuizzes;
 
   return (
     <section>
       <header className="feed-header">
         <div>
           <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
-          <p className="feed-subtitle">
-            Manage your quiz questions here. You can edit and delete questions.
-          </p>
         </div>
         <button
           className="primary-btn feed-cta"
@@ -44,7 +47,6 @@ export default function QuizzesPage() {
         </button>
       </header>
 
-      {/* Empty state vs list */}
       {!quizzes.length ? (
         <div className="empty-state" style={{ marginTop: "1rem" }}>
           <img src={emptyImg} alt="No quizzes" className="empty-state__img" />
@@ -52,6 +54,12 @@ export default function QuizzesPage() {
           <p className="empty-state__desc">
             Currently, there are no quizzes. Please add a new quiz.
           </p>
+          <button
+          className="primary-btn feed-cta"
+          onClick={() => navigate("/dashboard/new")}
+        >
+          Add New Quiz
+        </button>
         </div>
       ) : (
         <ul className="quiz-feed">
@@ -59,32 +67,31 @@ export default function QuizzesPage() {
             <li key={q.id} className="quiz-item-card">
               <div
                 className="quiz-item-main"
-                onClick={() =>
-                  navigate(`/dashboard/quiz/${q.id}`, { state: q })
-                }
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/dashboard/quiz/${q.id}`, { state: q })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    navigate(`/dashboard/quiz/${q.id}`, { state: q });
+                  }
+                }}
               >
                 <h3 className="quiz-item-title">{q.title}</h3>
                 <p className="quiz-item-summary">{q.summary}</p>
                 <div className="quiz-item-meta">
                   <span className="badge">{q.total} Questions</span>
-                  <span className="badge soft">
-                    Last Update : {q.updatedAgo}
-                  </span>
+                  <span className="badge soft">Last Update : {q.updatedAgo}</span>
                 </div>
               </div>
-              <button className="kebab" aria-label="More actions">
-                ⋮
-              </button>
+
+              {/* hover hint */}
+              <div className="hover-hint" aria-hidden="true">Click to view</div>
+
+              <button className="kebab" aria-label="More actions">⋮</button>
             </li>
           ))}
         </ul>
       )}
-      <button
-            className="primary-btn"
-            onClick={() => navigate("/dashboard/new")}
-          >
-            Add New Quiz
-          </button>
     </section>
   );
 }
