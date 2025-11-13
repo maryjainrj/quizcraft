@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { FiX, FiCopy, FiCheck, FiShare2 } from "react-icons/fi";
-import quizcraftwhite from "../assets/quizcraftwhite.png";
+import quizcraftwhite from "../assets/logo_quizcraft.png";
 
 const ShareQuizPage = () => {
   const navigate = useNavigate();

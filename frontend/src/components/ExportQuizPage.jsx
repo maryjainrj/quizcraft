@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { FiX, FiDownload } from "react-icons/fi";
-import quizcraftwhite from "../assets/quizcraftwhite.png";
+import quizcraftwhite from "../assets/logo_quizcraft.png";
 
 const ExportQuizPage = () => {
   const { state } = useLocation();
