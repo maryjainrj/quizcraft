@@ -61,7 +61,7 @@ export default function QuizSettingsModal({
           />
         </div>
 
-        {/* Question Type - Changed to checkboxes */}
+        {/* Question Type */}
         <div className="qs-block">
           <div className="qs-label">Question Type (Select one or more)</div>
           <div className="qs-options">
@@ -114,7 +114,7 @@ export default function QuizSettingsModal({
           </div>
         </div>
 
-        {/* Range: 6..30 */}
+        {/* No of Quiz (Range): 6..30 */}
         <div className="qs-block">
           <div className="qs-range-labels">
             <span>Minimum 6 Questions</span>

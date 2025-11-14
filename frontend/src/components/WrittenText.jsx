@@ -42,7 +42,7 @@ export default function WrittenText() {
         <div className="paste-meta">
           <span>
             {pastedText.trim().length} characters
-            {hasEnoughText ? "" : ` (min ${MIN_PASTE_CHARS} to enable)`}
+            {hasEnoughText ? "" : ` (minimum ${MIN_PASTE_CHARS} is required)`}
           </span>
           {pastedText && (
             <button className="link-btn" onClick={() => setPastedText("")}>
