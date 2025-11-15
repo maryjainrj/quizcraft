@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import "./Auth.css";
+import quizcraftwhite from "../assets/logo_quizcraftwhite.png";
 
 // Brand + sidebar icons
-import quizcraft from "../assets/quizcraft.png";
-import quizcraftwhite from "../assets/quizcraftwhite.png";
+import quizcraft from "../assets/logo_quizcraft.png";
+
 import dashboardImgPurple from "../assets/dashboardImgPurple.png";
 import dashboardImgWhite from "../assets/dashboardImgWhite.png";
 import exportQuizPurple from "../assets/exportQuizPurple.png";
@@ -62,7 +63,7 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="auth-logo">
-          <img src={quizcraftwhite} alt="QuizzCraft logo" />
+          <img src={quizcraftwhite} style={{ width: '120px', height: 'auto' }} alt="QuizzCraft logo" />
         </div>
         <nav className="sidebar-nav">
           <Link

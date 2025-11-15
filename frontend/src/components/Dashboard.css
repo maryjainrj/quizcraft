@@ -287,7 +287,10 @@
 .empty-state__img { width: 220px; max-width: 60%; height: auto;  margin: 0 auto; margin-bottom: 0.75rem;}
 .empty-state__title { color: #04103B; margin-bottom: 0.25rem; }
 .empty-state__desc { color: #808080; margin-bottom: 1rem; }
-
+.sidebar-logo {
+  width: 120px;          /* ← change this value to the size you want */
+  height: auto;          /* keeps the aspect ratio */
+}
 /* Buttons */
 .primary-btn {
   background: #40189D; color: white; border: 1px solid black; border-radius: 15px;

@@ -4,7 +4,7 @@ console.log("Loaded: src/components/ForgotPassword.jsx");
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
-import quizcraft from "../assets/quizcraft.png";
+import quizcraft from "../assets/logo_quizcraft.png";
 import sallyImage from "../assets/sally.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
