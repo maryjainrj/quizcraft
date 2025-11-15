@@ -99,12 +99,21 @@ export default function QuizzesPage() {
   if (loading) {
     return (
       <section className="dashboard-feed">
-        <header className="feed-header feed-header--center">
+        <header className="feed-header">
           <div>
             <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
             <p className="feed-subtitle">
               View and manage the quizzes you have saved.
             </p>
+          </div>
+
+          <div className="feed-cta">
+            <button
+              className="primary-btn"
+              onClick={() => navigate("/dashboard/new")}
+            >
+              Create New Quiz
+            </button>
           </div>
         </header>
       </section>
@@ -113,12 +122,22 @@ export default function QuizzesPage() {
 
   return (
     <section className="dashboard-feed">
-      <header className="feed-header feed-header--center">
+      {/* Header with button on the right */}
+      <header className="feed-header">
         <div>
           <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
           <p className="feed-subtitle">
             View and manage the quizzes you have saved.
           </p>
+        </div>
+
+        <div className="feed-cta">
+          <button
+            className="primary-btn"
+            onClick={() => navigate("/dashboard/new")}
+          >
+            Create New Quiz
+          </button>
         </div>
       </header>
 
