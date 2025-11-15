@@ -8,21 +8,22 @@ import sallyImage from "../assets/sally.png";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// validation helpers 
+// validation helpers
 
 const emailRe =
-/^(?=.{1,254}$)(?=.{1,64}@)(?!.*\.\.)[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
-
+  /^(?=.{1,254}$)(?=.{1,64}@)(?!.*\.\.)[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
 
 function validate(fields) {
   const e = {};
   // email
   if (!fields.email?.trim()) e.email = "Email is required";
-  else if (!emailRe.test(fields.email.trim())) e.email = "Enter a valid email";
+  else if (!emailRe.test(fields.email.trim()))
+    e.email = "Enter a valid email";
 
   // username
   if (!fields.username?.trim()) e.username = "Username is required";
-  else if (fields.username.trim().length < 3) e.username = "At least 3 characters";
+  else if (fields.username.trim().length < 3)
+    e.username = "At least 3 characters";
 
   // password
   const pw = fields.password || "";
@@ -30,7 +31,8 @@ function validate(fields) {
   else {
     if (pw.length < 8) e.password = "Minimum 8 characters";
     if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
-      e.password = (e.password ? e.password + " • " : "") + "Use letters & numbers";
+      e.password =
+        (e.password ? e.password + " • " : "") + "Use letters & numbers";
     }
   }
 
@@ -41,6 +43,52 @@ function validate(fields) {
 
   return e;
 }
+
+// 🔐 helper to store auth info so Dashboard can show the user name
+const persistAuth = (data, fallbackId = "") => {
+  try {
+    // Save token if present
+    if (data?.token) {
+      localStorage.setItem("token", data.token);
+    }
+
+    // Decide what to use as display name
+    const derivedName = (() => {
+      if (data?.user?.name) return data.user.name;
+      if (data?.user?.username) return data.user.username;
+      if (data?.name) return data.name;
+      if (data?.username) return data.username;
+      if (fallbackId) {
+        return fallbackId.includes("@")
+          ? fallbackId.split("@")[0]
+          : fallbackId;
+      }
+      return "User";
+    })();
+
+    // Decide what to use as email
+    const derivedEmail = (() => {
+      if (data?.user?.email) return data.user.email;
+      if (data?.email) return data.email;
+      if (fallbackId?.includes("@")) return fallbackId;
+      return "";
+    })();
+
+    const userToStore = data?.user || {
+      name: derivedName,
+      email: derivedEmail,
+    };
+
+    // Store in localStorage for DashboardLayout to read
+    localStorage.setItem("user", JSON.stringify(userToStore));
+
+    // Optional: simple 24h expiry
+    const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem("sessionExpiry", String(expiryTime));
+  } catch (e) {
+    console.warn("Failed to persist auth from signup:", e);
+  }
+};
 
 const Signup = () => {
   const [form, setForm] = useState({
@@ -54,9 +102,9 @@ const Signup = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const gisReadyRef = useRef(false);
-  const googleBtnHostRef = useRef(null); 
+  const googleBtnHostRef = useRef(null);
 
-  // prevents any autosaved text 
+  // prevents any autosaved text
   useEffect(() => {
     setForm({ username: "", email: "", password: "", confirmPassword: "" });
     setTouched({});
@@ -74,7 +122,12 @@ const Signup = () => {
 
     // show all errors if user pressed submit
     if (hasErrors) {
-      setTouched({ email: true, username: true, password: true, confirmPassword: true });
+      setTouched({
+        email: true,
+        username: true,
+        password: true,
+        confirmPassword: true,
+      });
       setErr("Please fix the highlighted fields.");
       return;
     }
@@ -94,7 +147,10 @@ const Signup = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Signup failed");
-      localStorage.setItem("token", data.token);
+
+      // ✅ store token + user so Dashboard can show their name
+      persistAuth(data, form.username || form.email);
+
       navigate("/dashboard");
     } catch (e) {
       setErr(e.message);
@@ -126,16 +182,30 @@ const Signup = () => {
           cancel_on_tap_outside: false,
           callback: async (response) => {
             try {
-              if (!response?.credential) throw new Error("No Google credential received");
+              if (!response?.credential)
+                throw new Error("No Google credential received");
 
               // 🔍 Optional local decode for diagnostics
               try {
-                const b64 = response.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+                const b64 = response.credential
+                  .split(".")[1]
+                  .replace(/-/g, "+")
+                  .replace(/_/g, "/");
                 const decoded = JSON.parse(atob(b64));
                 if (decoded?.aud !== GOOGLE_CLIENT_ID) {
-                  console.warn("[GIS] Frontend audience mismatch:", decoded?.aud, "vs", GOOGLE_CLIENT_ID);
+                  console.warn(
+                    "[GIS] Frontend audience mismatch:",
+                    decoded?.aud,
+                    "vs",
+                    GOOGLE_CLIENT_ID
+                  );
                 }
-              } catch {}
+              } catch (decodeErr) {
+                console.warn(
+                  "[Signup] Failed to decode Google ID token:",
+                  decodeErr
+                );
+              }
 
               const res = await fetch(`${API_BASE}/api/auth/google`, {
                 method: "POST",
@@ -144,8 +214,12 @@ const Signup = () => {
                 body: JSON.stringify({ credential: response.credential }),
               });
               const data = await res.json().catch(() => ({}));
-              if (!res.ok) throw new Error(data.message || "Google sign-in failed");
-              localStorage.setItem("token", data.token);
+              if (!res.ok)
+                throw new Error(data.message || "Google sign-in failed");
+
+              // ✅ store token + user from Google auth
+              persistAuth(data);
+
               navigate("/dashboard");
             } catch (e) {
               setErr(e.message || "Google sign-in failed");
@@ -163,11 +237,21 @@ const Signup = () => {
               text: "signup_with",
             });
           }
-        } catch {}
+        } catch (renderErr) {
+          console.warn(
+            "[Signup] Failed to render Google signup button:",
+            renderErr
+          );
+        }
 
         try {
           window.google.accounts.id.prompt(() => {});
-        } catch {}
+        } catch (promptErr) {
+          console.warn(
+            "[Signup] google.accounts.id.prompt failed:",
+            promptErr
+          );
+        }
 
         window.__gisLoaded = true;
         gisReadyRef.current = true;
@@ -185,7 +269,8 @@ const Signup = () => {
       return;
     }
     try {
-      const btn = googleBtnHostRef.current?.querySelector('div[role="button"]');
+      const btn =
+        googleBtnHostRef.current?.querySelector('div[role="button"]');
       if (btn) btn.click();
       else window.google.accounts.id.prompt();
     } catch {
@@ -203,7 +288,7 @@ const Signup = () => {
       <div className="auth-left">
         <div className="auth-box">
           <h2 className="auth-title">Welcome to QuizzCraft</h2>
-          <p className="auth-subtitle">SIGN UP</p>
+          <p className="auth-subtitle">Create your account to get started UP</p>
 
           {/* global  */}
           {err ? <div className="auth-error">{err}</div> : null}
@@ -217,11 +302,31 @@ const Signup = () => {
             data-1p-ignore="true"
           >
             {/* Hidden decoys to swallow browser autofill */}
-            <input type="email" name="email" autoComplete="email" tabIndex={-1} style={{ display: "none" }} />
-            <input type="text" name="username" autoComplete="username" tabIndex={-1} style={{ display: "none" }} />
-            <input type="password" name="password" autoComplete="current-password" tabIndex={-1} style={{ display: "none" }} />
+            <input
+              type="email"
+              name="email"
+              autoComplete="email"
+              tabIndex={-1}
+              style={{ display: "none" }}
+            />
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              tabIndex={-1}
+              style={{ display: "none" }}
+            />
+            <input
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              tabIndex={-1}
+              style={{ display: "none" }}
+            />
 
-            <label htmlFor="email" className="auth-label">Email id</label>
+            <label htmlFor="email" className="auth-label">
+              Email id
+            </label>
             <input
               type="email"
               id="email"
@@ -242,7 +347,9 @@ const Signup = () => {
               <div className="field-error">{fieldErrors.email}</div>
             ) : null}
 
-            <label htmlFor="username" className="auth-label">Username</label>
+            <label htmlFor="username" className="auth-label">
+              Username
+            </label>
             <input
               type="text"
               id="username"
@@ -254,7 +361,9 @@ const Signup = () => {
               autoCorrect="off"
               spellCheck={false}
               value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, username: e.target.value })
+              }
               onBlur={onBlur("username")}
               aria-invalid={touched.username && !!fieldErrors.username}
               required
@@ -263,7 +372,9 @@ const Signup = () => {
               <div className="field-error">{fieldErrors.username}</div>
             ) : null}
 
-            <label htmlFor="password" className="auth-label">Password</label>
+            <label htmlFor="password" className="auth-label">
+              Password
+            </label>
             <input
               type="password"
               id="password"
@@ -275,7 +386,9 @@ const Signup = () => {
               autoCorrect="off"
               spellCheck={false}
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, password: e.target.value })
+              }
               onBlur={onBlur("password")}
               aria-invalid={touched.password && !!fieldErrors.password}
               required
@@ -284,7 +397,9 @@ const Signup = () => {
               <div className="field-error">{fieldErrors.password}</div>
             ) : null}
 
-            <label htmlFor="confirmPassword" className="auth-label">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="auth-label">
+              Confirm Password
+            </label>
             <input
               type="password"
               id="confirmPassword"
@@ -296,9 +411,13 @@ const Signup = () => {
               autoCorrect="off"
               spellCheck={false}
               value={form.confirmPassword}
-              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, confirmPassword: e.target.value })
+              }
               onBlur={onBlur("confirmPassword")}
-              aria-invalid={touched.confirmPassword && !!fieldErrors.confirmPassword}
+              aria-invalid={
+                touched.confirmPassword && !!fieldErrors.confirmPassword
+              }
               required
             />
             {touched.confirmPassword && fieldErrors.confirmPassword ? (
@@ -318,7 +437,11 @@ const Signup = () => {
               Already have an account? <Link to="/login">Login</Link>
             </div>
 
-            <button type="button" className="google-btn" onClick={handleGoogleClick}>
+            <button
+              type="button"
+              className="google-btn"
+              onClick={handleGoogleClick}
+            >
               <img
                 src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                 alt="Google"
@@ -327,7 +450,10 @@ const Signup = () => {
             </button>
 
             {/* Off-screen official Google button host  */}
-            <div ref={googleBtnHostRef} style={{ position: "fixed", left: -9999, top: -9999 }} />
+            <div
+              ref={googleBtnHostRef}
+              style={{ position: "fixed", left: -9999, top: -9999 }}
+            />
           </form>
         </div>
       </div>

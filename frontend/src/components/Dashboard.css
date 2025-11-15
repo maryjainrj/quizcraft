@@ -827,3 +827,115 @@ body.hide-sidebar .header-brand { display: flex !important; }
   .toast-container { left: 10px; right: 10px; }
   .toast { max-width: 100%; }
 }
+/* whole empty dashboard area */
+.dashboard-empty {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* centered header like screenshot */
+.feed-header--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* small loading text */
+.feed-loading {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* whole empty dashboard area */
+.dashboard-empty {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* centered header */
+.feed-header--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* small loading text */
+.feed-loading {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.empty-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 0;
+}
+
+.empty-state {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.08);
+  max-width: 480px;
+  width: 100%;
+  padding: 3rem 3.5rem;
+  text-align: center;
+}
+
+.empty-state__img {
+  width: 140px;
+  height: auto;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state__desc {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 1.75rem;
+}
+
+/* Same  */
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  padding: 0.9rem 2.5rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  background: #40189d;
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(64, 24, 157, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 40px rgba(64, 24, 157, 0.5);
+  background: #2c0f73;
+}
