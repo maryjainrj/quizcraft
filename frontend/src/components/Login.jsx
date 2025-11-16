@@ -161,15 +161,12 @@ const Login = () => {
                 if (error) throw new Error(error_description || error);
                 if (!code) throw new Error("No authorization code returned");
 
-                const res = await fetch(
-                  `${API_BASE}/api/auth/google/code`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code }),
-                    credentials: "include",
-                  }
-                );
+                const res = await fetch(`${API_BASE}/api/auth/google/code`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ code }),
+                  credentials: "include",
+                });
 
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok)
@@ -207,7 +204,6 @@ const Login = () => {
                 if (!credential)
                   throw new Error("No Google credential received.");
 
-                // 🔧 Backend expects "credential", not "id_token"
                 const res = await fetch(`${API_BASE}/api/auth/google`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -288,7 +284,7 @@ const Login = () => {
       <div className="auth-left">
         <div className="auth-box">
           <h2 className="auth-title">Welcome Back to QuizzCraft</h2>
-          <p className="auth-subtitle">SIGN IN</p>
+          <p className="auth-subtitle">Sign in to access your dashboard</p>
 
           {err ? <div className="auth-error">{err}</div> : null}
 

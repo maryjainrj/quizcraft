@@ -1,5 +1,5 @@
 // server.js - Main server file for OCR and Auth
-require('dotenv').config();
+require("dotenv").config();
 
 // ===== Core / existing OCR deps =====
 const express = require('express');
@@ -15,59 +15,72 @@ const configRoutes = require('./routes/config');
 
 
 // ===== Auth/DB/GraphQL deps =====
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
-const { graphqlHTTP } = require('express-graphql');
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
+const { graphqlHTTP } = require("express-graphql");
 
 // ===== Added for password reset (Mailtrap) =====
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+
+// 🔗 NEW: question set REST routes
+const questionSetRoutes = require("./routes/questionSetRoutes");
 
 // ---------- Config ----------
 const app = express();
 const PORT = process.env.PORT || 5000;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 
 // Google OAuth
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const googleCodeClient = new OAuth2Client(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  'postmessage'
+  "postmessage"
 );
 
 // ---------- CORS & Parsers ----------
 app.use(
   cors({
-    origin: [FRONTEND_ORIGIN, 'http://127.0.0.1:5173'],
+    origin: [FRONTEND_ORIGIN, "http://127.0.0.1:5173"],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/config', configRoutes);
 
+// 🔍 SMALL REQUEST LOGGER (helps you see if /api/questionsets/mine hits this server)
+app.use((req, res, next) => {
+  console.log("REQ:", req.method, req.url);
+  next();
+});
+
+// 🔗 MOUNT QUESTION SET ROUTES (THIS IS WHAT /api/questionsets/mine USES)
+app.use("/api/questionsets", questionSetRoutes);
+
 // ---------- MongoDB ----------
 if (process.env.MONGO_URI) {
   mongoose
     .connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connected'))
-    .catch((e) => console.error('MongoDB error:', e.message));
+    .then(() => console.log("MongoDB connected"))
+    .catch((e) => console.error("MongoDB error:", e.message));
 } else {
-  console.warn('MONGO_URI not set. Auth endpoints will fail without a database.');
+  console.warn("MONGO_URI not set. Auth endpoints will fail without a database.");
 }
 
 // ---------- User Model (inline fallback) ----------
 let User;
 try {
-  User = require('./models/User');
+  User = require("./models/User");
 } catch {
   const userSchema = new mongoose.Schema(
     {
@@ -86,8 +99,8 @@ try {
       password: String,
       provider: {
         type: String,
-        enum: ['local', 'google'],
-        default: 'local',
+        enum: ["local", "google"],
+        default: "local",
         index: true,
       },
       googleId: String,
@@ -98,19 +111,19 @@ try {
     },
     { timestamps: true }
   );
-  User = mongoose.models.User || mongoose.model('User', userSchema);
+  User = mongoose.models.User || mongoose.model("User", userSchema);
 }
 
 // ---------- Google Cloud Vision ----------
 const visionClient = new vision.ImageAnnotatorClient({
-  keyFilename: path.join(__dirname, 'service-account.json'),
+  keyFilename: path.join(__dirname, "service-account.json"),
 });
 
 // ---------- OCR helpers ----------
 class NodeCanvasFactory {
   create(width, height) {
     const canvas = createCanvas(width, height);
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     return { canvas, context };
   }
   reset(canvasAndContext, width, height) {
@@ -124,24 +137,27 @@ class NodeCanvasFactory {
 }
 
 async function googleVisionOCR(imageBuffer) {
-  const imageBase64 = imageBuffer.toString('base64');
+  const imageBase64 = imageBuffer.toString("base64");
   const [result] = await visionClient.documentTextDetection({
     image: { content: imageBase64 },
   });
-  return result.fullTextAnnotation ? result.fullTextAnnotation.text : '';
+  return result.fullTextAnnotation ? result.fullTextAnnotation.text : "";
 }
 
 async function extractTextFromScannedPDF(pdfBuffer) {
   const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
   const pdfDocument = await loadingTask.promise;
-  let fullText = '';
+  let fullText = "";
 
   for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
     try {
       const page = await pdfDocument.getPage(pageNum);
       const viewport = page.getViewport({ scale: 2.5 });
       const canvasFactory = new NodeCanvasFactory();
-      const canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
+      const canvasAndContext = canvasFactory.create(
+        viewport.width,
+        viewport.height
+      );
 
       await page
         .render({
@@ -152,15 +168,15 @@ async function extractTextFromScannedPDF(pdfBuffer) {
         .promise;
 
       const { width, height } = canvasAndContext.canvas;
-      let ocrText = '';
+      let ocrText = "";
       if (width < 10 || height < 10) {
-        ocrText = '[Skipped: Page image too small for OCR]';
+        ocrText = "[Skipped: Page image too small for OCR]";
       } else {
         const imageBuffer = canvasAndContext.canvas.toBuffer();
         try {
           ocrText = await googleVisionOCR(imageBuffer);
         } catch (ocrErr) {
-          ocrText = '[OCR failed for this page: ' + ocrErr.message + ']';
+          ocrText = "[OCR failed for this page: " + ocrErr.message + "]";
         }
       }
       fullText += `\n--- Page ${pageNum} ---\n${ocrText}`;
@@ -176,7 +192,7 @@ function preprocessImage(imageBuffer) {
   const img = new Image();
   img.src = imageBuffer;
   const canvas = createCanvas(img.width, img.height);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   ctx.drawImage(img, 0, 0);
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
   for (let i = 0; i < imageData.data.length; i += 4) {
@@ -200,19 +216,19 @@ const performOCR = async (imageBuffer) => {
     // return await googleVisionOCR(processed);
     return await googleVisionOCR(imageBuffer);
   } catch (err) {
-    return '[OCR failed: ' + err.message + ']';
+    return "[OCR failed: " + err.message + "]";
   }
 };
 
 // ---------- Uploads ----------
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
   },
 });
 
@@ -221,35 +237,35 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = [
-      'application/pdf',
-      'image/png',
-      'image/jpeg',
-      'image/jpg',
-      'image/bmp',
-      'image/webp',
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/bmp",
+      "image/webp",
     ];
     allowed.includes(file.mimetype)
       ? cb(null, true)
-      : cb(new Error('Invalid file type. Only PDF and images are allowed.'));
+      : cb(new Error("Invalid file type. Only PDF and images are allowed."));
   },
 });
 
 // ---------- Health ----------
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", message: "Server is running" });
 });
 
 // ---------- OCR Routes ----------
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
     const filePath = req.file.path;
     const fileType = req.file.mimetype;
-    let extractedText = '';
+    let extractedText = "";
 
     console.log(`Processing file: ${req.file.originalname}`);
 
-    if (fileType === 'application/pdf') {
+    if (fileType === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       try {
         const pdfData = await pdfParse(dataBuffer);
@@ -257,11 +273,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         if (!extractedText.trim()) {
           extractedText = await extractTextFromScannedPDF(dataBuffer);
           if (!extractedText.trim())
-            extractedText = 'No text found in scanned PDF (OCR).';
+            extractedText = "No text found in scanned PDF (OCR).";
         }
       } catch (error) {
-        console.error('PDF text extraction failed:', error);
-        extractedText = 'Failed to extract text from PDF.';
+        console.error("PDF text extraction failed:", error);
+        extractedText = "Failed to extract text from PDF.";
       }
     } else {
       const imageBuffer = fs.readFileSync(filePath);
@@ -271,27 +287,27 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     fs.unlinkSync(filePath);
     res.json({
       success: true,
-      text: extractedText || 'No text found in the file.',
+      text: extractedText || "No text found in the file.",
       filename: req.file.originalname,
       fileSize: req.file.size,
     });
   } catch (error) {
-    console.error('Error processing file:', error);
+    console.error("Error processing file:", error);
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res
       .status(500)
-      .json({ error: 'Failed to process file', message: error.message });
+      .json({ error: "Failed to process file", message: error.message });
   }
 });
 
 // ---------- Generate Quiz ----------
-const { generateQuiz: generateQuizFromModule } = require('./quizGenerator');
+const { generateQuiz: generateQuizFromModule } = require("./quizGenerator");
 
-app.post('/api/generate-quiz', async (req, res) => {
+app.post("/api/generate-quiz", async (req, res) => {
   try {
     const { text, settings } = req.body;
     if (!text?.trim())
-      return res.status(400).json({ error: 'No text provided' });
+      return res.status(400).json({ error: "No text provided" });
     const questions = await generateQuizFromModule(text, settings);
     res.json({ questions });
   } catch (e) {
@@ -303,29 +319,26 @@ app.post('/api/generate-quiz', async (req, res) => {
 // ---------- Auth helpers ----------
 const signToken = (u) =>
   jwt.sign({ id: u._id, email: u.email }, JWT_SECRET, {
-    expiresIn: '7d',
+    expiresIn: "7d",
   });
 
 // ---------- Local Auth (REGISTER) ----------
-app.post('/api/auth/register', async (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email & password required' });
+      return res.status(400).json({ message: "Email & password required" });
     }
 
-    const cleanEmail = String(email)
-      .trim()
-      .toLowerCase()
-      .replace(/[,;]+$/g, '');
+    const cleanEmail = String(email).trim().toLowerCase().replace(/[,;]+$/g, "");
     if (String(password).length < 6) {
       return res
         .status(400)
-        .json({ message: 'Password must be at least 6 characters' });
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     const exists = await User.findOne({ email: cleanEmail });
-    if (exists) return res.status(409).json({ message: 'Email already in use' });
+    if (exists) return res.status(409).json({ message: "Email already in use" });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
@@ -333,7 +346,7 @@ app.post('/api/auth/register', async (req, res) => {
       email: cleanEmail,
       passwordHash,
       password: passwordHash, // keep legacy in sync
-      provider: 'local',
+      provider: "local",
     });
 
     return res.json({
@@ -342,49 +355,49 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (e) {
     if (e && e.code === 11000) {
-      return res.status(409).json({ message: 'Email already in use' });
+      return res.status(409).json({ message: "Email already in use" });
     }
-    console.error('register error:', e?.message || e);
-    return res.status(500).json({ message: 'Server error' });
+    console.error("register error:", e?.message || e);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
 // ---------- Local Auth (LOGIN: email OR username) ----------
-app.post('/api/auth/login', async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { identifier, email, username, password } = req.body || {};
-    const id = String(identifier || email || username || '').trim();
+    const id = String(identifier || email || username || "").trim();
     if (!id || !password) {
       return res
         .status(400)
-        .json({ message: 'Email/username and password required' });
+        .json({ message: "Email/username and password required" });
     }
 
-    const query = { provider: 'local' };
-    if (id.includes('@')) {
-      query.email = id.toLowerCase().replace(/[,;]+$/g, '');
+    const query = { provider: "local" };
+    if (id.includes("@")) {
+      query.email = id.toLowerCase().replace(/[,;]+$/g, "");
     } else {
       query.$or = [{ username: id }, { name: id }];
     }
 
     const user = await User.findOne(query);
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const hash = user.passwordHash || user.password || '';
-    if (!hash || !hash.startsWith('$2')) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const hash = user.passwordHash || user.password || "";
+    if (!hash || !hash.startsWith("$2")) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const ok = await bcrypt.compare(String(password || ''), hash);
-    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+    const ok = await bcrypt.compare(String(password || ""), hash);
+    if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
     return res.json({
       token: signToken(user),
       user: { id: user._id, email: user.email, username: user.username },
     });
   } catch (e) {
-    console.error('login error:', e.message);
-    return res.status(500).json({ message: 'Server error' });
+    console.error("login error:", e.message);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -394,15 +407,15 @@ const mailer = nodemailer.createTransport({
   port: Number(process.env.SMTP_PORT || 2525), // Mailtrap default
   secure: false, // STARTTLS
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  logger: process.env.MAIL_DEBUG === '1',
-  debug: process.env.MAIL_DEBUG === '1',
+  logger: process.env.MAIL_DEBUG === "1",
+  debug: process.env.MAIL_DEBUG === "1",
 });
 
 mailer
   .verify()
-  .then(() => console.log('[MAILER] SMTP verify: OK'))
+  .then(() => console.log("[MAILER] SMTP verify: OK"))
   .catch((e) =>
-    console.error('[MAILER] SMTP verify FAILED:', e?.message || e)
+    console.error("[MAILER] SMTP verify FAILED:", e?.message || e)
   );
 
 const sendMail = async (opts) => {
@@ -411,13 +424,13 @@ const sendMail = async (opts) => {
   const to = forcedTo || opts.to;
 
   const info = await mailer.sendMail({
-    from: process.env.MAIL_FROM || 'QuizCraft <no-reply@quizcraft.local>',
+    from: process.env.MAIL_FROM || "QuizCraft <no-reply@quizcraft.local>",
     ...opts,
     to,
   });
 
   console.log(
-    '[MAILER] sent',
+    "[MAILER] sent",
     JSON.stringify({
       to,
       messageId: info?.messageId,
@@ -430,15 +443,15 @@ const sendMail = async (opts) => {
   return info;
 };
 
-const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
+const sha256 = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const sixDigit = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 const OTP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 const OTP_MAX_ATTEMPTS = 5;
 
 // Debug SMTP / test email endpoints (non-production only)
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/api/debug/smtp-status', async (req, res) => {
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/debug/smtp-status", async (req, res) => {
     try {
       await mailer.verify();
       res.json({ ok: true });
@@ -447,35 +460,35 @@ if (process.env.NODE_ENV !== 'production') {
     }
   });
 
-  app.get('/api/debug/send-test', async (req, res) => {
+  app.get("/api/debug/send-test", async (req, res) => {
     try {
       const to =
-        req.query.to || process.env.DEBUG_TO || 'test@inbox.mailtrap.io';
+        req.query.to || process.env.DEBUG_TO || "test@inbox.mailtrap.io";
       const info = await sendMail({
         to,
-        subject: 'QuizCraft SMTP test',
-        text: 'This is a Mailtrap test message from QuizCraft.',
+        subject: "QuizCraft SMTP test",
+        text: "This is a Mailtrap test message from QuizCraft.",
       });
-      console.log('Mailtrap messageId:', info && info.messageId);
+      console.log("Mailtrap messageId:", info && info.messageId);
       res.json({ sent: true, messageId: info && info.messageId, to });
     } catch (e) {
-      console.error('send-test error:', e.message);
+      console.error("send-test error:", e.message);
       res.status(500).json({ sent: false, error: e.message });
     }
   });
 }
 
 // ---------- Password Reset: request OTP ----------
-app.post('/api/auth/request-password-otp', async (req, res) => {
+app.post("/api/auth/request-password-otp", async (req, res) => {
   try {
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    if (!email) return res.status(400).json({ message: 'Email is required' });
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: "Email is required" });
 
     const user = await User.findOne({ email });
     // don't reveal if user exists
     if (!user) {
       return res.json({
-        message: 'If the email exists, an OTP has been sent.',
+        message: "If the email exists, an OTP has been sent.",
       });
     }
 
@@ -483,8 +496,8 @@ app.post('/api/auth/request-password-otp', async (req, res) => {
     const code = sixDigit();
 
     // Optional: log OTP in dev only if you explicitly allow it
-    if (process.env.DEV_LOG_OTP === '1') {
-      console.log('[OTP] generated for', email, '→', code);
+    if (process.env.DEV_LOG_OTP === "1") {
+      console.log("[OTP] generated for", email, "→", code);
     }
 
     user.passwordOtpHash = sha256(code);
@@ -493,48 +506,48 @@ app.post('/api/auth/request-password-otp', async (req, res) => {
     await user.save();
 
     // DEV bypass prints code when mail disabled
-    if (process.env.DEV_BYPASS_MAIL === '1') {
-      console.log('[DEV_BYPASS_MAIL] OTP for', email, '→', code);
+    if (process.env.DEV_BYPASS_MAIL === "1") {
+      console.log("[DEV_BYPASS_MAIL] OTP for", email, "→", code);
     } else {
       await sendMail({
         to: email,
-        subject: 'Your QuizCraft password reset code',
+        subject: "Your QuizCraft password reset code",
         text: `Your OTP is ${code}. It expires in 10 minutes.`,
       });
     }
 
-    return res.json({ message: 'OTP sent to your email.' });
+    return res.json({ message: "OTP sent to your email." });
   } catch (e) {
     console.error(
-      'request-password-otp ERROR →',
+      "request-password-otp ERROR →",
       e && (e.stack || e.message || e)
     );
     return res.status(500).json({
-      message: 'Failed to send OTP',
+      message: "Failed to send OTP",
       detail: String(e && (e.message || e)),
     });
   }
 });
 
 // ---------- Password Reset: verify OTP & set new password ----------
-app.post('/api/auth/reset-password-otp', async (req, res) => {
+app.post("/api/auth/reset-password-otp", async (req, res) => {
   try {
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    const otp = String(req.body?.otp || '').trim();
-    const newPassword = String(req.body?.password || '');
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+    const newPassword = String(req.body?.password || "");
 
     if (!email || !otp || !newPassword) {
       return res
         .status(400)
-        .json({ message: 'Email, OTP and password are required' });
+        .json({ message: "Email, OTP and password are required" });
     }
 
     // include select:false fields explicitly
     const user = await User.findOne({ email }).select(
-      '+passwordOtpHash +passwordOtpAttempts'
+      "+passwordOtpHash +passwordOtpAttempts"
     );
     if (!user || !user.passwordOtpHash || !user.passwordOtpExpires) {
-      return res.status(400).json({ message: 'Invalid OTP or expired' });
+      return res.status(400).json({ message: "Invalid OTP or expired" });
     }
 
     // Expired
@@ -545,7 +558,7 @@ app.post('/api/auth/reset-password-otp', async (req, res) => {
       await user.save();
       return res
         .status(400)
-        .json({ message: 'OTP expired. Request a new one.' });
+        .json({ message: "OTP expired. Request a new one." });
     }
 
     // Too many attempts
@@ -556,7 +569,7 @@ app.post('/api/auth/reset-password-otp', async (req, res) => {
       await user.save();
       return res
         .status(429)
-        .json({ message: 'Too many attempts. Request a new code.' });
+        .json({ message: "Too many attempts. Request a new code." });
     }
 
     const ok = sha256(otp) === user.passwordOtpHash;
@@ -564,7 +577,7 @@ app.post('/api/auth/reset-password-otp', async (req, res) => {
 
     if (!ok) {
       await user.save();
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
     // Hash new password and persist (keep legacy in sync if used)
@@ -578,47 +591,47 @@ app.post('/api/auth/reset-password-otp', async (req, res) => {
     user.passwordOtpAttempts = 0;
 
     await user.save();
-    return res.json({ message: 'Password reset successful' });
+    return res.json({ message: "Password reset successful" });
   } catch (err) {
-    console.error('reset-password-otp:', err);
-    return res.status(500).json({ message: 'Failed to reset password' });
+    console.error("reset-password-otp:", err);
+    return res.status(500).json({ message: "Failed to reset password" });
   }
 });
 
 // ---------- Google Auth: OLD (ID token sent by client) ----------
-app.post('/api/auth/google', async (req, res) => {
+app.post("/api/auth/google", async (req, res) => {
   try {
     const { credential } = req.body || {};
     if (!credential)
-      return res.status(400).json({ message: 'Missing Google credential' });
+      return res.status(400).json({ message: "Missing Google credential" });
     if (!GOOGLE_CLIENT_ID)
       return res
         .status(500)
-        .json({ message: 'Server missing GOOGLE_CLIENT_ID' });
+        .json({ message: "Server missing GOOGLE_CLIENT_ID" });
 
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    if (!payload) return res.status(401).json({ message: 'Invalid Google token' });
+    if (!payload) return res.status(401).json({ message: "Invalid Google token" });
     if (payload.aud !== GOOGLE_CLIENT_ID)
       return res
         .status(401)
-        .json({ message: 'Google token audience mismatch' });
+        .json({ message: "Google token audience mismatch" });
 
     const { sub: googleId, email, name } = payload;
     if (!email)
       return res
         .status(400)
-        .json({ message: 'Google did not provide an email' });
+        .json({ message: "Google did not provide an email" });
 
     let user = await User.findOne({ email });
     if (!user)
       user = await User.create({
         email,
         username: name,
-        provider: 'google',
+        provider: "google",
         googleId,
       });
 
@@ -627,17 +640,17 @@ app.post('/api/auth/google', async (req, res) => {
       user: { id: user._id, email: user.email, username: user.username },
     });
   } catch (e) {
-    console.error('Google auth error:', e?.message || e);
-    res.status(401).json({ message: 'Invalid Google token' });
+    console.error("Google auth error:", e?.message || e);
+    res.status(401).json({ message: "Invalid Google token" });
   }
 });
 
 // ---------- Google Auth (Code Flow) ----------
-app.post('/api/auth/google/code', async (req, res) => {
+app.post("/api/auth/google/code", async (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(500).json({
-      step: 'env',
-      message: 'Server missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET',
+      step: "env",
+      message: "Server missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET",
     });
   }
 
@@ -646,7 +659,7 @@ app.post('/api/auth/google/code', async (req, res) => {
     if (!code) {
       return res
         .status(400)
-        .json({ step: 'client', message: 'Missing authorization code' });
+        .json({ step: "client", message: "Missing authorization code" });
     }
 
     let tokens;
@@ -654,16 +667,16 @@ app.post('/api/auth/google/code', async (req, res) => {
       const out = await googleCodeClient.getToken(code);
       tokens = out.tokens;
       if (!tokens?.id_token)
-        throw new Error('No id_token returned from Google');
+        throw new Error("No id_token returned from Google");
     } catch (err) {
       console.error(
-        '[Google getToken] error:',
+        "[Google getToken] error:",
         err?.response?.data || err.message || err
       );
       return res.status(401).json({
-        step: 'exchange',
-        message: 'Code exchange failed (invalid_grant or client mismatch).',
-        hint: 'Use SAME client id/secret as frontend, keep OAuth2Client(...,"postmessage"), click once, and sync system time.',
+        step: "exchange",
+        message: "Code exchange failed (invalid_grant or client mismatch).",
+        hint: "Use SAME client id/secret as frontend, keep OAuth2Client(...,\"postmessage\"), click once, and sync system time.",
       });
     }
 
@@ -674,15 +687,15 @@ app.post('/api/auth/google/code', async (req, res) => {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
       payload = ticket.getPayload();
-      if (!payload?.email) throw new Error('No email in Google profile');
+      if (!payload?.email) throw new Error("No email in Google profile");
     } catch (err) {
       console.error(
-        '[verifyIdToken] error:',
+        "[verifyIdToken] error:",
         err?.response?.data || err.message || err
       );
       return res
         .status(401)
-        .json({ step: 'verify', message: 'ID token verification failed' });
+        .json({ step: "verify", message: "ID token verification failed" });
     }
 
     let userDoc;
@@ -692,28 +705,28 @@ app.post('/api/auth/google/code', async (req, res) => {
         userDoc = await User.create({
           email: payload.email,
           username: payload.name,
-          provider: 'google',
+          provider: "google",
           googleId: payload.sub,
         });
       }
     } catch (dbErr) {
-      console.error('[DB upsert] error:', dbErr?.message || dbErr);
+      console.error("[DB upsert] error:", dbErr?.message || dbErr);
       const tmp = jwt.sign(
         { email: payload.email, sub: payload.sub },
         JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: "1h" }
       );
       return res.status(200).json({
         token: tmp,
         user: { email: payload.email, username: payload.name },
-        note: 'DB upsert failed; token issued without persistence. Check MONGO_URI/connection.',
+        note: "DB upsert failed; token issued without persistence. Check MONGO_URI/connection.",
       });
     }
 
     const token = jwt.sign(
       { id: userDoc._id, email: userDoc.email },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
     return res.json({
       token,
@@ -725,53 +738,53 @@ app.post('/api/auth/google/code', async (req, res) => {
     });
   } catch (err) {
     console.error(
-      '[google/code] unexpected error:',
+      "[google/code] unexpected error:",
       err?.response?.data || err.message || err
     );
     return res
       .status(500)
-      .json({ step: 'unknown', message: 'Unexpected server error' });
+      .json({ step: "unknown", message: "Unexpected server error" });
   }
 });
 
 // ---------- PDF upload for public URL ----------
-app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
+app.post("/api/upload-pdf", upload.single("pdf"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+    if (!req.file) return res.status(400).json({ error: "No PDF uploaded" });
 
     const publicUrl = `${
-      process.env.BASE_URL || 'http://localhost:5000'
+      process.env.BASE_URL || "http://localhost:5000"
     }/uploads/${req.file.filename}`;
 
     res.json({ url: publicUrl });
   } catch (err) {
-    console.error('PDF upload error:', err);
-    res.status(500).json({ error: 'Failed to upload PDF' });
+    console.error("PDF upload error:", err);
+    res.status(500).json({ error: "Failed to upload PDF" });
   }
 });
 
 // ---------- Static Uploads ----------
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ---------- GraphQL (single mount) ----------
 try {
-  const schema = require('./graphql/schema');
-  const questionResolvers = require('./graphql/resolvers');
+  const schema = require("./graphql/schema");
+  const questionResolvers = require("./graphql/resolvers");
   let authResolvers = {};
   let questionSetResolvers = {};
 
   try {
-    authResolvers = require('./graphql/authResolvers');
-    console.log('Auth resolvers loaded.');
+    authResolvers = require("./graphql/authResolvers");
+    console.log("Auth resolvers loaded.");
   } catch {
-    console.log('Auth resolvers not found. Skipping.');
+    console.log("Auth resolvers not found. Skipping.");
   }
 
   try {
-    questionSetResolvers = require('./graphql/questionSetResolvers');
-    console.log('QuestionSet resolvers loaded.');
+    questionSetResolvers = require("./graphql/questionSetResolvers");
+    console.log("QuestionSet resolvers loaded.");
   } catch {
-    console.log('QuestionSet resolvers not found. Skipping.');
+    console.log("QuestionSet resolvers not found. Skipping.");
   }
 
   const mergedResolvers = {
@@ -781,7 +794,7 @@ try {
   };
 
   app.use(
-    '/graphql',
+    "/graphql",
     graphqlHTTP((req) => ({
       schema,
       rootValue: mergedResolvers,
@@ -790,19 +803,19 @@ try {
     }))
   );
 
-  console.log('GraphQL endpoint: http://localhost:5000/graphql');
+  console.log("GraphQL endpoint: http://localhost:5000/graphql");
 } catch (e) {
-  console.error('Failed to mount GraphQL:', e.message);
+  console.error("Failed to mount GraphQL:", e.message);
 }
 
 // ---------- Error handling ----------
 app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+  if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
     return res
       .status(400)
-      .json({ error: 'File too large. Maximum size is 10MB.' });
+      .json({ error: "File too large. Maximum size is 10MB." });
   }
-  res.status(500).json({ error: error.message || 'Server error' });
+  res.status(500).json({ error: error.message || "Server error" });
 });
 
 // ---------- Start ----------
@@ -810,11 +823,11 @@ app.listen(PORT, () => {
   console.log(`OCR + Auth Server running on http://localhost:${PORT}`);
   console.log(`Uploads directory: ${uploadsDir}`);
   console.log(
-    'ENV sanity → CID:',
+    "ENV sanity → CID:",
     !!process.env.GOOGLE_CLIENT_ID,
-    'CSEC:',
+    "CSEC:",
     !!process.env.GOOGLE_CLIENT_SECRET,
-    'FRONT:',
+    "FRONT:",
     FRONTEND_ORIGIN
   );
 });
