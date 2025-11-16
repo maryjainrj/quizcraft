@@ -17,17 +17,20 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 
 import DashboardLayout from "./components/DashboardLayout";
-import QuizzesPage from "./components/QuizzesPage";          // list of quizzes
-import QuizDetailPage from "./components/QuizDetailPage";    // single quiz detail
+import QuizzesPage from "./components/QuizzesPage";
+import QuizDetailPage from "./components/QuizDetailPage";
 import SourceSelect from "./components/SourceSelect";
 import UploadFiles from "./components/UploadFiles";
 import WrittenText from "./components/WrittenText";
 import QuizPreviewPage from "./components/QuizPreviewPage";
 import ExportQuizPage from "./components/ExportQuizPage";
 import ShareQuizPage from "./components/ShareQuizPage";
+import DonatePage from "./components/Donate";
+import PayPalPayment from "./components/PayPalPayment";
+import PaymentSuccess from "./components/PaymentSuccess";
 
-// Toasts
-import { useToast } from "./components/ToastProvider.jsx";
+// Toasts - Remove .js extension or check if file exists
+// import { useToast } from "./components/ToastProvider";
 
 // Some builds export ForgotPassword as default, others as named.
 import * as ForgotPasswordMod from "./components/ForgotPassword.jsx";
@@ -35,7 +38,8 @@ const ForgotPassword =
   ForgotPasswordMod.default ?? ForgotPasswordMod.ForgotPassword;
 
 function App() {
-  const toast = useToast();
+  // Temporarily comment out toast until ToastProvider is fixed
+  // const toast = useToast();
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +53,8 @@ function App() {
       const data = await fetchAllQuestions();
       setQuestions(data);
     } catch (error) {
-      toast.error(`Error loading questions: ${error.message}`);
+      console.error(`Error loading questions: ${error.message}`);
+      // toast.error(`Error loading questions: ${error.message}`);
     }
     setLoading(false);
   };
@@ -61,7 +66,8 @@ function App() {
       const data = await searchQuestionsByTopic(searchTopic);
       setQuestions(data);
     } catch (error) {
-      toast.error(`Error searching questions: ${error.message}`);
+      console.error(`Error searching questions: ${error.message}`);
+      // toast.error(`Error searching questions: ${error.message}`);
     }
     setLoading(false);
   };
@@ -70,11 +76,13 @@ function App() {
     setLoading(true);
     try {
       await createQuestion(formData);
-      toast.success("Question created successfully!");
+      alert("Question created successfully!");
+      // toast.success("Question created successfully!");
       loadQuestions();
       setActiveTab("list");
     } catch (error) {
-      toast.error(`Error creating question: ${error.message}`);
+      console.error(`Error creating question: ${error.message}`);
+      // toast.error(`Error creating question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -83,12 +91,14 @@ function App() {
     setLoading(true);
     try {
       await updateQuestion(id, formData);
-      toast.success("Question updated successfully!");
+      alert("Question updated successfully!");
+      // toast.success("Question updated successfully!");
       setEditingQuestion(null);
       loadQuestions();
       setActiveTab("list");
     } catch (error) {
-      toast.error(`Error updating question: ${error.message}`);
+      console.error(`Error updating question: ${error.message}`);
+      // toast.error(`Error updating question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -98,10 +108,12 @@ function App() {
     setLoading(true);
     try {
       await deleteQuestion(id);
-      toast.info("Question deleted.");
+      alert("Question deleted.");
+      // toast.info("Question deleted.");
       loadQuestions();
     } catch (error) {
-      toast.error(`Error deleting question: ${error.message}`);
+      console.error(`Error deleting question: ${error.message}`);
+      // toast.error(`Error deleting question: ${error.message}`);
     }
     setLoading(false);
   };
@@ -199,6 +211,11 @@ function App() {
           <Route path="exportquiz" element={<ExportQuizPage />} />
           <Route path="sharequiz" element={<ShareQuizPage />} />
         </Route>
+
+        {/* Donate Pages */}
+        <Route path="/donate" element={<DonatePage />} />
+        <Route path="/paypal-payment" element={<PayPalPayment />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
 
         {/* Legacy admin panel */}
         <Route path="/admin" element={<QuizAdmin />} />

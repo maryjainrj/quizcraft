@@ -11,6 +11,8 @@ const path = require('path');
 const { createCanvas, Image } = require('canvas');
 const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 const vision = require('@google-cloud/vision');
+const configRoutes = require('./routes/config');
+
 
 // ===== Auth/DB/GraphQL deps =====
 const mongoose = require('mongoose');
@@ -50,6 +52,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/config', configRoutes);
 
 // ---------- MongoDB ----------
 if (process.env.MONGO_URI) {

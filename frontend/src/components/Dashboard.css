@@ -700,6 +700,15 @@
 body.hide-sidebar .header-brand { display: flex !important; }
 
 /* Floating Donate FAB */
+.donate-fab.supporter {
+  background: #4caf50 !important;
+  cursor: default !important;
+}
+
+.donate-fab.supporter:hover {
+  background: #45a049 !important;
+  transform: none !important;
+}
 .donate-fab {
   position: fixed;
   right: 20px;

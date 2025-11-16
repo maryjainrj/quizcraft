@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import "./Auth.css";
 import quizcraftwhite from "../assets/logo_quizcraftwhite.png";
+import { useDonationStatus } from '../hooks/useDonationStatus';
 
 // Brand + sidebar icons
 import quizcraft from "../assets/logo_quizcraft.png";
@@ -17,6 +18,7 @@ import shareQuizWhite from "../assets/shareQuizWhite.png";
 import { FaSearch, FaChevronDown } from "react-icons/fa";
 
 const DONATE_URL = "https://example.com/donate"; // TODO: replace with your real donate link i.e. paypal
+
 
 const getDisplayName = () => {
   try {
@@ -37,6 +39,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(getDisplayName);
+  const { donationStatus, isLoading } = useDonationStatus();
 
   useEffect(() => {
     const expiry = Number(localStorage.getItem("sessionExpiry") || 0);
@@ -148,15 +151,25 @@ const DashboardLayout = () => {
       </div>
 
       {/* Floating Donate Button (visible on all dashboard screens) */}
-      <button
-        className="donate-fab"
-        aria-label="Donate to support QuizCraft"
-        onClick={() => window.open(DONATE_URL, "_blank", "noopener,noreferrer")}
-        title="Support QuizCraft"
-      >
-        <span className="donate-fab__emoji" aria-hidden="true">💜</span>
-        <span className="donate-fab__text">Donate</span>
-      </button>
+     <button
+  className="donate-fab"
+  aria-label="Donate to support QuizCraft"
+  onClick={() => navigate("/donate")}
+  title={donationStatus.hasDonated ? `Thank you! ${donationStatus.daysRemaining} days remaining` : "Support QuizCraft"}
+  style={{
+    background: donationStatus.hasDonated ? '#4caf50' : '#40189D',
+    cursor: donationStatus.hasDonated ? 'default' : 'pointer',
+  }}
+>
+  <span className="donate-fab__emoji" aria-hidden="true">
+    {donationStatus.hasDonated ? '✓' : '💜'}
+  </span>
+  <span className="donate-fab__text">
+    {donationStatus.hasDonated 
+      ? `${donationStatus.packageLabel} (${donationStatus.daysRemaining}d)` 
+      : 'Donate'}
+  </span>
+</button>
     </div>
   );
 };
