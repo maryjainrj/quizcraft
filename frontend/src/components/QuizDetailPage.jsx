@@ -72,9 +72,8 @@ export default function QuizDetailPage() {
     fetchQuiz();
   }, [id]);
 
-  // ===== Decide which questions to use =====
-  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available,
-  // so you see exactly what was generated at creation time.
+  // ===== Decide which questions + answers to use =====
+  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available.
   const { title, questions, answers, createdAt, updatedAt } = useMemo(() => {
     if (!rawQuiz) {
       return {
@@ -124,36 +123,86 @@ export default function QuizDetailPage() {
       rawQuestions = rawQuiz.data.questions;
     }
 
+    // Helper: many schemas store actual question in q.question_id
+    const getSource = (q) => {
+      if (
+        q &&
+        typeof q === "object" &&
+        q.question_id &&
+        typeof q.question_id === "object"
+      ) {
+        return q.question_id;
+      }
+      return q;
+    };
+
     // 3) Normalize into text + answer arrays
     const questions = rawQuestions.map((q) => {
-      // If shape like { questionText: "...", correctAnswer: "..." }
-      if (q && typeof q === "object") {
+      const src = getSource(q);
+
+      if (src && typeof src === "object") {
         return (
-          q.questionText ||
-          q.text ||
-          q.prompt ||
-          q.question ||
-          q.title ||
+          src.questionText ||
+          src.text || // from QuestionNew
+          src.prompt ||
+          src.question ||
+          src.title ||
           ""
         );
       }
-      // If it is a plain string
-      if (typeof q === "string") return q;
+      if (typeof src === "string") return src;
       return "";
     });
 
     const answers =
       rawQuestions.map((q) => {
-        if (q && typeof q === "object") {
-          return (
-            q.correctAnswer ||
-            q.answer ||
-            q.solution ||
-            q.correct ||
-            q.correctOption ||
-            ""
+        const src = getSource(q);
+
+        if (!src || typeof src !== "object") return "";
+
+        // 1) Direct answer fields (add correctText for your schema)
+        let base =
+          src.correctAnswer ||
+          src.answer ||
+          src.solution ||
+          src.correct ||
+          src.correctOption ||
+          src.correctText || // <--- from QuestionNew
+          "";
+
+        if (base) return base;
+
+        // 2) Answers encoded in options array
+        if (Array.isArray(src.options) && src.options.length) {
+          // 2a) Shape in your schema: { option_text, is_correct }
+          const flagged = src.options.find(
+            (opt) =>
+              opt?.is_correct === true || // <--- from QuestionNew
+              opt?.isCorrect === true ||
+              opt?.correct === true ||
+              opt?.answer === true
           );
+          if (flagged) {
+            return (
+              flagged.option_text ||
+              flagged.text ||
+              flagged.label ||
+              (typeof flagged === "string" ? flagged : "")
+            );
+          }
+
+          // 2b) Fallback: index based
+          if (
+            typeof src.correctOptionIndex === "number" &&
+            src.correctOptionIndex >= 0 &&
+            src.correctOptionIndex < src.options.length
+          ) {
+            const opt = src.options[src.correctOptionIndex];
+            return opt.option_text || opt.text || opt.label || String(opt);
+          }
         }
+
+        // Nothing found
         return "";
       }) || [];
 
@@ -180,7 +229,7 @@ export default function QuizDetailPage() {
     }
   };
 
-  // ✅ delete quiz in DB instead of front-end only
+  // ✅ delete quiz in DB
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -227,12 +276,6 @@ export default function QuizDetailPage() {
         </div>
 
         <div className="detail-actions">
-          {/* <button className="secondary-btn" onClick={() => setShowExport(true)}>
-            Export
-          </button>
-          <button className="secondary-btn" onClick={() => setShowShare(true)}>
-            Share
-          </button> */}
           <button
             className="danger-btn"
             onClick={() => setShowDelete(true)}

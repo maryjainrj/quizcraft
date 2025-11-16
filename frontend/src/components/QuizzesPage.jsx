@@ -99,8 +99,8 @@ export default function QuizzesPage() {
   if (loading) {
     return (
       <section className="dashboard-feed">
-        <header className="feed-header">
-          <div>
+        <header className="feed-header feed-header--center-with-cta">
+          <div className="feed-header-main">
             <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
             <p className="feed-subtitle">
               View and manage the quizzes you have saved.
@@ -122,9 +122,9 @@ export default function QuizzesPage() {
 
   return (
     <section className="dashboard-feed">
-      {/* Header with button on the right */}
-      <header className="feed-header">
-        <div>
+      {/* Header: text centered, button on the right */}
+      <header className="feed-header feed-header--center-with-cta">
+        <div className="feed-header-main">
           <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
           <p className="feed-subtitle">
             View and manage the quizzes you have saved.
