@@ -26,6 +26,72 @@ module.exports = {
     }));
   },
 
+  myQuestions: async (_args, context) => {
+    const user = await getUserFromReq(context);
+    if (!user) throw new Error('Unauthenticated');
+    
+    // Get all question sets for this user
+    const questionSets = await QuestionSet.find({ createdBy: user._id })
+      .populate('questions.question_id');
+    
+    // Extract all unique questions
+    const questionsMap = new Map();
+    for (const qs of questionSets) {
+      for (const q of qs.questions) {
+        if (q.question_id && !questionsMap.has(q.question_id._id.toString())) {
+          const qDoc = q.question_id;
+          questionsMap.set(qDoc._id.toString(), {
+            id: qDoc._id.toString(),
+            type: qDoc.type,
+            text: qDoc.text,
+            category: qDoc.category || '',
+            difficulty: qDoc.difficulty,
+            explanation: qDoc.explanation || '',
+            source: qDoc.source || '',
+            correctText: qDoc.correctText || '',
+            options: qDoc.options || [],
+            tags: qDoc.tags || [],
+            createdAt: qDoc.createdAt.toISOString(),
+            updatedAt: qDoc.updatedAt.toISOString(),
+          });
+        }
+      }
+    }
+    
+    return Array.from(questionsMap.values());
+  },
+
+  question: async ({ id }, context) => {
+    const user = await getUserFromReq(context);
+    if (!user) throw new Error('Unauthenticated');
+    
+    const question = await QuestionNew.findById(id);
+    if (!question) throw new Error('Question not found');
+    
+    // Verify user owns a question set that contains this question
+    const questionSet = await QuestionSet.findOne({
+      createdBy: user._id,
+      'questions.question_id': question._id
+    });
+    
+    if (!questionSet) throw new Error('Forbidden');
+    
+    return {
+      id: question._id.toString(),
+      type: question.type,
+      text: question.text,
+      category: question.category || '',
+      difficulty: question.difficulty,
+      explanation: question.explanation || '',
+      source: question.source || '',
+      correctText: question.correctText || '',
+      options: question.options || [],
+      tags: question.tags || [],
+      createdAt: question.createdAt.toISOString(),
+      updatedAt: question.updatedAt.toISOString(),
+    };
+  },
+
   questionSet: async ({ id }, context) => {
     const user = await getUserFromReq(context);
     if (!user) throw new Error('Unauthenticated');
