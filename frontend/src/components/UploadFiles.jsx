@@ -1,4 +1,3 @@
-// src/components/UploadFiles.jsx — PDF-only (frontend validation)
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizSettingsModal from "../components/QuizSettingsModal";
@@ -14,11 +13,24 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ------- PDF-only check -------
+//Allowed types: PDF + Word (doc, docx)
+const WORD_MIMES = new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 function isPdf(file) {
-  // Some browsers don’t set type reliably; also check extension
   const name = (file.name || "").toLowerCase();
   return file.type === "application/pdf" || name.endsWith(".pdf");
+}
+
+function isWord(file) {
+  const name = (file.name || "").toLowerCase();
+  return WORD_MIMES.has(file.type) || name.endsWith(".doc") || name.endsWith(".docx");
+}
+
+function isAllowed(file) {
+  return isPdf(file) || isWord(file);
 }
 
 export default function UploadFiles() {
@@ -65,7 +77,7 @@ export default function UploadFiles() {
           const strings = content.items.map((it) => it.str || "").join(" ");
           fullText += `\n--- Page ${i} ---\n${strings}`;
         } catch {
-          // ignore page-level errors to keep going
+          // ignore per-page errors to keep going
         }
       }
       return fullText.trim();
@@ -74,21 +86,19 @@ export default function UploadFiles() {
     }
   };
 
-  // ------- FRONTEND VALIDATION (PDF only) -------
+  //FRONTEND VALIDATION (PDF + DOC/DOCX only)
   const handleFileSelect = (selectedFiles) => {
     const incoming = Array.from(selectedFiles || []);
     const validationErrors = [];
 
     incoming.forEach((file) => {
-      if (!isPdf(file)) {
+      if (!isAllowed(file)) {
         validationErrors.push(
-          `Invalid file type for "${file.name}". Only PDF files (.pdf) are allowed.`
+          `Invalid file type for "${file.name}". Only PDF or Word documents (.doc, .docx) are allowed.`
         );
       }
       if (file.size > MAX_BYTES) {
-        validationErrors.push(
-          `"${file.name}" is too large. Maximum size is ${MAX_MB}MB.`
-        );
+        validationErrors.push(`"${file.name}" is too large. Maximum size is ${MAX_MB}MB.`);
       }
     });
 
@@ -100,7 +110,7 @@ export default function UploadFiles() {
     setError("");
     setFiles(incoming);
 
-    // PDFs: store minimal preview info (“PDF” chip)
+    // Simple badges: "PDF" or "DOC"
     incoming.forEach((file) => {
       const fileName = file.name;
       setFileInfos((prev) => ({
@@ -108,10 +118,10 @@ export default function UploadFiles() {
         [fileName]: {
           name: file.name,
           size: formatSize(file.size),
-          type: file.type || "application/pdf",
+          type: file.type || (isPdf(file) ? "application/pdf" : "application/msword"),
         },
       }));
-      setPreviews((p) => ({ ...p, [fileName]: "pdf" }));
+      setPreviews((p) => ({ ...p, [fileName]: isPdf(file) ? "pdf" : "doc" }));
     });
   };
 
@@ -148,14 +158,16 @@ export default function UploadFiles() {
         const fileName = file.name;
         setProgress((i / files.length) * 100);
 
-        // PDF only path
-        const clientText = await extractTextFromPdfClient(file);
-        if (clientText?.trim()) {
-          newExtractedTexts[fileName] = clientText;
-          continue;
+        if (isPdf(file)) {
+          // Try client-side PDF extraction first
+          const clientText = await extractTextFromPdfClient(file);
+          if (clientText?.trim()) {
+            newExtractedTexts[fileName] = clientText;
+            continue;
+          }
         }
 
-        // fallback to backend extraction (kept intact)
+        // For Word (and PDF fallback)
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("http://localhost:5000/api/upload", {
@@ -163,13 +175,10 @@ export default function UploadFiles() {
           body: fd,
         });
         const data = await res.json();
-        if (res.ok && data.success)
-          newExtractedTexts[fileName] = data.text || "";
+        if (res.ok && data.success) newExtractedTexts[fileName] = data.text || "";
         else
           setExtractionError(
-            `Failed to extract text from ${fileName}: ${
-              data.error || data.message || "Unknown error"
-            }`
+            `Failed to extract text from ${fileName}: ${data.error || data.message || "Unknown error"}`
           );
       }
 
@@ -220,15 +229,15 @@ export default function UploadFiles() {
   };
 
   const uploadsReady =
-    !!files.length &&
-    !isProcessing &&
-    Object.keys(extractedTexts).length >= files.length;
+    !!files.length && !isProcessing && Object.keys(extractedTexts).length >= files.length;
 
   return (
     <section className="flow">
       <header className="flow__header">
         <h2 className="flow__title">Upload Files</h2>
-        <p className="flow__subtitle">Upload <strong>PDF</strong> files only.</p>
+        <p className="flow__subtitle">
+          Upload <strong>PDF</strong> or <strong>Word</strong> documents (.doc, .docx) only.
+        </p>
       </header>
 
       {/* Dropzone */}
@@ -242,7 +251,7 @@ export default function UploadFiles() {
         onClick={() => fileInputRef.current?.click()}
       >
         <p className="upload-dropzone__title">
-          Drag your PDF(s) or{" "}
+          Drag your file(s) or{" "}
           <label
             htmlFor="file"
             className="browse-link"
@@ -251,12 +260,14 @@ export default function UploadFiles() {
             browse
           </label>
         </p>
-        <p className="upload-dropzone__hint">Max {MAX_MB} MB. Allowed: PDF only</p>
+        <p className="upload-dropzone__hint">
+          Max {MAX_MB} MB. Allowed: .pdf, .doc, .docx
+        </p>
         <input
           ref={fileInputRef}
           id="file"
           type="file"
-          accept=".pdf,application/pdf"
+          accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           multiple
           onChange={onBrowse}
           style={{ display: "none" }}
@@ -271,7 +282,8 @@ export default function UploadFiles() {
             <li key={f.name} className="file-item">
               <span className="file-item__name">{f.name}</span>
               <span className="file-item__size">{formatSize(f.size)}</span>
-              {previews[f.name] === "pdf" && <span>PDF</span>}
+              {previews[f.name] === "pdf" && <span className="badge">PDF</span>}
+              {previews[f.name] === "doc" && <span className="badge">DOC</span>}
               <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: "auto" }}>
                 Remove
               </button>
@@ -298,8 +310,7 @@ export default function UploadFiles() {
         Object.keys(extractedTexts).length === files.length && (
           <div className="info-message">
             <p>
-              Files added successfully. Click <strong>"Create New Quiz"</strong> to
-              generate your quiz.
+              Files added successfully. Click <strong>"Create New Quiz"</strong> to generate your quiz.
             </p>
           </div>
         )}

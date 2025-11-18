@@ -1,4 +1,3 @@
-// src/components/QuizNameModal.jsx
 import React, { useState } from 'react';
 import './QuizNameModal.css';
 

@@ -1,4 +1,3 @@
-// src/components/QuizzesPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import emptyImg from "../assets/empty_quiz.png";

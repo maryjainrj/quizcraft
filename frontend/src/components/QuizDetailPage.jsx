@@ -1,4 +1,3 @@
-// src/components/QuizDetailPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
