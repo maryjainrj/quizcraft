@@ -1,3 +1,4 @@
+// src/components/UploadFiles.jsx
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizSettingsModal from "../components/QuizSettingsModal";
@@ -13,24 +14,46 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-//Allowed types: PDF + Word (doc, docx)
+// -------- Allowed file types --------
 const WORD_MIMES = new Set([
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
+const PPT_MIMES = new Set([
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
+const IMG_PREFIX = "image/";
 
 function isPdf(file) {
   const name = (file.name || "").toLowerCase();
   return file.type === "application/pdf" || name.endsWith(".pdf");
 }
-
 function isWord(file) {
   const name = (file.name || "").toLowerCase();
-  return WORD_MIMES.has(file.type) || name.endsWith(".doc") || name.endsWith(".docx");
+  return (
+    WORD_MIMES.has(file.type) ||
+    name.endsWith(".doc") ||
+    name.endsWith(".docx")
+  );
 }
-
+function isPpt(file) {
+  const name = (file.name || "").toLowerCase();
+  return (
+    PPT_MIMES.has(file.type) ||
+    name.endsWith(".ppt") ||
+    name.endsWith(".pptx")
+  );
+}
+function isImage(file) {
+  const name = (file.name || "").toLowerCase();
+  return (
+    (file.type && file.type.startsWith(IMG_PREFIX)) ||
+    /\.(png|jpe?g|webp|bmp)$/i.test(name)
+  );
+}
 function isAllowed(file) {
-  return isPdf(file) || isWord(file);
+  return isPdf(file) || isWord(file) || isPpt(file) || isImage(file);
 }
 
 export default function UploadFiles() {
@@ -77,7 +100,7 @@ export default function UploadFiles() {
           const strings = content.items.map((it) => it.str || "").join(" ");
           fullText += `\n--- Page ${i} ---\n${strings}`;
         } catch {
-          // ignore per-page errors to keep going
+          // keep going even if a page fails
         }
       }
       return fullText.trim();
@@ -86,7 +109,7 @@ export default function UploadFiles() {
     }
   };
 
-  //FRONTEND VALIDATION (PDF + DOC/DOCX only)
+  // -------- FRONTEND VALIDATION (PDF, DOC/DOCX, PPT/PPTX, images) --------
   const handleFileSelect = (selectedFiles) => {
     const incoming = Array.from(selectedFiles || []);
     const validationErrors = [];
@@ -94,11 +117,13 @@ export default function UploadFiles() {
     incoming.forEach((file) => {
       if (!isAllowed(file)) {
         validationErrors.push(
-          `Invalid file type for "${file.name}". Only PDF or Word documents (.doc, .docx) are allowed.`
+          `Invalid file type for "${file.name}". Allowed: PDF, Word (.doc/.docx), PowerPoint (.ppt/.pptx), or images (PNG/JPG/JPEG/WEBP/BMP).`
         );
       }
       if (file.size > MAX_BYTES) {
-        validationErrors.push(`"${file.name}" is too large. Maximum size is ${MAX_MB}MB.`);
+        validationErrors.push(
+          `"${file.name}" is too large. Maximum size is ${MAX_MB}MB.`
+        );
       }
     });
 
@@ -110,7 +135,7 @@ export default function UploadFiles() {
     setError("");
     setFiles(incoming);
 
-    // Simple badges: "PDF" or "DOC"
+    // Previews/badges
     incoming.forEach((file) => {
       const fileName = file.name;
       setFileInfos((prev) => ({
@@ -118,10 +143,24 @@ export default function UploadFiles() {
         [fileName]: {
           name: file.name,
           size: formatSize(file.size),
-          type: file.type || (isPdf(file) ? "application/pdf" : "application/msword"),
+          type: file.type || "application/octet-stream",
         },
       }));
-      setPreviews((p) => ({ ...p, [fileName]: isPdf(file) ? "pdf" : "doc" }));
+
+      if (isImage(file)) {
+        const reader = new FileReader();
+        reader.onload = (e) =>
+          setPreviews((p) => ({ ...p, [fileName]: e.target.result }));
+        reader.readAsDataURL(file);
+      } else if (isPdf(file)) {
+        setPreviews((p) => ({ ...p, [fileName]: "pdf" }));
+      } else if (isWord(file)) {
+        setPreviews((p) => ({ ...p, [fileName]: "doc" }));
+      } else if (isPpt(file)) {
+        setPreviews((p) => ({ ...p, [fileName]: "ppt" }));
+      } else {
+        setPreviews((p) => ({ ...p, [fileName]: null }));
+      }
     });
   };
 
@@ -158,8 +197,8 @@ export default function UploadFiles() {
         const fileName = file.name;
         setProgress((i / files.length) * 100);
 
+        // Try client-only path for PDFs
         if (isPdf(file)) {
-          // Try client-side PDF extraction first
           const clientText = await extractTextFromPdfClient(file);
           if (clientText?.trim()) {
             newExtractedTexts[fileName] = clientText;
@@ -167,7 +206,7 @@ export default function UploadFiles() {
           }
         }
 
-        // For Word (and PDF fallback)
+        // For Word, PowerPoint, Images (and PDF fallback), use backend extractor
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("http://localhost:5000/api/upload", {
@@ -178,7 +217,9 @@ export default function UploadFiles() {
         if (res.ok && data.success) newExtractedTexts[fileName] = data.text || "";
         else
           setExtractionError(
-            `Failed to extract text from ${fileName}: ${data.error || data.message || "Unknown error"}`
+            `Failed to extract text from ${fileName}: ${
+              data.error || data.message || "Unknown error"
+            }`
           );
       }
 
@@ -193,7 +234,11 @@ export default function UploadFiles() {
 
   // Auto-extract after files added
   useEffect(() => {
-    if (files.length > 0 && Object.keys(extractedTexts).length === 0 && !isProcessing) {
+    if (
+      files.length > 0 &&
+      Object.keys(extractedTexts).length === 0 &&
+      !isProcessing
+    ) {
       handleExtractText();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,14 +274,18 @@ export default function UploadFiles() {
   };
 
   const uploadsReady =
-    !!files.length && !isProcessing && Object.keys(extractedTexts).length >= files.length;
+    !!files.length &&
+    !isProcessing &&
+    Object.keys(extractedTexts).length >= files.length;
 
   return (
     <section className="flow">
       <header className="flow__header">
         <h2 className="flow__title">Upload Files</h2>
         <p className="flow__subtitle">
-          Upload <strong>PDF</strong> or <strong>Word</strong> documents (.doc, .docx) only.
+          Upload <strong>PDF</strong>, <strong>Word</strong> (.doc/.docx),{" "}
+          <strong>PowerPoint</strong> (.ppt/.pptx), or{" "}
+          <strong>Images</strong> (PNG/JPG/JPEG/WEBP/BMP).
         </p>
       </header>
 
@@ -261,13 +310,33 @@ export default function UploadFiles() {
           </label>
         </p>
         <p className="upload-dropzone__hint">
-          Max {MAX_MB} MB. Allowed: .pdf, .doc, .docx
+          Max {MAX_MB} MB. Allowed: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp, .bmp
         </p>
         <input
           ref={fileInputRef}
           id="file"
           type="file"
-          accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept={[
+            ".pdf",
+            "application/pdf",
+            ".doc",
+            ".docx",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".ppt",
+            ".pptx",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+            ".bmp",
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/bmp",
+          ].join(",")}
           multiple
           onChange={onBrowse}
           style={{ display: "none" }}
@@ -282,8 +351,19 @@ export default function UploadFiles() {
             <li key={f.name} className="file-item">
               <span className="file-item__name">{f.name}</span>
               <span className="file-item__size">{formatSize(f.size)}</span>
+
+              {/* Thumbnails/badges */}
+              {previews[f.name] && typeof previews[f.name] === "string" && previews[f.name].startsWith("data:") && (
+                <img
+                  src={previews[f.name]}
+                  alt="Preview"
+                  style={{ maxWidth: 50, maxHeight: 50, borderRadius: 6 }}
+                />
+              )}
               {previews[f.name] === "pdf" && <span className="badge">PDF</span>}
               {previews[f.name] === "doc" && <span className="badge">DOC</span>}
+              {previews[f.name] === "ppt" && <span className="badge">PPT</span>}
+
               <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: "auto" }}>
                 Remove
               </button>
