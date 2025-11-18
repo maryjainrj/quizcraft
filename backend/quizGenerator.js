@@ -25,10 +25,15 @@ async function generateQuiz(text, settings = {}) {
   console.log(`   Difficulty: ${difficulty}`);
 
   try {
-    // Extract math snippets to bias the model and power fallbacks
+    // Extract math content if present (for enhanced prompts)
     const eqs = extractEquations(text);
+    const hasMathContent = eqs.latex.length > 0 || eqs.linear.length > 2 || eqs.inequalities.length > 0;
+    
+    if (hasMathContent) {
+      console.log(`📐 Math content detected: LaTeX=${eqs.latex.length}, Equations=${eqs.linear.length}, Inequalities=${eqs.inequalities.length}`);
+    }
 
-    const prompt = createPrompt(text, questionCount, questionType, difficulty, language);
+    const prompt = createPrompt(text, questionCount, questionType, difficulty, language, eqs, hasMathContent);
     console.log('Sending request to Hugging Face AI...');
     
     // Use chatCompletion instead of textGeneration for Mistral models
@@ -41,69 +46,50 @@ async function generateQuiz(text, settings = {}) {
         }
       ],
       max_tokens: 2000,
-      temperature: 0.3,
-      top_p: 0.9
+      temperature: 0.7,
+      top_p: 0.95
     });
 
     console.log('AI response received!');
     const generatedText = response.choices[0].message.content;
     const questions = parseAIResponse(generatedText, questionType);
     console.log(`✨ Successfully parsed ${questions.length} questions`);
-
-    // Remove low-value generic comprehension questions
-    const pruned = filterGenericQuestions(questions);
-    if (pruned.length !== questions.length) {
-      console.log(`🧹 Removed ${questions.length - pruned.length} generic comprehension questions`);
-    }
     
     // If we got fewer questions than requested, try fallback
-    if (pruned.length < questionCount) {
-      console.log(`Only got ${pruned.length}/${questionCount} questions after pruning, adding fallback...`);
-      const fallbackNeeded = questionCount - pruned.length;
-      // Prefer math-based fallback from extracted equations
-      const mathFallback = generateMathFromEquations(eqs, fallbackNeeded, questionType) || [];
-      const stillNeed = fallbackNeeded - mathFallback.length;
-      const genericFallback = stillNeed > 0 ? generateFallbackQuestions(text, stillNeed, questionType) : [];
-      const fallbackQuestions = [...mathFallback, ...genericFallback];
-      return [...pruned, ...fallbackQuestions];
+    if (questions.length < questionCount) {
+      console.log(`Only got ${questions.length}/${questionCount} questions, adding fallback...`);
+      const fallbackNeeded = questionCount - questions.length;
+      const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType, eqs, hasMathContent);
+      return [...questions, ...fallbackQuestions];
     }
     
-    return pruned.slice(0, questionCount);
+    return questions.slice(0, questionCount);
 
   } catch (error) {
     console.error('AI Quiz generation error:', error.message);
     console.log('Falling back to rule-based generation...');
     const eqs = extractEquations(text);
-    const mathFallback = generateMathFromEquations(eqs, questionCount, questionType);
-    if (mathFallback && mathFallback.length) return mathFallback;
-    return generateFallbackQuestions(text, questionCount, questionType);
+    const hasMathContent = eqs.latex.length > 0 || eqs.linear.length > 2;
+    return generateFallbackQuestions(text, questionCount, questionType, eqs, hasMathContent);
   }
 }
 
-function createPrompt(text, count, type, difficulty, language) {
-  const truncatedText = text.slice(0, 8000);
-  const eqs = extractEquations(truncatedText);
+function createPrompt(text, count, type, difficulty, language, eqs, hasMathContent) {
+  const truncatedText = text.slice(0, 3000);
 
   let instruction = '';
   let example = '';
 
   if (type === 'multiple-choice') {
     instruction = `Create ${count} multiple-choice questions with EXACTLY 4 options (A, B, C, D). One correct answer.`;
-    example = `Q1: Solve the linear equation $2x + 3 = 7$. What is $x$?
-A) $x = 1$
-B) $x = 2$
-C) $x = 3$
-D) $x = 4$
-ANSWER: B
-
-Q2: What is the capital of France?
+    example = `Q1: What is the capital of France?
 A) Berlin
 B) Madrid
 C) Paris
 D) London
 ANSWER: C
 
-Q3: Which planet is closest to the Sun?
+Q2: Which planet is closest to the Sun?
 A) Venus
 B) Mercury
 C) Mars
@@ -131,13 +117,24 @@ Q3: The Earth orbits around the _____.
 ANSWER: Sun`;
   }
 
+  // Add math-specific section ONLY if math content is detected
+  let mathSection = '';
+  if (hasMathContent && eqs) {
+    const mathExamples = [...eqs.latex, ...eqs.linear, ...eqs.inequalities].slice(0, 10);
+    if (mathExamples.length > 0) {
+      mathSection = `\n\nEXTRACTED MATH CONTENT (include questions about these if relevant):
+${mathExamples.map((e,i)=>`${i+1}) ${e}`).join('\n')}
+
+ADDITIONAL INSTRUCTIONS FOR MATH:
+- Preserve math expressions exactly as LaTeX (use $...$)
+- Create questions that solve or explain these equations`;
+    }
+  }
+
   return `You are a quiz creator. Generate EXACTLY ${count} questions of type "${type}" based on the content below.
 
 CONTENT:
-${truncatedText}
-
-EXTRACTED_EQUATIONS_AND_MATH (use these FIRST if present):
-${[...eqs.latex, ...eqs.linear, ...eqs.inequalities, ...eqs.arithmetic].slice(0, 50).map((e,i)=>`${i+1}) ${e}`).join('\n') || '(none found)'}
+${truncatedText}${mathSection}
 
 INSTRUCTIONS:
 - ${instruction}
@@ -146,11 +143,6 @@ INSTRUCTIONS:
 - Follow the format EXACTLY as shown in the example
 - Each question must be numbered (Q1:, Q2:, etc.)
 - Each answer must start with "ANSWER:"
- - Include questions that involve solving the given linear equations and inequalities
- - Preserve math expressions exactly as LaTeX (use $...$, \\(...\\), or $$...$$)
- - When a question or an option contains an equation or inequality, wrap it in LaTeX
- - DO NOT create questions from headings, bullet points, or learning objectives alone
- - Prefer numeric problems like 1+1=?, simple linear equations ax+b=c, and basic inequalities from the content
 
 FORMAT EXAMPLE:
 ${example}
@@ -227,70 +219,101 @@ function parseAIResponse(aiText, questionType) {
   });
 }
 
-function generateFallbackQuestions(text, count, type = 'multiple-choice') {
+function generateFallbackQuestions(text, count, type = 'multiple-choice', eqs, hasMathContent) {
   console.log(`🔧 Generating ${count} fallback questions (${type})...`);
-
-  // 1) Try math-centric fallback from extraction first (again)
-  const eqs = extractEquations(text || '');
-  const math = generateMathFromEquations(eqs, count, type);
-  if (math && math.length) {
-    console.log(`Generated ${math.length} math fallback questions`);
-    return math;
-  }
-
-  // 2) Build simple arithmetic from numbers present in the text
-  const numbers = Array.from(String(text || '').matchAll(/\b\d+(?:\.\d+)?\b/g)).map(m => parseFloat(m[0]));
-  const pairs = [];
-  for (let i = 0; i + 1 < numbers.length && pairs.length < count * 2; i += 2) {
-    pairs.push([numbers[i], numbers[i + 1]]);
-  }
-
-  const questions = [];
-  for (let i = 0; i < Math.min(count, pairs.length); i++) {
-    const [a, b] = pairs[i];
-    const ops = ['+', '-', '*'];
-    const op = ops[i % ops.length];
-    let val;
-    switch (op) {
-      case '+': val = a + b; break;
-      case '-': val = a - b; break;
-      case '*': val = a * b; break;
+  
+  // Try math-based fallback first if we have math content
+  if (hasMathContent && eqs) {
+    const mathQuestions = generateMathFromEquations(eqs, count, type);
+    if (mathQuestions && mathQuestions.length >= count) {
+      return mathQuestions;
     }
-    const correct = formatNumber(val);
-    const distractors = [formatNumber(val + 1), formatNumber(val - 1), formatNumber(val * 2)];
-    const options = shuffle([correct, ...distractors]).slice(0, 4);
-    const letters = ['A', 'B', 'C', 'D'];
-    const correctIndex = options.findIndex(o => o === correct);
+    // If we got some math questions but not enough, add general questions
+    if (mathQuestions && mathQuestions.length > 0) {
+      const remaining = count - mathQuestions.length;
+      const generalQuestions = generateGeneralFallback(text, remaining, type);
+      return [...mathQuestions, ...generalQuestions];
+    }
+  }
+  
+  // Otherwise use general text-based fallback
+  return generateGeneralFallback(text, count, type);
+}
+
+function generateGeneralFallback(text, count, type) {
+  const sentences = text
+    .split(/[.!?]+/)
+    .filter(s => s.trim().length > 20 && s.trim().length < 200)
+    .map(s => s.trim())
+    .slice(0, count * 3);
+  
+  const questions = [];
+  
+  for (let i = 0; i < Math.min(count, sentences.length); i++) {
+    const sentence = sentences[i];
+    
+    if (type === 'multiple-choice') {
+      const words = sentence.split(' ').filter(w => w.length > 4);
+      const keyword = words[Math.floor(words.length / 2)] || 'topic';
+      
+      questions.push({
+        id: questions.length + 1,
+        question: `According to the text, what is mentioned about ${keyword.toLowerCase()}?`,
+        type: 'multiple-choice',
+        options: [
+          sentence.substring(0, 60) + (sentence.length > 60 ? '...' : ''),
+          'This information is not provided',
+          'The opposite statement is made',
+          'No relevant details are given'
+        ],
+        correctAnswer: 'A'
+      });
+    } else if (type === 'true-false') {
+      questions.push({
+        id: questions.length + 1,
+        question: sentence,
+        type: 'true-false',
+        correctAnswer: 'TRUE'
+      });
+    } else if (type === 'fill-in-blank') {
+      const words = sentence.split(' ').filter(w => w.length > 3);
+      if (words.length > 0) {
+        const blankIndex = Math.floor(words.length / 2);
+        const answer = words[blankIndex];
+        const sentenceWords = sentence.split(' ');
+        const actualIndex = sentenceWords.findIndex(w => w.includes(answer));
+        if (actualIndex !== -1) {
+          sentenceWords[actualIndex] = '_____';
+        }
+        
+        questions.push({
+          id: questions.length + 1,
+          question: sentenceWords.join(' '),
+          type: 'fill-in-blank',
+          correctAnswer: answer.replace(/[^\w\s]/g, '')
+        });
+      }
+    }
+  }
+  
+  // Ensure we have at least one question
+  if (questions.length === 0) {
     questions.push({
-      id: questions.length + 1,
-      question: `Compute $${formatNumber(a)} ${op} ${formatNumber(b)}$`,
+      id: 1,
+      question: 'What is the main topic discussed in this content?',
       type: 'multiple-choice',
-      options,
-      correctAnswer: letters[correctIndex] || 'A'
+      options: [
+        'The content discusses the information provided',
+        'An unrelated topic',
+        'No clear topic is presented',
+        'Multiple unrelated subjects'
+      ],
+      correctAnswer: 'A'
     });
   }
-
-  // 3) If still nothing, generate a couple of fixed arithmetic items
-  while (questions.length < count) {
-    const a = 1 + questions.length;
-    const b = 1;
-    const val = a + b;
-    const correct = formatNumber(val);
-    const distractors = [formatNumber(val + 1), formatNumber(val - 1), formatNumber(val * 2)];
-    const options = shuffle([correct, ...distractors]).slice(0, 4);
-    const letters = ['A', 'B', 'C', 'D'];
-    const correctIndex = options.findIndex(o => o === correct);
-    questions.push({
-      id: questions.length + 1,
-      question: `Compute $${a} + ${b}$`,
-      type: 'multiple-choice',
-      options,
-      correctAnswer: letters[correctIndex] || 'A'
-    });
-  }
-
-  console.log(`Generated ${questions.length} arithmetic fallback questions`);
-  return questions.slice(0, count);
+  
+  console.log(`Generated ${questions.length} general fallback questions`);
+  return questions;
 }
 
 module.exports = {
@@ -323,18 +346,28 @@ function extractEquations(text) {
     }
   }
 
-  // Simple arithmetic like 12 + 5, 3*4, 7 - 2, 9 / 3
-  const arithRe = /\b\d+(?:\.\d+)?\s*[+\-*\/]\s*\d+(?:\.\d+)?\b/g;
+  // Simple arithmetic like 12 + 5, 3*4, 7 × 2, 9 ÷ 3
+  // Avoid dates/page numbers by requiring spacing around operators or explicit math symbols
+  const arithRe = /\b\d+(?:\.\d+)?\s+[+\-×÷]\s+\d+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s*[*\/]\s*\d+(?:\.\d+)?\b/g;
   let am;
   while ((am = arithRe.exec(text)) !== null) {
-    arithmetic.add(am[0].replace(/\s+/g, ' ').trim());
+    const matched = am[0].replace(/\s+/g, ' ').trim();
+    // Skip if it looks like a date range or page number (e.g., "2023-2024", "pages 5-10")
+    if (!matched.match(/^\d{4}\s*-\s*\d{4}$/) && !text.substring(Math.max(0, am.index - 10), am.index).match(/page|year|between/i)) {
+      arithmetic.add(matched);
+    }
   }
 
   // Linear equations a v + b = c (v is any single-letter variable)
+  // Must have a variable, operator, and equals sign to be considered an equation
   const linearRe = /([+-]?\d*\.?\d*)\s*[a-zA-Z]\s*([+\-]\s*\d+\.?\d*)?\s*=\s*[+-]?\d+\.?\d*/gi;
   let lm;
   while ((lm = linearRe.exec(text)) !== null) {
-    linear.add(lm[0].replace(/\s+/g, ' ').trim());
+    const match = lm[0].replace(/\s+/g, ' ').trim();
+    // Must contain both a letter (variable) and equals sign, and not just be "a = b" style definition
+    if (match.length > 5 && /\d/.test(match)) {
+      linear.add(match);
+    }
   }
 
   // Inequalities a v + b (<=|>=|<|>) c, where v is any single-letter variable
@@ -345,11 +378,13 @@ function extractEquations(text) {
   }
 
   // Generic linear-looking equations possibly with parentheses: capture and let solver validate later
-  const genericEqRe = /[0-9a-zA-Z\s+\-*/()]+=[0-9a-zA-Z\s+\-*/()]+/g;
+  // Only consider if it has a variable AND numbers on both sides of equals
+  const genericEqRe = /[0-9]+[a-zA-Z\s+\-*/()]*[a-zA-Z]+[0-9a-zA-Z\s+\-*/()]*=[0-9a-zA-Z\s+\-*/()]+/g;
   let gm;
   while ((gm = genericEqRe.exec(text)) !== null) {
     const expr = gm[0].trim();
-    if (/[a-zA-Z]/.test(expr)) {
+    // Must have a variable and numbers on both sides, and reasonable length
+    if (expr.length > 4 && expr.length < 50 && /[a-zA-Z]/.test(expr) && /\d/.test(expr.split('=')[0]) && /\d/.test(expr.split('=')[1] || '')) {
       linear.add(expr.replace(/\s+/g, ' ').trim());
     }
   }

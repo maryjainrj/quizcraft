@@ -1,5 +1,5 @@
 // src/services/api.js
-const API_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 const GRAPHQL_URL = `${API_URL}/graphql`;
 
 const graphqlRequest = async (query, variables = {}) => {

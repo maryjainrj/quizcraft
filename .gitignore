@@ -12,10 +12,22 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Environment variables
+# Environment variables (NEVER commit these!)
 .env
+.env.local
 backend/.env
+backend/.env.local
 frontend/.env
+frontend/.env.local
+
+# Secrets and credentials
+backend/service-account.json
+backend/vision-key.json
+**/service-account*.json
+**/*-key.json
+
+# Render config (contains sensitive structure)
+backend/render.yaml
 
 # Build / distribution folders
 frontend/dist/

@@ -6,6 +6,8 @@ import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload, FiCheck, FiX
 import jsPDF from 'jspdf';
 import QuizNameModal from '../components/QuizNameModal';
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -175,7 +177,7 @@ const QuizPreviewPage = () => {
       const formData = new FormData();
       formData.append('pdf', pdfBlob, 'quiz.pdf');
 
-      const response = await fetch('http://localhost:5000/api/upload-pdf', {
+      const response = await fetch(`${API_BASE}/api/upload-pdf`, {
         method: 'POST',
         body: formData,
       });

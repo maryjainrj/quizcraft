@@ -5,6 +5,7 @@ import QuizSettingsModal from "../components/QuizSettingsModal";
 import { generateQuiz } from "../api/quiz";
 import { shuffleOptions } from "../utils/Shuffle";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 const MAX_MB = 10;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
 
@@ -158,7 +159,7 @@ export default function UploadFiles() {
         // fallback to backend extraction (kept intact)
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch("http://localhost:5000/api/upload", {
+        const res = await fetch(`${API_BASE}/api/upload`, {
           method: "POST",
           body: fd,
         });
