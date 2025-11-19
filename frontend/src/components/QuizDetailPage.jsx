@@ -1,3 +1,4 @@
+// src/components/QuizDetailPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -30,22 +31,6 @@ export default function QuizDetailPage() {
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-
-  // edit mode - whole quiz
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editedQuestions, setEditedQuestions] = useState([]);
-  const [editedAnswers, setEditedAnswers] = useState([]);
-  const [editedTitle, setEditedTitle] = useState("");
-  const [editedDescription, setEditedDescription] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
-
-  // edit mode - single question
-  const [editingQuestionIdx, setEditingQuestionIdx] = useState(null);
-  const [singleEditQuestion, setSingleEditQuestion] = useState("");
-  const [singleEditAnswer, setSingleEditAnswer] = useState("");
-  const [singleEditError, setSingleEditError] = useState("");
-  const [isSavingSingleQuestion, setIsSavingSingleQuestion] = useState(false);
 
   // ===== fetch this quiz from DB using its id =====
   useEffect(() => {
@@ -87,8 +72,9 @@ export default function QuizDetailPage() {
     fetchQuiz();
   }, [id]);
 
-  // ===== Decide which questions + answers to use =====
-  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available.
+  // ===== Decide which questions to use =====
+  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available,
+  // so you see exactly what was generated at creation time.
   const { title, questions, answers, createdAt, updatedAt } = useMemo(() => {
     if (!rawQuiz) {
       return {
@@ -128,142 +114,54 @@ export default function QuizDetailPage() {
       }
     }
 
-    // 2) Prefer snapshot (reflects saved edits), fallback to populated DB
+    // 2) Fallback to current joined questions if snapshot is empty
     let rawQuestions = [];
-    let source = "none";
     if (originalQuestions.length) {
       rawQuestions = originalQuestions;
-      source = "snapshot";
-    } else if (Array.isArray(rawQuiz.questions) && rawQuiz.questions.length > 0) {
+    } else if (Array.isArray(rawQuiz.questions)) {
       rawQuestions = rawQuiz.questions;
-      source = "populated-db";
     } else if (Array.isArray(rawQuiz?.data?.questions)) {
       rawQuestions = rawQuiz.data.questions;
-      source = "raw-data-questions";
     }
-
-    console.log(`[QuizDetailPage] Source=${source} Raw questions count=`, rawQuestions?.length || 0);
-
-    // Helper to map letter answers (A, B, C, D) to actual option text
-    const mapAnswerToText = (q) => {
-      if (!q || typeof q !== "object") return "";
-
-      // If populated from QuestionNew (backend populated data)
-      if (q.question_id && typeof q.question_id === "object") {
-        const qi = q.question_id;
-        if (qi.type === "mcq" && Array.isArray(qi.options) && qi.options.length) {
-          const correct = qi.options.find(o => o?.is_correct);
-          return correct?.option_text || "";
-        }
-        return qi.correctText || "";
-      }
-
-      // Get the raw answer value from various possible fields
-      let rawAnswer = 
-        q.correctAnswer ||
-        q.answer ||
-        q.solution ||
-        q.correct ||
-        q.correctOption ||
-        q.answerText ||
-        q.correctAnswerText ||
-        "";
-
-      // If this is a multiple-choice with options array and answer is a letter
-      if (Array.isArray(q.options) && q.options.length > 0 && rawAnswer) {
-        const answerStr = String(rawAnswer).trim().toUpperCase();
-        
-        // Map letter to index (A=0, B=1, C=2, D=3)
-        const letterToIndex = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
-        
-        if (letterToIndex[answerStr] !== undefined) {
-          const index = letterToIndex[answerStr];
-          if (q.options[index]) {
-            console.log(`[QuizDetailPage] Mapped answer "${answerStr}" to option text: "${q.options[index]}"`);
-            return q.options[index];
-          }
-        }
-        
-        // If answer is numeric index
-        const numIndex = parseInt(answerStr);
-        if (!isNaN(numIndex) && q.options[numIndex]) {
-          return q.options[numIndex];
-        }
-      }
-
-      // Return raw answer for other types (true-false, fill-in-blank)
-      return rawAnswer;
-    };
 
     // 3) Normalize into text + answer arrays
     const questions = rawQuestions.map((q) => {
-      // If populated from QuestionSet -> { question_id: { text, ... } }
-      if (q && q.question_id && typeof q.question_id === "object") {
-        return q.question_id.text || q.question_id.question || "";
-      }
       // If shape like { questionText: "...", correctAnswer: "..." }
       if (q && typeof q === "object") {
         return (
           q.questionText ||
-          q.text || // from QuestionNew
+          q.text ||
           q.prompt ||
           q.question ||
           q.title ||
           ""
         );
       }
+      // If it is a plain string
       if (typeof q === "string") return q;
       return "";
     });
 
-    let answers = rawQuestions.map((q, idx) => {
-      const answer = mapAnswerToText(q);
-      
-      // Debug log to see what we're extracting
-      if (!answer) {
-        console.log(`[QuizDetailPage] No answer found for question ${idx}:`, q);
-      } else {
-        console.log(`[QuizDetailPage] Answer ${idx}:`, answer);
-      }
-      
-      return answer;
-    });
-
-    // 3b) Fallback: if many answers missing, try alternate source
-    const missingCount = answers.filter(a => !a).length;
-    if (missingCount === answers.length) {
-      // All answers missing; try alternate source
-      let fallbackRaw = null;
-      if (source === "populated-db" && originalQuestions.length) {
-        fallbackRaw = originalQuestions;
-        console.log("[QuizDetailPage] Fallback to snapshot for answers");
-      } else if (source !== "populated-db" && Array.isArray(rawQuiz.questions) && rawQuiz.questions.length) {
-        fallbackRaw = rawQuiz.questions;
-        console.log("[QuizDetailPage] Fallback to populated DB for answers");
-      }
-      if (fallbackRaw) {
-        answers = fallbackRaw.map((q) => mapAnswerToText(q));
-      }
-    }
-
-    console.log("[QuizDetailPage] Extracted questions:", questions);
-    console.log("[QuizDetailPage] Extracted answers:", answers);
+    const answers =
+      rawQuestions.map((q) => {
+        if (q && typeof q === "object") {
+          return (
+            q.correctAnswer ||
+            q.answer ||
+            q.solution ||
+            q.correct ||
+            q.correctOption ||
+            ""
+          );
+        }
+        return "";
+      }) || [];
 
     result.questions = questions;
     result.answers = answers;
 
     return result;
   }, [rawQuiz, state?.title]);
-
-  // Initialize edited values when questions/answers load
-  useEffect(() => {
-    if (rawQuiz && !isEditMode) {
-      setEditedTitle(rawQuiz.title || rawQuiz.name || "");
-      setEditedDescription(rawQuiz.description || "");
-      setEditedQuestions(questions);
-      setEditedAnswers(answers);
-    }
-  }, [questions, answers, rawQuiz, isEditMode]);
 
   const shareUrl = `${window.location.origin}/dashboard/quiz/${id}`;
 
@@ -282,7 +180,7 @@ export default function QuizDetailPage() {
     }
   };
 
-  // ✅ delete quiz in DB
+  // ✅ delete quiz in DB instead of front-end only
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -311,169 +209,6 @@ export default function QuizDetailPage() {
     }
   };
 
-  // Enter edit mode
-  const handleEnterEditMode = () => {
-    setIsEditMode(true);
-    setSaveError("");
-  };
-
-  // Cancel edit mode
-  const handleCancelEdit = () => {
-    setIsEditMode(false);
-    setSaveError("");
-  };
-
-  // Save all changes
-  const handleSaveEdit = async () => {
-    if (!editedTitle.trim()) {
-      setSaveError("Quiz title cannot be empty");
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      setSaveError("");
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setSaveError("You are not logged in.");
-        return;
-      }
-
-      // Create updated questions array with both question and answer
-      const updatedQuestionsData = editedQuestions.map((q, idx) => ({
-        questionText: q,
-        correctAnswer: editedAnswers[idx] || "",
-      }));
-
-      console.log("[QuizDetailPage] Saving questions data:", updatedQuestionsData);
-
-      // Save quiz metadata (title, description) and questions
-      const metaRes = await fetch(`${API_BASE}/api/questionsets/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: editedTitle,
-          description: editedDescription,
-          questions: updatedQuestionsData,
-        }),
-      });
-
-      const metaData = await metaRes.json().catch(() => null);
-      if (!metaRes.ok) {
-        throw new Error(metaData?.message || "Failed to update quiz");
-      }
-
-      // Update rawQuiz with new metadata and questions
-      setRawQuiz((prev) => ({
-        ...prev,
-        title: editedTitle,
-        description: editedDescription,
-        originalQuestionsJSON: JSON.stringify(updatedQuestionsData),
-      }));
-
-      setIsEditMode(false);
-      alert("Quiz updated successfully!");
-    } catch (e) {
-      console.error("Error saving quiz:", e);
-      setSaveError(e.message || "Failed to save changes");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Update question text
-  const handleUpdateQuestion = (idx, newText) => {
-    const updated = [...editedQuestions];
-    updated[idx] = newText;
-    setEditedQuestions(updated);
-  };
-
-  // Update answer text
-  const handleUpdateAnswer = (idx, newText) => {
-    const updated = [...editedAnswers];
-    updated[idx] = newText;
-    setEditedAnswers(updated);
-  };
-
-  // Single question edit handlers
-  const handleEditSingleQuestion = (idx) => {
-    setEditingQuestionIdx(idx);
-    setSingleEditQuestion(questions[idx]);
-    setSingleEditAnswer(answers[idx] || "");
-    setSingleEditError("");
-  };
-
-  const handleSaveSingleQuestion = async () => {
-    if (!singleEditQuestion.trim()) {
-      setSingleEditError("Question cannot be empty");
-      return;
-    }
-
-    try {
-      setIsSavingSingleQuestion(true);
-      setSingleEditError("");
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setSingleEditError("You are not logged in.");
-        return;
-      }
-
-      // Build updated arrays based on current displayed questions/answers
-      const updatedQuestionsArr = [...questions];
-      updatedQuestionsArr[editingQuestionIdx] = singleEditQuestion;
-
-      const updatedAnswersArr = [...answers];
-      updatedAnswersArr[editingQuestionIdx] = singleEditAnswer;
-
-      // Create payload in snapshot-friendly form
-      const updatedQuestionsData = updatedQuestionsArr.map((q, idx) => ({
-        questionText: q,
-        correctAnswer: updatedAnswersArr[idx] || "",
-      }));
-
-      // Persist to backend (updates originalQuestionsJSON)
-      const res = await fetch(`${API_BASE}/api/questionsets/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          questions: updatedQuestionsData,
-        }),
-      });
-
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(body?.message || "Failed to update question");
-      }
-
-      // Update local rawQuiz snapshot so UI reflects saved data
-      setRawQuiz((prev) => ({
-        ...prev,
-        originalQuestionsJSON: JSON.stringify(updatedQuestionsData),
-      }));
-
-      setEditingQuestionIdx(null);
-      alert("Question updated successfully!");
-    } catch (e) {
-      setSingleEditError(e.message || "Failed to save question");
-    } finally {
-      setIsSavingSingleQuestion(false);
-    }
-  };
-
-  const handleCancelSingleEdit = () => {
-    setEditingQuestionIdx(null);
-    setSingleEditQuestion("");
-    setSingleEditAnswer("");
-    setSingleEditError("");
-  };
-
   return (
     <section>
       {/* Header + actions */}
@@ -498,15 +233,6 @@ export default function QuizDetailPage() {
           <button className="secondary-btn" onClick={() => setShowShare(true)}>
             Share
           </button> */}
-          {!isEditMode && (
-            <button
-              className="primary-btn"
-              onClick={handleEnterEditMode}
-              aria-label="Edit quiz"
-            >
-              Edit Quiz
-            </button>
-          )}
           <button
             className="danger-btn"
             onClick={() => setShowDelete(true)}
@@ -523,167 +249,35 @@ export default function QuizDetailPage() {
 
       {!loading && !err && (
         <>
-          {/* Edit Mode Header */}
-          {isEditMode && (
-            <div className="edit-mode-section">
-              <h3>Edit Quiz Details</h3>
-              {saveError && <p className="error-msg">{saveError}</p>}
-              <div className="form-group">
-                <label>Quiz Title</label>
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  className="edit-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  value={editedDescription}
-                  onChange={(e) => setEditedDescription(e.target.value)}
-                  className="edit-textarea"
-                  placeholder="Optional description"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Available Questions */}
-          <div className="quiz-preview-section">
-            <h2 className="quiz-preview-title">Questions</h2>
-            <div className="questions-container">
-              {(isEditMode ? editedQuestions : questions).map((q, idx) => {
-                const isSingleEditMode = editingQuestionIdx === idx;
-
-                // Single question edit form
-                if (isSingleEditMode) {
-                  return (
-                    <div key={idx} className="question-card single-edit-mode">
-                      <h4 className="single-edit-title">Edit Question {idx + 1}</h4>
-                      {singleEditError && <p className="error-msg">{singleEditError}</p>}
-                      
-                      <div className="form-group">
-                        <label>Question</label>
-                        <textarea
-                          value={singleEditQuestion}
-                          onChange={(e) => setSingleEditQuestion(e.target.value)}
-                          className="edit-question-input"
-                          placeholder="Question text"
-                          rows="3"
-                        />
-                      </div>
-                      
-                      <div className="form-group">
-                        <label>Answer</label>
-                        <textarea
-                          value={singleEditAnswer}
-                          onChange={(e) => setSingleEditAnswer(e.target.value)}
-                          className="edit-question-input"
-                          placeholder="Answer text"
-                          rows="2"
-                        />
-                      </div>
-
-                      <div className="single-edit-actions">
-                        <button
-                          className="primary-btn"
-                          onClick={handleSaveSingleQuestion}
-                          disabled={isSavingSingleQuestion}
-                        >
-                          {isSavingSingleQuestion ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          className="secondary-btn"
-                          onClick={handleCancelSingleEdit}
-                          disabled={isSavingSingleQuestion}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Normal view mode
-                return (
-                  <div key={idx} className={`question-card ${isEditMode ? "edit-mode" : ""}`}>
-                    <div className="question-card-header">
-                      <div className="question-text-wrapper">
-                        <span className="question-number">{idx + 1}.</span>
-                        {isEditMode ? (
-                          <input
-                            type="text"
-                            value={q}
-                            onChange={(e) => handleUpdateQuestion(idx, e.target.value)}
-                            className="edit-question-input"
-                            placeholder="Question text"
-                          />
-                        ) : (
-                          <span className="question-text">{q}</span>
-                        )}
-                      </div>
-                      <div className="question-actions">
-                        {!isEditMode && (
-                          <>
-                            <button 
-                              className="action-btn edit-btn"
-                              aria-label="Edit question"
-                              onClick={() => handleEditSingleQuestion(idx)}
-                              title="Edit"
-                            >
-                              ✎
-                            </button>
-                            <button 
-                              className="action-btn delete-btn"
-                              aria-label="Delete question"
-                              title="Delete"
-                            >
-                              🗑
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Options - Show from answers if available */}
-                    {!isEditMode && answers[idx] && (
-                      <div className="options-container">
-                        <div className="option">
-                          <span className="option-label">Correct Answer:</span>
-                          <span className="option-text">{answers[idx]}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Edit mode answer field */}
-                    {isEditMode && (
-                      <div className="options-container">
-                        <label>Answer</label>
-                        <textarea
-                          value={(editedAnswers[idx] || "")}
-                          onChange={(e) => handleUpdateAnswer(idx, e.target.value)}
-                          className="edit-question-input"
-                          placeholder="Answer text"
-                          rows="2"
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {(isEditMode ? editedQuestions : questions).length === 0 && (
-                <div className="empty-questions">
-                  <span>No questions were stored for this quiz.</span>
-                </div>
-              )}
+          <div className="panel">
+            <div className="panel__header">
+              <h3>Available Questions</h3>
             </div>
+            <ul className="question-list">
+              {questions.map((q, idx) => (
+                <li key={idx} className="question-row">
+                  <span className="q-index">{idx + 1}.</span>
+                  <span className="q-text">{q}</span>
+                  <button className="kebab" aria-label="More actions">
+                    ⋮
+                  </button>
+                </li>
+              ))}
+              {questions.length === 0 && (
+                <li className="question-row">
+                  <span className="q-text">
+                    No questions were stored for this quiz.
+                  </span>
+                </li>
+              )}
+            </ul>
           </div>
 
           {/* View Answers */}
           <div className="panel">
             <div className="panel__header">
-              <h3>{isEditMode ? "Edit Answers" : "View Answers"}</h3>
+              <h3>View Answers</h3>
               <button
                 className="chevron"
                 aria-label="Toggle answers"
@@ -693,66 +287,29 @@ export default function QuizDetailPage() {
               </button>
             </div>
 
-            {showAnswers && !isEditMode && (
-              <div className="answers-container">
-                {(isEditMode ? editedAnswers : answers).map((a, idx) => (
-                  <div key={idx} className="answer-item">
-                    <span className="answer-number">{idx + 1}.</span>
-                    <span className="answer-text">
+            {showAnswers && (
+              <ul className="question-list">
+                {answers.map((a, idx) => (
+                  <li key={idx} className="question-row">
+                    <span className="q-index">{idx + 1}.</span>
+                    <span className="q-text">
                       {a || "(No answer stored for this question)"}
                     </span>
-                  </div>
-                ))}
-                {(isEditMode ? editedAnswers : answers).length === 0 && (
-                  <div className="empty-answers">
-                    <span>No answers were stored for this quiz.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {showAnswers && isEditMode && (
-              <ul className="question-list">
-                {(isEditMode ? editedAnswers : answers).map((a, idx) => (
-                  <li key={idx} className="question-row edit-mode">
-                    <span className="q-index">{idx + 1}.</span>
-                    {isEditMode ? (
-                      <input
-                        type="text"
-                        value={a}
-                        onChange={(e) => handleUpdateAnswer(idx, e.target.value)}
-                        className="edit-question-input"
-                      />
-                    ) : (
-                      <span className="q-text">
-                        {a || "(No answer stored for this question)"}
-                      </span>
-                    )}
+                    <button className="kebab" aria-label="More actions">
+                      ⋮
+                    </button>
                   </li>
                 ))}
+                {answers.length === 0 && (
+                  <li className="question-row">
+                    <span className="q-text">
+                      No answers were stored for this quiz.
+                    </span>
+                  </li>
+                )}
               </ul>
             )}
           </div>
-
-          {/* Edit Mode Actions */}
-          {isEditMode && (
-            <div className="edit-mode-actions">
-              <button
-                className="primary-btn"
-                onClick={handleSaveEdit}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : "Save All Changes"}
-              </button>
-              <button
-                className="secondary-btn"
-                onClick={handleCancelEdit}
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
         </>
       )}
 
@@ -777,7 +334,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export questions (stub)")}
               >
-                <div className="export-icon">PDF</div>
+                <div className="export-icon">📄</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf questions</div>
                   <div className="export-desc">
@@ -790,7 +347,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export answers (stub)")}
               >
-                <div className="export-icon">PDF</div>
+                <div className="export-icon">📄</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf Answers</div>
                   <div className="export-desc">
@@ -878,4 +435,3 @@ export default function QuizDetailPage() {
     </section>
   );
 }
-  

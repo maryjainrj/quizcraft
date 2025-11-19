@@ -62,6 +62,7 @@
    npx tailwindcss init -p
    npm i jspdf html2canvas
    npm install jspdf
+   npm install lucide-react
 
    ## tail wind integration ##########
 cd client

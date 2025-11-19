@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import emptyImg from "../assets/empty_quiz.png";
 import { deleteQuiz, updateQuiz } from "../services/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-// Helper to format updated time
 const formatUpdatedTime = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -22,6 +21,9 @@ export default function QuizzesPage() {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Get search query from parent layout
+  const { searchQuery } = useOutletContext() || { searchQuery: "" };
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -31,7 +33,6 @@ export default function QuizzesPage() {
   const [deleteError, setDeleteError] = useState("");
   const [updateError, setUpdateError] = useState("");
 
-  // Center layout: hide sidebar on this page
   useEffect(() => {
     document.body.classList.add("hide-sidebar");
     return () => document.body.classList.remove("hide-sidebar");
@@ -69,7 +70,6 @@ export default function QuizzesPage() {
           return;
         }
 
-        // Try to find the array of quizzes in a tolerant way
         let list = [];
         if (Array.isArray(data)) {
           list = data;
@@ -102,6 +102,18 @@ export default function QuizzesPage() {
 
     loadQuizzes();
   }, []);
+
+  // Filter quizzes based on search query
+  const filteredQuizzes = useMemo(() => {
+    if (!searchQuery.trim()) return quizzes;
+    
+    const query = searchQuery.toLowerCase();
+    return quizzes.filter((q) => {
+      const title = (q.title || q.name || "").toLowerCase();
+      const description = (q.description || "").toLowerCase();
+      return title.includes(query) || description.includes(query);
+    });
+  }, [quizzes, searchQuery]);
 
   const handleEditClick = (quiz) => {
     setEditingId(quiz._id || quiz.id);
@@ -189,7 +201,6 @@ export default function QuizzesPage() {
               View and manage the quizzes you have saved.
             </p>
           </div>
-
           <div className="feed-cta">
             <button
               className="primary-btn"
@@ -224,8 +235,20 @@ export default function QuizzesPage() {
         </div>
       </header>
 
-      {/* If no quizzes → show empty card */}
-      {!quizzes.length ? (
+      {/* Show search info if searching */}
+      {searchQuery.trim() && (
+        <div className="search-info">
+          <p className="search-info__text">
+            {filteredQuizzes.length > 0 
+              ? `Found ${filteredQuizzes.length} quiz${filteredQuizzes.length !== 1 ? 'es' : ''} matching "${searchQuery}"`
+              : `No quizzes found matching "${searchQuery}"`
+            }
+          </p>
+        </div>
+      )}
+
+      {/* If no quizzes after filtering */}
+      {filteredQuizzes.length === 0 ? (
         <div className="empty-wrapper">
           <div className="empty-state">
             <img
@@ -233,9 +256,14 @@ export default function QuizzesPage() {
               alt="No quizzes"
               className="empty-state__img"
             />
-            <h3 className="empty-state__title">No quiz available</h3>
+            <h3 className="empty-state__title">
+              {searchQuery.trim() ? "No matches found" : "No quiz available"}
+            </h3>
             <p className="empty-state__desc">
-              Currently, there are no quizzes. Please add new quiz.
+              {searchQuery.trim() 
+                ? `Try a different search term or create a new quiz.`
+                : "Currently, there are no quizzes. Please add new quiz."
+              }
             </p>
 
             <button
@@ -248,7 +276,7 @@ export default function QuizzesPage() {
         </div>
       ) : (
         <ul className="quiz-feed">
-          {quizzes.map((q) => {
+          {filteredQuizzes.map((q) => {
             const id = q._id || q.id;
             const title = q.title || q.name || "Untitled quiz";
             const total =
