@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import emptyImg from "../assets/empty_quiz.png";
+import { deleteQuiz, updateQuiz } from "../services/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -23,6 +24,14 @@ export default function QuizzesPage() {
   
   // Get search query from parent layout
   const { searchQuery } = useOutletContext() || { searchQuery: "" };
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isDeleting, setIsDeleting] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [updateError, setUpdateError] = useState("");
 
   useEffect(() => {
     document.body.classList.add("hide-sidebar");
@@ -106,11 +115,87 @@ export default function QuizzesPage() {
     });
   }, [quizzes, searchQuery]);
 
+  const handleEditClick = (quiz) => {
+    setEditingId(quiz._id || quiz.id);
+    setEditTitle(quiz.title || quiz.name || "");
+    setEditDescription(quiz.description || "");
+    setOpenMenuId(null);
+    setUpdateError("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) {
+      setUpdateError("Quiz title cannot be empty");
+      return;
+    }
+
+    try {
+      await updateQuiz(editingId, {
+        title: editTitle,
+        description: editDescription,
+      });
+
+      // Update local state
+      setQuizzes(
+        quizzes.map((q) => {
+          const qId = q._id || q.id;
+          if (qId === editingId) {
+            return { ...q, title: editTitle, description: editDescription };
+          }
+          return q;
+        })
+      );
+
+      setEditingId(null);
+      setEditTitle("");
+      setEditDescription("");
+      setUpdateError("");
+    } catch (err) {
+      console.error("Error updating quiz:", err);
+      setUpdateError(err.message || "Failed to update quiz");
+    }
+  };
+
+  const handleDeleteClick = (quizId) => {
+    setIsDeleting(quizId);
+    setShowDeleteConfirm(true);
+    setOpenMenuId(null);
+    setDeleteError("");
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteQuiz(isDeleting);
+
+      // Remove from local state
+      setQuizzes(quizzes.filter((q) => (q._id || q.id) !== isDeleting));
+
+      setShowDeleteConfirm(false);
+      setIsDeleting(null);
+      setDeleteError("");
+    } catch (err) {
+      console.error("Error deleting quiz:", err);
+      setDeleteError(err.message || "Failed to delete quiz");
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setIsDeleting(null);
+    setDeleteError("");
+  };
+
+  const handleMenuToggle = (quizId, e) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === quizId ? null : quizId);
+  };
+
+  // While loading
   if (loading) {
     return (
       <section className="dashboard-feed">
-        <header className="feed-header">
-          <div>
+        <header className="feed-header feed-header--center-with-cta">
+          <div className="feed-header-main">
             <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
             <p className="feed-subtitle">
               View and manage the quizzes you have saved.
@@ -131,8 +216,9 @@ export default function QuizzesPage() {
 
   return (
     <section className="dashboard-feed">
-      <header className="feed-header">
-        <div>
+      {/* Header: text centered, button on the right */}
+      <header className="feed-header feed-header--center-with-cta">
+        <div className="feed-header-main">
           <h1 className="feed-title">Welcome to Quiz Dashboard</h1>
           <p className="feed-subtitle">
             View and manage the quizzes you have saved.
@@ -200,6 +286,48 @@ export default function QuizzesPage() {
             const updated = q.updatedAt || q.createdAt;
             const updatedLabel = formatUpdatedTime(updated);
 
+            // Show edit form if this quiz is being edited
+            if (editingId === id) {
+              return (
+                <li key={id} className="quiz-item-card edit-mode">
+                  <div className="edit-form">
+                    <h3>Edit Quiz Name</h3>
+                    {updateError && <p className="error-msg">{updateError}</p>}
+                    <input
+                      type="text"
+                      placeholder="Quiz Title"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="edit-input"
+                    />
+                    <textarea
+                      placeholder="Quiz Description"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="edit-textarea"
+                    />
+                    <div className="edit-actions">
+                      <button
+                        className="primary-btn"
+                        onClick={handleSaveEdit}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="secondary-btn"
+                        onClick={() => {
+                          setEditingId(null);
+                          setUpdateError("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            }
+
             return (
               <li key={id} className="quiz-item-card">
                 <div
@@ -236,13 +364,60 @@ export default function QuizzesPage() {
                 <div className="hover-hint" aria-hidden="true">
                   Click to view
                 </div>
-                <button className="kebab" aria-label="More actions">
-                  ⋮
-                </button>
+                <div className="quiz-menu-container">
+                  <button
+                    className="kebab"
+                    aria-label="More actions"
+                    onClick={(e) => handleMenuToggle(id, e)}
+                  >
+                    ⋮
+                  </button>
+                  {openMenuId === id && (
+                    <div className="quiz-dropdown-menu">
+                      <button
+                        className="menu-item edit"
+                        onClick={() => handleEditClick(q)}
+                      >
+                         Edit Quiz Name
+                      </button>
+                      <button
+                        className="menu-item delete"
+                        onClick={() => handleDeleteClick(id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={handleCancelDelete}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete Quiz</h2>
+            <p>Are you sure you want to delete this quiz? This action cannot be undone.</p>
+            {deleteError && <p className="error-msg">{deleteError}</p>}
+            <div className="modal-actions">
+              <button
+                className="danger-btn"
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+              <button
+                className="secondary-btn"
+                onClick={handleCancelDelete}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

@@ -1,4 +1,3 @@
-// frontend/src/components/Signup.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
@@ -44,7 +43,7 @@ function validate(fields) {
   return e;
 }
 
-// 🔐 helper to store auth info so Dashboard can show the user name
+// helper to store auth info so Dashboard can show the username
 const persistAuth = (data, fallbackId = "") => {
   try {
     // Save token if present
@@ -148,7 +147,7 @@ const Signup = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Signup failed");
 
-      // ✅ store token + user so Dashboard can show their name
+      //store token + user so Dashboard can show their name
       persistAuth(data, form.username || form.email);
 
       navigate("/dashboard");
@@ -185,7 +184,7 @@ const Signup = () => {
               if (!response?.credential)
                 throw new Error("No Google credential received");
 
-              // 🔍 Optional local decode for diagnostics
+              // Optional local decode for diagnostics
               try {
                 const b64 = response.credential
                   .split(".")[1]
@@ -217,7 +216,7 @@ const Signup = () => {
               if (!res.ok)
                 throw new Error(data.message || "Google sign-in failed");
 
-              // ✅ store token + user from Google auth
+              // store token + user from Google auth
               persistAuth(data);
 
               navigate("/dashboard");

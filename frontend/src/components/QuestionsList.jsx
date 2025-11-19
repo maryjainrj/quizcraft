@@ -1,4 +1,3 @@
-// src/components/QuestionsList.js
 import React from 'react';
 import { FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
 import './QuestionsList.css';

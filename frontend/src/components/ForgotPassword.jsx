@@ -1,4 +1,3 @@
-// frontend/src/components/ForgotPassword.jsx
 console.log("Loaded: src/components/ForgotPassword.jsx");
 
 import React, { useState } from "react";

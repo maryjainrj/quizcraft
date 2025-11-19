@@ -6,6 +6,92 @@ import { shuffleOptions } from "../utils/Shuffle";
 
 const MIN_PASTE_CHARS = 30;
 
+// ------- Keyword Filtering (for pasted text) -------
+function filterTextByKeywords(text, keywordsStr) {
+  if (!keywordsStr || !keywordsStr.trim()) return text;
+  
+  let keywords = [];
+  const input = keywordsStr.toLowerCase().trim();
+  
+  // Remove common prefixes like "create quiz from", "generate questions from", etc.
+  const cleanedInput = input
+    .replace(/^(create|generate|make)\s+(quiz|questions?)\s+(from|about|on)\s+/i, '')
+    .trim();
+  
+  // Pattern 1: "X to Y" or "from X to Y" for section ranges
+  const sectionRangeMatch = cleanedInput.match(/(?:from\s+)?(.+?)\s+to\s+(.+?)$/i);
+  if (sectionRangeMatch) {
+    const [_, startSection, endSection] = sectionRangeMatch;
+    
+    // Check if it's chapter numbers: "chapter 1 to chapter 3"
+    const chapterMatch = startSection.match(/(\w+)\s+(\d+)/i);
+    if (chapterMatch) {
+      const [__, type, startNum] = chapterMatch;
+      const endMatch = endSection.match(/(\d+)/);
+      if (endMatch) {
+        const endNum = parseInt(endMatch[1]);
+        const start = parseInt(startNum);
+        for (let i = start; i <= endNum; i++) {
+          keywords.push(`${type} ${i}`.toLowerCase());
+        }
+      }
+    } else {
+      // It's section names like "introduction to conclusion"
+      // Split text into sections and find range
+      const sections = text.split(/\n\n+/);
+      const startTerm = startSection.trim();
+      const endTerm = endSection.trim();
+      
+      let startIdx = -1;
+      let endIdx = -1;
+      
+      sections.forEach((section, idx) => {
+        const sectionLower = section.toLowerCase();
+        if (startIdx === -1 && sectionLower.includes(startTerm)) {
+          startIdx = idx;
+        }
+        if (sectionLower.includes(endTerm)) {
+          endIdx = idx;
+        }
+      });
+      
+      if (startIdx !== -1 && endIdx !== -1 && startIdx <= endIdx) {
+        // Return the range of sections
+        return sections.slice(startIdx, endIdx + 1).join('\n\n');
+      }
+      
+      // Fallback: use both as keywords
+      keywords.push(startTerm, endTerm);
+    }
+  } 
+  // Pattern 2: Comma-separated keywords
+  else if (cleanedInput.includes(',')) {
+    keywords = cleanedInput.split(',').map(k => k.trim());
+  }
+  // Pattern 3: Single keyword or phrase
+  else {
+    keywords = [cleanedInput];
+  }
+  
+  if (keywords.length === 0) return text;
+  
+  // Split text into sections (paragraphs)
+  const sections = text.split(/\n\n+/);
+  
+  // Filter sections that contain any of the keywords
+  const filteredSections = sections.filter(section => {
+    const sectionLower = section.toLowerCase();
+    return keywords.some(keyword => sectionLower.includes(keyword));
+  });
+  
+  // If we found matching sections, return them; otherwise return original
+  if (filteredSections.length > 0) {
+    return filteredSections.join('\n\n');
+  }
+  
+  return text;
+}
+
 export default function WrittenText() {
   const navigate = useNavigate();
 
@@ -16,6 +102,8 @@ export default function WrittenText() {
     type: ["mcq"], // ['mcq','tf','fill']
     difficulty: "medium",
     count: 5,
+    pageRange: "",
+    keywords: "",
   });
 
   const hasEnoughText = pastedText.trim().length >= MIN_PASTE_CHARS;
@@ -70,10 +158,25 @@ export default function WrittenText() {
         values={settings}
         setValues={setSettings}
         onClose={() => setShowSettings(false)}
+        showPageRange={false}
         onCreate={async (vals) => {
           setShowSettings(false);
           try {
-            const allTexts = pastedText.trim();
+            let allTexts = pastedText.trim();
+            
+            // Apply keyword filter if specified (page range not applicable for pasted text)
+            if (vals.keywords && vals.keywords.trim()) {
+              console.log('Applying keyword filter:', vals.keywords);
+              allTexts = filterTextByKeywords(allTexts, vals.keywords);
+            }
+            
+            // Validate that we still have text after filtering
+            if (!allTexts || allTexts.length < MIN_PASTE_CHARS) {
+              alert('No content found matching your keywords. Please adjust your filter.');
+              setShowSettings(true);
+              return;
+            }
+            
             const selectedTypes = Array.isArray(vals.type) ? vals.type : [vals.type];
             const perType = Math.ceil(vals.count / selectedTypes.length);
             let allQuestions = [];
@@ -101,7 +204,12 @@ export default function WrittenText() {
                 questions: allQuestions,
                 fileNames: [],
                 pasted: true,
-                settings: { questionTypes: selectedTypes, difficulty: vals.difficulty, count: vals.count },
+                settings: { 
+                  questionTypes: selectedTypes, 
+                  difficulty: vals.difficulty, 
+                  count: vals.count,
+                  keywords: vals.keywords,
+                },
               },
             });
           } catch (e) {
