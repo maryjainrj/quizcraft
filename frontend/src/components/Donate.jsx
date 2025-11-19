@@ -7,42 +7,34 @@ const donationPackages = [
   { 
     amount: 10, 
     label: "Supporter", 
-   
-    duration: "1 month",
     durationDays: 30,
-    description: "1 Month Access",
+    description: "Support our mission",
     features: [
-      "Unlimited quizzes for 1 month",
-      "Download & Share features",
-      "Support basic hosting costs"
+      "Helps maintain server and hosting costs",
+      "Supports free quizzes for all users",
+      "A small contribution that makes a big difference"
     ]
   },
   { 
     amount: 25, 
     label: "Champion", 
-    
-    duration: "3 months",
     durationDays: 90,
-    description: "3 Months Access",
+    description: "Help us grow the platform",
     popular: true,
     features: [
-      "Unlimited quizzes for 3 months",
-      "Download & Share features",
-      "Help us scale the platform",
-      "Best value!"
+      "Helps improve platform performance and speed",
+      "Supports new quiz categories and features",
+       "Your contribution has a strong community impact"
     ]
   },
   { 
     amount: 50, 
     label: "Legend", 
-   
-    duration: "1 year",
     durationDays: 365,
-    description: "1 Year Access",
+    description: "Make a long-term impact",
     features: [
-      "Unlimited quizzes for 1 year",
-      "Download & Share features",
-      "Premium supporter status",
+      "Supports long-term platform development",
+      "Powerful contribution to the growth of our project",
       "Maximum support!"
     ]
   },
@@ -178,8 +170,11 @@ const DonatePage = () => {
 
                 <div className="package-body">
                   <div className="package-price">
-                    <span className="currency">CAD $</span>
-                    <span className="amount">{pkg.amount}</span>
+                    <span className="currency">CAD</span>
+                    <span className="amount">${pkg.amount}</span>
+                  </div>
+                  <div className="package-duration">
+                    {pkg.duration}
                   </div>
 
                   <div className="package-features">

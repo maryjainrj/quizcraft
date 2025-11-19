@@ -1,7 +1,11 @@
-
+ 
+ body{
+  background-color: #40189D ;
+ }
 .donate-container {
   max-width: 1200px;
   margin: 0 auto;
+  
 }
 
 .back-btn {
@@ -207,9 +211,9 @@
 }
 
 .continue-button {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
+  background: white;
+  color: black;
+  border: #40189D ;
   border-radius: 50px;
   padding: 18px 40px;
   font-size: 1.2rem;
@@ -222,9 +226,15 @@
   transition: all 0.2s;
   letter-spacing: 0.5px;
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  -webkit-border-radius: 50px;
+  -moz-border-radius: 50px;
+  -ms-border-radius: 50px;
+  -o-border-radius: 50px;
 }
 
 .continue-button:hover {
+  background-color: #27965f;
+  color: white;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
 }
@@ -241,6 +251,34 @@
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+/* Add to Donate.css */
+.package-duration {
+  color: #667eea;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.package-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.package-price .currency {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.package-price .amount {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 /* Responsive Design */

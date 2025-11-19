@@ -1,15 +1,16 @@
-// quizGenerator.js - AI Quiz Generation Module
+// quizGenerator.js - Hugging Face with Reliable Models
 const { HfInference } = require('@huggingface/inference');
 
-// Initialize Hugging Face (API key from environment variable)
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
-/**
- * Generate quiz questions from text using Hugging Face AI
- * @param {string} text - Extracted text from document
- * @param {object} settings - Quiz generation settings
- * @returns {Promise<Array>} Generated quiz questions
- */
+// Try these models in order until one works
+const MODELS_TO_TRY = [
+  'meta-llama/Llama-3.2-3B-Instruct',
+  'microsoft/Phi-3-mini-4k-instruct',
+  'google/flan-t5-large',
+  'HuggingFaceH4/zephyr-7b-beta',
+];
+
 async function generateQuiz(text, settings = {}) {
   const {
     questionCount = 5,
@@ -18,49 +19,57 @@ async function generateQuiz(text, settings = {}) {
     language = 'english'
   } = settings;
 
-  console.log('\nAI Quiz Generation Started...');
+  console.log('\n=== AI Quiz Generation Started ===');
   console.log(`   Questions: ${questionCount}`);
   console.log(`   Type: ${questionType}`);
-  console.log(`   Difficulty: ${difficulty}`);
+  console.log(`   API Key present: ${!!process.env.HUGGINGFACE_API_KEY}`);
 
-  try {
-    const prompt = createPrompt(text, questionCount, questionType, difficulty, language);
-    console.log('Sending request to Hugging Face AI...');
-    
-    // Use chatCompletion instead of textGeneration for Mistral models
-    const response = await hf.chatCompletion({
-      model: 'mistralai/Mistral-7B-Instruct-v0.2',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 2000,
-      temperature: 0.7,
-      top_p: 0.95
-    });
-
-    console.log('AI response received!');
-    const generatedText = response.choices[0].message.content;
-    const questions = parseAIResponse(generatedText, questionType);
-    console.log(`✨ Successfully parsed ${questions.length} questions`);
-    
-    // If we got fewer questions than requested, try fallback
-    if (questions.length < questionCount) {
-      console.log(`Only got ${questions.length}/${questionCount} questions, adding fallback...`);
-      const fallbackNeeded = questionCount - questions.length;
-      const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType);
-      return [...questions, ...fallbackQuestions];
-    }
-    
-    return questions.slice(0, questionCount);
-
-  } catch (error) {
-    console.error('AI Quiz generation error:', error.message);
-    console.log('Falling back to rule-based generation...');
-    return generateFallbackQuestions(text, questionCount, questionType);
+  if (!process.env.HUGGINGFACE_API_KEY) {
+    console.error('❌ Missing HUGGINGFACE_API_KEY');
+    return generateFallbackQuestions(text, questionCount, questionType)
+      .map(q => ({ ...q, source: 'fallback' }));
   }
+
+  // Try each model until one works
+  for (const model of MODELS_TO_TRY) {
+    try {
+      console.log(`\n📤 Trying model: ${model}`);
+      const prompt = createPrompt(text, questionCount, questionType, difficulty, language);
+      
+      const response = await hf.chatCompletion({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      console.log(`✅ Success with model: ${model}`);
+      const generatedText = response.choices[0].message.content;
+      let questions = parseAIResponse(generatedText, questionType);
+      questions = questions.map(q => ({ ...q, source: 'ai' }));
+
+      console.log(`✅ Parsed ${questions.length} AI questions`);
+
+      if (questions.length < questionCount) {
+        console.log(`⚠️  Adding ${questionCount - questions.length} fallback questions`);
+        const fallbackNeeded = questionCount - questions.length;
+        const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType)
+          .map(q => ({ ...q, source: 'fallback' }));
+        return [...questions, ...fallbackQuestions];
+      }
+
+      return questions.slice(0, questionCount);
+
+    } catch (error) {
+      console.error(`❌ Model ${model} failed: ${error.message}`);
+      // Continue to next model
+    }
+  }
+
+  // All models failed
+  console.error('❌ All AI models failed, using fallback generation');
+  return generateFallbackQuestions(text, questionCount, questionType)
+    .map(q => ({ ...q, source: 'fallback' }));
 }
 
 function createPrompt(text, count, type, difficulty, language) {
@@ -70,7 +79,7 @@ function createPrompt(text, count, type, difficulty, language) {
   let example = '';
 
   if (type === 'multiple-choice') {
-    instruction = `Create ${count} multiple-choice questions with EXACTLY 4 options (A, B, C, D). One correct answer.`;
+    instruction = `Create ${count} multiple-choice questions with EXACTLY 4 options (A, B, C, D).`;
     example = `Q1: What is the capital of France?
 A) Berlin
 B) Madrid
@@ -85,44 +94,31 @@ C) Mars
 D) Earth
 ANSWER: B`;
   } else if (type === 'true-false') {
-    instruction = `Create ${count} True/False questions. Answer must be TRUE or FALSE only.`;
+    instruction = `Create ${count} True/False questions.`;
     example = `Q1: The Earth is flat.
 ANSWER: FALSE
 
 Q2: Water boils at 100°C at sea level.
-ANSWER: TRUE
-
-Q3: The Sun is a planet.
-ANSWER: FALSE`;
+ANSWER: TRUE`;
   } else if (type === 'fill-in-blank') {
-    instruction = `Create ${count} fill-in-the-blank questions. Provide the exact word/phrase for the blank.`;
+    instruction = `Create ${count} fill-in-the-blank questions.`;
     example = `Q1: The capital of France is _____.
 ANSWER: Paris
 
 Q2: Plants make food through _____.
-ANSWER: photosynthesis
-
-Q3: The Earth orbits around the _____.
-ANSWER: Sun`;
+ANSWER: photosynthesis`;
   }
 
-  return `You are a quiz creator. Generate EXACTLY ${count} questions of type "${type}" based on the content below.
+  return `Generate EXACTLY ${count} quiz questions based on this content:
 
-CONTENT:
 ${truncatedText}
 
-INSTRUCTIONS:
-- ${instruction}
-- Base all questions and answers strictly on the provided content
-- DO NOT add any extra text, explanations, or commentary
-- Follow the format EXACTLY as shown in the example
-- Each question must be numbered (Q1:, Q2:, etc.)
-- Each answer must start with "ANSWER:"
+${instruction}
 
-FORMAT EXAMPLE:
+Follow this format exactly:
 ${example}
 
-Now generate ${count} questions following this exact format:`;
+Generate ${count} questions now:`;
 }
 
 function parseAIResponse(aiText, questionType) {
@@ -131,11 +127,8 @@ function parseAIResponse(aiText, questionType) {
   let currentQ = null;
 
   for (let line of lines) {
-    // Match question lines: Q1:, Q2:, etc.
     if (/^Q\d+:/i.test(line)) {
-      if (currentQ && currentQ.question) {
-        questions.push(currentQ);
-      }
+      if (currentQ && currentQ.question) questions.push(currentQ);
       currentQ = {
         id: questions.length + 1,
         question: line.replace(/^Q\d+:\s*/i, '').trim(),
@@ -144,19 +137,14 @@ function parseAIResponse(aiText, questionType) {
         correctAnswer: ''
       };
     }
-    // Match options for multiple-choice: A), B), C), D)
     else if (/^[A-D][\)\.]/.test(line) && currentQ && questionType === 'multiple-choice') {
       const option = line.replace(/^[A-D][\)\.]\s*/, '').trim();
-      if (option) {
-        currentQ.options.push(option);
-      }
+      if (option) currentQ.options.push(option);
     }
-    // Match answer lines
     else if (/^ANSWER:/i.test(line)) {
       const answer = line.replace(/^ANSWER:\s*/i, '').trim();
       if (currentQ) {
         if (questionType === 'multiple-choice') {
-          // Extract just the letter (A, B, C, or D)
           const match = answer.match(/^([A-D])/i);
           currentQ.correctAnswer = match ? match[1].toUpperCase() : answer.charAt(0).toUpperCase();
         } else if (questionType === 'true-false') {
@@ -168,107 +156,89 @@ function parseAIResponse(aiText, questionType) {
     }
   }
 
-  // Don't forget the last question
-  if (currentQ && currentQ.question) {
-    questions.push(currentQ);
-  }
+  if (currentQ && currentQ.question) questions.push(currentQ);
 
-  // Clean up and validate questions
   return questions.filter(q => {
-    // Must have a question
-    if (!q.question) return false;
-    
-    // Multiple-choice must have at least 2 options
+    if (!q.question || !q.correctAnswer) return false;
     if (q.type === 'multiple-choice' && q.options.length < 2) return false;
-    
-    // Must have an answer
-    if (!q.correctAnswer) return false;
-    
     return true;
   }).map(q => {
-    // Remove options field for non-MCQ
-    if (q.type !== 'multiple-choice') {
-      delete q.options;
-    }
+    if (q.type !== 'multiple-choice') delete q.options;
     return q;
   });
 }
 
 function generateFallbackQuestions(text, count, type = 'multiple-choice') {
-  console.log(`🔧 Generating ${count} fallback questions (${type})...`);
+  console.log(`🔄 Generating ${count} fallback questions (${type})...`);
   
   const sentences = text
     .split(/[.!?]+/)
-    .filter(s => s.trim().length > 20 && s.trim().length < 200)
     .map(s => s.trim())
+    .filter(s => s.length > 20 && s.length < 200)
     .slice(0, count * 3);
-  
+
   const questions = [];
-  
-  for (let i = 0; i < Math.min(count, sentences.length); i++) {
-    const sentence = sentences[i];
-    
+
+  for (let i = 0; i < Math.min(count, sentences.length || 1); i++) {
+    const sentence = sentences[i] || "The text discusses a topic.";
+
     if (type === 'multiple-choice') {
       const words = sentence.split(' ').filter(w => w.length > 4);
-      const keyword = words[Math.floor(words.length / 2)] || 'topic';
-      
+      const keyword = words[Math.floor(words.length / 2)] || 'information';
+
       questions.push({
         id: questions.length + 1,
-        question: `According to the text, what is mentioned about ${keyword.toLowerCase()}?`,
+        question: `According to the text, what is said about "${keyword.replace(/[^\w]/g, '')}"?`,
         type: 'multiple-choice',
         options: [
-          sentence.substring(0, 60) + (sentence.length > 60 ? '...' : ''),
-          'This information is not provided',
-          'The opposite statement is made',
-          'No relevant details are given'
+          sentence.substring(0, 70) + (sentence.length > 70 ? '...' : ''),
+          'This is not mentioned',
+          'The opposite is stated',
+          'No details are provided'
         ],
-        correctAnswer: 'A'
+        correctAnswer: 'A',
+        source: 'fallback'
       });
     } else if (type === 'true-false') {
       questions.push({
         id: questions.length + 1,
-        question: sentence,
+        question: sentence + '?',
         type: 'true-false',
-        correctAnswer: 'TRUE'
+        correctAnswer: 'TRUE',
+        source: 'fallback'
       });
     } else if (type === 'fill-in-blank') {
       const words = sentence.split(' ').filter(w => w.length > 3);
       if (words.length > 0) {
         const blankIndex = Math.floor(words.length / 2);
         const answer = words[blankIndex];
-        const sentenceWords = sentence.split(' ');
-        const actualIndex = sentenceWords.findIndex(w => w.includes(answer));
-        if (actualIndex !== -1) {
-          sentenceWords[actualIndex] = '_____';
-        }
-        
+        const modified = sentence.split(' ');
+        const actualIndex = modified.findIndex(w => w.toLowerCase().includes(answer.toLowerCase()));
+        if (actualIndex !== -1) modified[actualIndex] = '_____';
+
         questions.push({
           id: questions.length + 1,
-          question: sentenceWords.join(' '),
+          question: modified.join(' '),
           type: 'fill-in-blank',
-          correctAnswer: answer.replace(/[^\w\s]/g, '')
+          correctAnswer: answer.replace(/[^\w\s]/g, '').trim(),
+          source: 'fallback'
         });
       }
     }
   }
-  
-  // Ensure we have at least one question
+
   if (questions.length === 0) {
     questions.push({
       id: 1,
-      question: 'What is the main topic discussed in this content?',
+      question: 'What is the main topic of the provided text?',
       type: 'multiple-choice',
-      options: [
-        'The content discusses the information provided',
-        'An unrelated topic',
-        'No clear topic is presented',
-        'Multiple unrelated subjects'
-      ],
-      correctAnswer: 'A'
+      options: ['The text covers the given content', 'No topic', 'Multiple topics', 'Unknown'],
+      correctAnswer: 'A',
+      source: 'fallback'
     });
   }
-  
-  console.log(`Generated ${questions.length} fallback questions`);
+
+  console.log(`✅ Generated ${questions.length} fallback questions`);
   return questions;
 }
 

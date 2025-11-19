@@ -7,7 +7,6 @@ import { useDonationStatus } from '../hooks/useDonationStatus';
 
 // Brand + sidebar icons
 import quizcraft from "../assets/logo_quizcraft.png";
-
 import dashboardImgPurple from "../assets/dashboardImgPurple.png";
 import dashboardImgWhite from "../assets/dashboardImgWhite.png";
 import exportQuizPurple from "../assets/exportQuizPurple.png";
@@ -16,9 +15,6 @@ import shareQuizPurple from "../assets/shareQuizPurple.png";
 import shareQuizWhite from "../assets/shareQuizWhite.png";
 
 import { FaSearch, FaChevronDown } from "react-icons/fa";
-
-const DONATE_URL = "https://example.com/donate"; // TODO: replace with your real donate link i.e. paypal
-
 
 const getDisplayName = () => {
   try {
@@ -36,6 +32,7 @@ const getDisplayName = () => {
 
 const DashboardLayout = () => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // Add search state
   const location = useLocation();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(getDisplayName);
@@ -56,6 +53,11 @@ const DashboardLayout = () => {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // Clear search when route changes
+  useEffect(() => {
+    setSearchQuery("");
+  }, [location.pathname]);
 
   const isDashboard = location.pathname === "/dashboard";
   const isShare = location.pathname.startsWith("/dashboard/sharequiz");
@@ -111,13 +113,17 @@ const DashboardLayout = () => {
       <div className="dashboard-main">
         {/* Header */}
         <header className="dashboard-header">
-          {/* Header brand shows only when body has .hide-sidebar */}
           <div className="header-brand">
             <img src={quizcraft} alt="QuizCraft" className="header-logo" />
           </div>
 
           <div className="search-container">
-            <input type="text" placeholder="Search..." />
+            <input 
+              type="text" 
+              placeholder="Search quizzes..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <FaSearch className="search-icon" />
           </div>
 
@@ -144,32 +150,32 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Routed pages */}
+        {/* Pass searchQuery to child routes */}
         <main className="dashboard-content">
-          <Outlet />
+          <Outlet context={{ searchQuery }} />
         </main>
       </div>
 
-      {/* Floating Donate Button (visible on all dashboard screens) */}
-     <button
-  className="donate-fab"
-  aria-label="Donate to support QuizCraft"
-  onClick={() => navigate("/donate")}
-  title={donationStatus.hasDonated ? `Thank you! ${donationStatus.daysRemaining} days remaining` : "Support QuizCraft"}
-  style={{
-    background: donationStatus.hasDonated ? '#4caf50' : '#40189D',
-    cursor: donationStatus.hasDonated ? 'default' : 'pointer',
-  }}
->
-  <span className="donate-fab__emoji" aria-hidden="true">
-    {donationStatus.hasDonated ? '✓' : '💜'}
-  </span>
-  <span className="donate-fab__text">
-    {donationStatus.hasDonated 
-      ? `${donationStatus.packageLabel} (${donationStatus.daysRemaining}d)` 
-      : 'Donate'}
-  </span>
-</button>
+      {/* Floating Donate Button */}
+      <button
+        className="donate-fab"
+        aria-label="Donate to support QuizCraft"
+        onClick={() => navigate("/donate")}
+        title={donationStatus.hasDonated ? `Thank you! ${donationStatus.daysRemaining} days remaining` : "Support QuizCraft"}
+        style={{
+          background: donationStatus.hasDonated ? '#4caf50' : '#40189D',
+          cursor: donationStatus.hasDonated ? 'default' : 'pointer',
+        }}
+      >
+        <span className="donate-fab__emoji" aria-hidden="true">
+          {donationStatus.hasDonated ? '✓' : '💜'}
+        </span>
+        <span className="donate-fab__text">
+          {donationStatus.hasDonated 
+            ? `${donationStatus.packageLabel} (${donationStatus.daysRemaining}d)` 
+            : 'Donate'}
+        </span>
+      </button>
     </div>
   );
 };

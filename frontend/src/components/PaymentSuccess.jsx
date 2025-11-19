@@ -52,7 +52,7 @@ const PaymentSuccess = () => {
           </div>
         </div>
 
-        <h1 className="success-title">Payment Successful! 🎉</h1>
+        <h1 className="success-title">Payment Successful!</h1>
         <p className="success-message">
           Thank you <strong>{paymentData.payerName}</strong> for your generous donation!
         </p>
@@ -75,10 +75,10 @@ const PaymentSuccess = () => {
         <div className="success-info">
           <p>
             Your donation helps keep QuizCraft free and accessible for everyone. 
-            We truly appreciate your support! 💜
+            We truly appreciate your support! 
           </p>
           <p className="receipt-note">
-            📧 A receipt has been sent to your email address.
+            A receipt has been sent to your email address.
           </p>
         </div>
 

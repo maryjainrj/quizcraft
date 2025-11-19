@@ -1,6 +1,5 @@
-// src/components/QuizDetailPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useOutletContext } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -21,8 +20,11 @@ export default function QuizDetailPage() {
   const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
+  
+  // Get search query from DashboardLayout
+  const { searchQuery } = useOutletContext() || { searchQuery: "" };
 
-  const [rawQuiz, setRawQuiz] = useState(null); // raw data from backend
+  const [rawQuiz, setRawQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [showAnswers, setShowAnswers] = useState(true);
@@ -32,7 +34,6 @@ export default function QuizDetailPage() {
   const [showShare, setShowShare] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
-  // ===== fetch this quiz from DB using its id =====
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
@@ -72,9 +73,6 @@ export default function QuizDetailPage() {
     fetchQuiz();
   }, [id]);
 
-  // ===== Decide which questions to use =====
-  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available,
-  // so you see exactly what was generated at creation time.
   const { title, questions, answers, createdAt, updatedAt } = useMemo(() => {
     if (!rawQuiz) {
       return {
@@ -96,11 +94,9 @@ export default function QuizDetailPage() {
 
     let originalQuestions = [];
 
-    // 1) Try to parse originalQuestionsJSON for snapshot
     if (rawQuiz.originalQuestionsJSON) {
       try {
         const parsed = JSON.parse(rawQuiz.originalQuestionsJSON);
-
         if (Array.isArray(parsed)) {
           originalQuestions = parsed;
         } else if (Array.isArray(parsed.questions)) {
@@ -114,7 +110,6 @@ export default function QuizDetailPage() {
       }
     }
 
-    // 2) Fallback to current joined questions if snapshot is empty
     let rawQuestions = [];
     if (originalQuestions.length) {
       rawQuestions = originalQuestions;
@@ -124,9 +119,7 @@ export default function QuizDetailPage() {
       rawQuestions = rawQuiz.data.questions;
     }
 
-    // 3) Normalize into text + answer arrays
     const questions = rawQuestions.map((q) => {
-      // If shape like { questionText: "...", correctAnswer: "..." }
       if (q && typeof q === "object") {
         return (
           q.questionText ||
@@ -137,7 +130,6 @@ export default function QuizDetailPage() {
           ""
         );
       }
-      // If it is a plain string
       if (typeof q === "string") return q;
       return "";
     });
@@ -163,6 +155,54 @@ export default function QuizDetailPage() {
     return result;
   }, [rawQuiz, state?.title]);
 
+  // Filter questions and answers based on search from parent layout
+  const { filteredQuestions, filteredAnswers } = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return {
+        filteredQuestions: questions.map((q, idx) => ({ text: q, originalIdx: idx })),
+        filteredAnswers: answers.map((a, idx) => ({ text: a, originalIdx: idx })),
+      };
+    }
+
+    const query = searchQuery.toLowerCase();
+    const matched = new Set();
+
+    // Check which questions or answers match
+    questions.forEach((q, idx) => {
+      const questionMatch = q.toLowerCase().includes(query);
+      const answerMatch = answers[idx]?.toLowerCase().includes(query);
+      
+      if (questionMatch || answerMatch) {
+        matched.add(idx);
+      }
+    });
+
+    const filteredQ = [];
+    const filteredA = [];
+
+    matched.forEach(idx => {
+      filteredQ.push({ text: questions[idx], originalIdx: idx });
+      filteredA.push({ text: answers[idx], originalIdx: idx });
+    });
+
+    return {
+      filteredQuestions: filteredQ,
+      filteredAnswers: filteredA,
+    };
+  }, [questions, answers, searchQuery]);
+
+  // Highlight matching text
+  const highlightText = (text, query) => {
+    if (!query.trim() || !text) return text;
+    
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, idx) => 
+      part.toLowerCase() === query.toLowerCase() 
+        ? <mark key={idx} className="highlight">{part}</mark>
+        : part
+    );
+  };
+
   const shareUrl = `${window.location.origin}/dashboard/quiz/${id}`;
 
   const copyShare = async () => {
@@ -180,7 +220,6 @@ export default function QuizDetailPage() {
     }
   };
 
-  // ✅ delete quiz in DB instead of front-end only
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -227,12 +266,6 @@ export default function QuizDetailPage() {
         </div>
 
         <div className="detail-actions">
-          {/* <button className="secondary-btn" onClick={() => setShowExport(true)}>
-            Export
-          </button>
-          <button className="secondary-btn" onClick={() => setShowShare(true)}>
-            Share
-          </button> */}
           <button
             className="danger-btn"
             onClick={() => setShowDelete(true)}
@@ -242,6 +275,18 @@ export default function QuizDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Search results info */}
+      {searchQuery.trim() && !loading && !err && (
+        <div className="search-info">
+          <p className="search-info__text">
+            {filteredQuestions.length > 0 
+              ? `Found ${filteredQuestions.length} matching question${filteredQuestions.length !== 1 ? 's' : ''} for "${searchQuery}"`
+              : `No questions match "${searchQuery}"`
+            }
+          </p>
+        </div>
+      )}
 
       {/* Loading / error states */}
       {loading && <p>Loading quiz…</p>}
@@ -253,18 +298,33 @@ export default function QuizDetailPage() {
           <div className="panel">
             <div className="panel__header">
               <h3>Available Questions</h3>
+              <span className="panel__count">
+                {searchQuery.trim() 
+                  ? `${filteredQuestions.length} of ${questions.length}`
+                  : questions.length
+                }
+              </span>
             </div>
             <ul className="question-list">
-              {questions.map((q, idx) => (
-                <li key={idx} className="question-row">
-                  <span className="q-index">{idx + 1}.</span>
-                  <span className="q-text">{q}</span>
+              {filteredQuestions.map((item) => (
+                <li key={item.originalIdx} className="question-row">
+                  <span className="q-index">{item.originalIdx + 1}.</span>
+                  <span className="q-text">
+                    {highlightText(item.text, searchQuery)}
+                  </span>
                   <button className="kebab" aria-label="More actions">
                     ⋮
                   </button>
                 </li>
               ))}
-              {questions.length === 0 && (
+              {filteredQuestions.length === 0 && searchQuery.trim() && (
+                <li className="question-row">
+                  <span className="q-text">
+                    No questions match your search "{searchQuery}"
+                  </span>
+                </li>
+              )}
+              {questions.length === 0 && !searchQuery.trim() && (
                 <li className="question-row">
                   <span className="q-text">
                     No questions were stored for this quiz.
@@ -278,29 +338,47 @@ export default function QuizDetailPage() {
           <div className="panel">
             <div className="panel__header">
               <h3>View Answers</h3>
-              <button
-                className="chevron"
-                aria-label="Toggle answers"
-                onClick={() => setShowAnswers((s) => !s)}
-              >
-                {showAnswers ? "▾" : "▸"}
-              </button>
+              <div className="panel__header-right">
+                <span className="panel__count">
+                  {searchQuery.trim() 
+                    ? `${filteredAnswers.length} of ${answers.length}`
+                    : answers.length
+                  }
+                </span>
+                <button
+                  className="chevron"
+                  aria-label="Toggle answers"
+                  onClick={() => setShowAnswers((s) => !s)}
+                >
+                  {showAnswers ? "▾" : "▸"}
+                </button>
+              </div>
             </div>
 
             {showAnswers && (
               <ul className="question-list">
-                {answers.map((a, idx) => (
-                  <li key={idx} className="question-row">
-                    <span className="q-index">{idx + 1}.</span>
+                {filteredAnswers.map((item) => (
+                  <li key={item.originalIdx} className="question-row">
+                    <span className="q-index">{item.originalIdx + 1}.</span>
                     <span className="q-text">
-                      {a || "(No answer stored for this question)"}
+                      {item.text 
+                        ? highlightText(item.text, searchQuery)
+                        : "(No answer stored for this question)"
+                      }
                     </span>
                     <button className="kebab" aria-label="More actions">
                       ⋮
                     </button>
                   </li>
                 ))}
-                {answers.length === 0 && (
+                {filteredAnswers.length === 0 && searchQuery.trim() && (
+                  <li className="question-row">
+                    <span className="q-text">
+                      No answers match your search "{searchQuery}"
+                    </span>
+                  </li>
+                )}
+                {answers.length === 0 && !searchQuery.trim() && (
                   <li className="question-row">
                     <span className="q-text">
                       No answers were stored for this quiz.
@@ -312,8 +390,6 @@ export default function QuizDetailPage() {
           </div>
         </>
       )}
-
-      {/* ===== Modals (same UI as before) ===== */}
 
       {/* Export Modal */}
       {showExport && (

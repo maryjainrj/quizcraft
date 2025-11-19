@@ -106,10 +106,18 @@ const PayPalPayment = () => {
             },
             onApprove: async (data, actions) => {
               const order = await actions.order.capture();
-              alert(
-                `Thank you ${order.payer.name.given_name} for your CAD ${packageData.amount} donation! 🎉`
-              );
-              navigate("/dashboard");
+              
+              // Navigate to success page with payment details including duration
+              navigate("/payment-success", {
+                state: {
+                  payerName: order.payer.name.given_name,
+                  packageLabel: packageData.label,
+                  amount: packageData.amount,
+                  transactionId: order.id,
+                  duration: packageData.duration,
+                  durationDays: packageData.durationDays,
+                }
+              });
             },
             onCancel: () => {
               // User cancelled - go back to donate page
@@ -217,7 +225,7 @@ const PayPalPayment = () => {
         <div className="payment-footer">
           <p>
             Your donation helps keep QuizCraft free and accessible for everyone.
-            Thank you for your support! 💜
+            Thank you for your support! 
           </p>
         </div>
       </div>
