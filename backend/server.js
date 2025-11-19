@@ -44,9 +44,26 @@ const googleCodeClient = new OAuth2Client(
 );
 
 // ---------- CORS & Parsers ----------
+// Allow multiple origins for development and production
+const allowedOrigins = [
+  FRONTEND_ORIGIN,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [FRONTEND_ORIGIN, "http://127.0.0.1:5173"],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

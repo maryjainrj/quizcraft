@@ -81,4 +81,66 @@ router.get("/:id", authForQuestionSets, async (req, res) => {
   }
 });
 
+// DELETE /api/questionsets/:id  -> delete a quiz
+router.delete("/:id", authForQuestionSets, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log("[DELETE /api/questionsets/:id] user id =", req.user.id, "set id =", id);
+
+    const set = await QuestionSet.findOne({
+      _id: id,
+      createdBy: req.user.id,
+    });
+
+    if (!set) {
+      return res.status(404).json({ message: "Quiz not found or unauthorized" });
+    }
+
+    await QuestionSet.deleteOne({ _id: id });
+
+    console.log("[DELETE /api/questionsets/:id] Quiz deleted successfully");
+    res.json({ message: "Quiz deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting question set:", err);
+    res.status(500).json({ message: "Failed to delete quiz" });
+  }
+});
+
+// PATCH /api/questionsets/:id  -> update quiz title, description, and questions
+router.patch("/:id", authForQuestionSets, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, questions } = req.body;
+
+    console.log("[PATCH /api/questionsets/:id] user id =", req.user.id, "set id =", id);
+
+    const set = await QuestionSet.findOne({
+      _id: id,
+      createdBy: req.user.id,
+    });
+
+    if (!set) {
+      return res.status(404).json({ message: "Quiz not found or unauthorized" });
+    }
+
+    if (title !== undefined) set.title = title;
+    if (description !== undefined) set.description = description;
+    
+    // Update questions if provided
+    if (questions !== undefined && Array.isArray(questions)) {
+      // Store the updated questions in originalQuestionsJSON for snapshot
+      set.originalQuestionsJSON = JSON.stringify(questions);
+    }
+
+    await set.save();
+
+    console.log("[PATCH /api/questionsets/:id] Quiz updated successfully");
+    res.json({ message: "Quiz updated successfully", set });
+  } catch (err) {
+    console.error("Error updating question set:", err);
+    res.status(500).json({ message: "Failed to update quiz" });
+  }
+});
+
 module.exports = router;

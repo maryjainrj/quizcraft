@@ -9,6 +9,7 @@ export default function QuizSettingsModal({
   onCreate,
   values,
   setValues,
+  showPageRange = true, // Allow hiding page range for pasted text
 }) {
   if (!open) return null;
 
@@ -19,8 +20,15 @@ export default function QuizSettingsModal({
     return `${clamp(p, 0, 100)}%`;
   }, [values.count]);
 
-  // Ensure filters object exists
-  const filters = values?.filters ?? { keywords: "", pageFrom: "", pageTo: "" };
+  // Initialize filters if not present
+  React.useEffect(() => {
+    if (!values.pageRange) {
+      setValues(prev => ({ ...prev, pageRange: '' }));
+    }
+    if (!values.keywords) {
+      setValues(prev => ({ ...prev, keywords: '' }));
+    }
+  }, []);
 
   // Handle checkbox toggle for multiple question types
   const handleTypeToggle = (typeValue) => {
