@@ -25,7 +25,7 @@ async function generateQuiz(text, settings = {}) {
   console.log(`   API Key present: ${!!process.env.HUGGINGFACE_API_KEY}`);
 
   if (!process.env.HUGGINGFACE_API_KEY) {
-    console.error('❌ Missing HUGGINGFACE_API_KEY');
+    console.error(' Missing HUGGINGFACE_API_KEY');
     return generateFallbackQuestions(text, questionCount, questionType)
       .map(q => ({ ...q, source: 'fallback' }));
   }
@@ -33,7 +33,7 @@ async function generateQuiz(text, settings = {}) {
   // Try each model until one works
   for (const model of MODELS_TO_TRY) {
     try {
-      console.log(`\n📤 Trying model: ${model}`);
+      console.log(`\n Trying model: ${model}`);
       const prompt = createPrompt(text, questionCount, questionType, difficulty, language);
       
       const response = await hf.chatCompletion({
@@ -43,15 +43,15 @@ async function generateQuiz(text, settings = {}) {
         temperature: 0.7,
       });
 
-      console.log(`✅ Success with model: ${model}`);
+      console.log(` Success with model: ${model}`);
       const generatedText = response.choices[0].message.content;
       let questions = parseAIResponse(generatedText, questionType);
       questions = questions.map(q => ({ ...q, source: 'ai' }));
 
-      console.log(`✅ Parsed ${questions.length} AI questions`);
+      console.log(` Parsed ${questions.length} AI questions`);
 
       if (questions.length < questionCount) {
-        console.log(`⚠️  Adding ${questionCount - questions.length} fallback questions`);
+        console.log(`  Adding ${questionCount - questions.length} fallback questions`);
         const fallbackNeeded = questionCount - questions.length;
         const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType)
           .map(q => ({ ...q, source: 'fallback' }));
@@ -61,13 +61,13 @@ async function generateQuiz(text, settings = {}) {
       return questions.slice(0, questionCount);
 
     } catch (error) {
-      console.error(`❌ Model ${model} failed: ${error.message}`);
+      console.error(` Model ${model} failed: ${error.message}`);
       // Continue to next model
     }
   }
 
   // All models failed
-  console.error('❌ All AI models failed, using fallback generation');
+  console.error(' All AI models failed, using fallback generation');
   return generateFallbackQuestions(text, questionCount, questionType)
     .map(q => ({ ...q, source: 'fallback' }));
 }
@@ -169,7 +169,7 @@ function parseAIResponse(aiText, questionType) {
 }
 
 function generateFallbackQuestions(text, count, type = 'multiple-choice') {
-  console.log(`🔄 Generating ${count} fallback questions (${type})...`);
+  console.log(` Generating ${count} fallback questions (${type})...`);
   
   const sentences = text
     .split(/[.!?]+/)
@@ -238,7 +238,7 @@ function generateFallbackQuestions(text, count, type = 'multiple-choice') {
     });
   }
 
-  console.log(`✅ Generated ${questions.length} fallback questions`);
+  console.log(` Generated ${questions.length} fallback questions`);
   return questions;
 }
 
