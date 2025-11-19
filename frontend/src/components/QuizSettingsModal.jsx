@@ -50,30 +50,10 @@ export default function QuizSettingsModal({
 
   const selectedTypes = Array.isArray(values.type) ? values.type : [values.type];
 
-  // Helpers for filters
-  const setFilterField = (key, val) => {
-    setValues((s) => ({
-      ...s,
-      filters: {
-        ...(s.filters ?? { keywords: "", pageFrom: "", pageTo: "" }),
-        [key]: val,
-      },
-    }));
-  };
-
-  // Normalize numeric inputs but allow empty for "optional"
-  const handlePageInput = (key) => (e) => {
-    const raw = e.target.value;
-    if (raw === "") return setFilterField(key, "");
-    const n = parseInt(raw, 10);
-    if (Number.isNaN(n) || n < 1) return; // ignore invalid negatives/zero
-    setFilterField(key, n);
-  };
-
-  const hasKeyword = Boolean((filters.keywords || "").trim());
+  const hasKeyword = Boolean((values.keywords || "").trim());
   const hasRange =
-    (filters.pageFrom || filters.pageFrom === 0) &&
-    (filters.pageTo || filters.pageTo === 0);
+    (values.pageFrom || values.pageFrom === 0) &&
+    (values.pageTo || values.pageTo === 0);
 
   return (
     <div className="qs-overlay" role="dialog" aria-modal="true" aria-labelledby="qs-title">
@@ -164,8 +144,8 @@ export default function QuizSettingsModal({
               type="text"
               className="qs-input"
               placeholder="e.g., Renaissance art; Luther; printing press"
-              value={filters.keywords ?? ""}
-              onChange={(e) => setFilterField("keywords", e.target.value)}
+              value={values.keywords ?? ""}
+              onChange={(e) => setValues(s => ({ ...s, keywords: e.target.value }))}
             />
           </div>
 
@@ -181,8 +161,13 @@ export default function QuizSettingsModal({
                   inputMode="numeric"
                   className="qs-input qs-input--num"
                   placeholder="3"
-                  value={filters.pageFrom ?? ""}
-                  onChange={handlePageInput("pageFrom")}
+                  value={values.pageFrom ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") return setValues(s => ({ ...s, pageFrom: "" }));
+                    const n = parseInt(raw, 10);
+                    if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageFrom: n }));
+                  }}
                   aria-label="Page from"
                 />
               </div>
@@ -197,8 +182,13 @@ export default function QuizSettingsModal({
                   inputMode="numeric"
                   className="qs-input qs-input--num"
                   placeholder="12"
-                  value={filters.pageTo ?? ""}
-                  onChange={handlePageInput("pageTo")}
+                  value={values.pageTo ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") return setValues(s => ({ ...s, pageTo: "" }));
+                    const n = parseInt(raw, 10);
+                    if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageTo: n }));
+                  }}
                   aria-label="Page to"
                 />
               </div>
@@ -212,11 +202,77 @@ export default function QuizSettingsModal({
           {(hasKeyword || hasRange) && (
             <div className="qs-filter-preview">
               <strong>Will apply:</strong>{" "}
-              {hasKeyword && <>keywords: “{filters.keywords}”</>}
+              {hasKeyword && <>keywords: "{values.keywords}"</>}
               {hasKeyword && hasRange && " · "}
-              {hasRange && <>pages: {filters.pageFrom}–{filters.pageTo}</>}
+              {hasRange && <>pages: {values.pageFrom}–{values.pageTo}</>}
             </div>
           )}
+        </div>
+
+        {/* Focus Area */}
+        <div className="qs-block">
+          <div className="qs-label">Focus Area</div>
+          <div className="qs-options">
+            {[
+              { value: "general", label: "General (Balanced)" },
+              { value: "definitions", label: "Definitions & Terms" },
+              { value: "concepts", label: "Concepts & Ideas" },
+              { value: "facts", label: "Facts & Details" },
+              { value: "applications", label: "Applications" },
+            ].map((opt) => (
+              <label key={opt.value} className={`qs-option ${values.focusArea === opt.value ? "is-selected" : ""}`}>
+                <input
+                  type="radio"
+                  name="focusArea"
+                  value={opt.value}
+                  checked={values.focusArea === opt.value}
+                  onChange={(e) => setValues((s) => ({ ...s, focusArea: e.target.value }))}
+                />
+                <span className="qs-radio" aria-hidden="true" />
+                <span>{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Answer Format */}
+        <div className="qs-block">
+          <div className="qs-label">Answer Format</div>
+          <div className="qs-options">
+            {[
+              { value: "brief", label: "Brief Answers" },
+              { value: "detailed", label: "Detailed Explanations" },
+            ].map((opt) => (
+              <label key={opt.value} className={`qs-option ${values.answerFormat === opt.value ? "is-selected" : ""}`}>
+                <input
+                  type="radio"
+                  name="answerFormat"
+                  value={opt.value}
+                  checked={values.answerFormat === opt.value}
+                  onChange={(e) => setValues((s) => ({ ...s, answerFormat: e.target.value }))}
+                />
+                <span className="qs-radio" aria-hidden="true" />
+                <span>{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Exclude Topics */}
+        <div className="qs-block">
+          <label className="qs-label">Exclude Topics (optional)</label>
+          <div className="qs-field">
+            <input
+              type="text"
+              className="qs-input"
+              placeholder="e.g., introduction, chapter 1, summary"
+              value={values.excludeTopics ?? ""}
+              onChange={(e) => setValues(s => ({ ...s, excludeTopics: e.target.value }))}
+            />
+            <p className="qs-hint">
+              Comma-separated list of topics to avoid in questions
+            </p>
+          </div>
         </div>
 
         {/* Number of questions (Range): 6..30 */}

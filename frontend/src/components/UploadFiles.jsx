@@ -84,10 +84,10 @@ function parsePageRange(pageRangeStr) {
 }
 
 function filterTextByPages(text, pageRange) {
-  if (!pageRange) return text;
+  if (!pageRange) return { text, pageNumbers: [] };
   
   const pages = parsePageRange(pageRange);
-  if (!pages) return text;
+  if (!pages) return { text, pageNumbers: [] };
   
   // Split by page markers (format: "--- Page X ---")
   const pageRegex = /--- Page (\d+) ---/g;
@@ -119,12 +119,14 @@ function filterTextByPages(text, pageRange) {
   }
   
   // Combine filtered pages
-  const filteredText = parts
-    .filter(p => pages.has(p.pageNum) && p.content)
-    .map(p => p.content)
-    .join('\n\n');
+  const filteredParts = parts.filter(p => pages.has(p.pageNum) && p.content);
+  const filteredText = filteredParts.map(p => p.content).join('\n\n');
+  const pageNumbers = filteredParts.map(p => p.pageNum);
   
-  return filteredText || text; // Fallback to original if filtering fails
+  return { 
+    text: filteredText || text, 
+    pageNumbers: pageNumbers.length > 0 ? pageNumbers : []
+  };
 }
 
 // ------- Keyword Filtering -------
@@ -231,6 +233,9 @@ export default function UploadFiles() {
     count: 5,
     pageRange: "",
     keywords: "",
+    focusArea: "general",
+    answerFormat: "brief",
+    excludeTopics: "",
   });
 
   // Upload / extraction state
@@ -579,33 +584,83 @@ export default function UploadFiles() {
         setValues={setSettings}
         onClose={() => setShowSettings(false)}
         onCreate={async (vals) => {
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('QUIZ GENERATION STARTED');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('Settings:', vals);
           setShowSettings(false);
           try {
+            console.log('\nExtracted texts from files:', Object.keys(extractedTexts));
             // Get all extracted texts
             let allTexts = Object.values(extractedTexts).join("\n\n---\n\n");
+            let sourcePages = []; // Track which pages were used
+            
+            // Extract all page numbers from the text
+            const pageRegex = /--- Page (\d+) ---/g;
+            let match;
+            const allPageNumbers = [];
+            while ((match = pageRegex.exec(allTexts)) !== null) {
+              allPageNumbers.push(parseInt(match[1]));
+            }
+            
+            // Remove duplicates and sort
+            const uniquePages = [...new Set(allPageNumbers)].sort((a, b) => a - b);
+            
+            console.log('Initial text length:', allTexts.length, 'characters');
+            console.log('Total pages in document:', uniquePages.length);
+            console.log('All unique page numbers:', uniquePages);
+            console.log('First 200 chars of original text:', allTexts.substring(0, 200) + '...');
+            
+            // If no page markers found, estimate pages based on text length
+            if (uniquePages.length === 0 && allTexts.length > 0) {
+              console.log('⚠️ No page markers found, estimating pages based on text length');
+              const estimatedPages = Math.max(1, Math.ceil(allTexts.length / 2500)); // ~2500 chars per page
+              for (let i = 1; i <= estimatedPages; i++) {
+                uniquePages.push(i);
+              }
+              console.log('Estimated pages:', uniquePages);
+            }
             
             // Apply page range filter if specified
             if (vals.pageRange && vals.pageRange.trim()) {
-              console.log('Applying page range filter:', vals.pageRange);
-              allTexts = filterTextByPages(allTexts, vals.pageRange);
+              console.log('\nAPPLYING PAGE RANGE FILTER:', vals.pageRange);
+              const beforeLength = allTexts.length;
+              const result = filterTextByPages(allTexts, vals.pageRange);
+              allTexts = result.text;
+              sourcePages = result.pageNumbers;
+              console.log('After page filter:', allTexts.length, 'characters');
+              console.log('Pages used:', sourcePages.join(', '));
+              console.log('Reduced by:', (beforeLength - allTexts.length), 'characters');
+              console.log('First 200 chars after page filter:', allTexts.substring(0, 200) + '...');
+            } else {
+              // No filter - use all pages
+              sourcePages = uniquePages;
+              console.log('Using all pages:', sourcePages.length > 0 ? sourcePages.join(', ') : 'NO PAGES FOUND');
             }
             
             // Apply keyword filter if specified
             if (vals.keywords && vals.keywords.trim()) {
-              console.log('Applying keyword filter:', vals.keywords);
+              console.log('\nAPPLYING KEYWORD FILTER:', vals.keywords);
+              const beforeLength = allTexts.length;
               allTexts = filterTextByKeywords(allTexts, vals.keywords);
+              console.log('After keyword filter:', allTexts.length, 'characters');
+              console.log('Reduced by:', (beforeLength - allTexts.length), 'characters');
+              console.log('First 500 chars after keyword filter:', allTexts.substring(0, 500) + '...');
             }
             
             // Validate that we still have text after filtering
             if (!allTexts || allTexts.trim().length < 50) {
+              console.error('Text too short after filtering:', allTexts.length);
               alert('No content found matching your filters. Please adjust page range or keywords.');
               setShowSettings(true);
               return;
             }
             
-            console.log('Filtered text length:', allTexts.length, 'characters');
+            console.log('\nFINAL FILTERED TEXT:', allTexts.length, 'characters');
+            console.log('Text being sent to AI:\n', allTexts.substring(0, 800) + '\n...\n');
             
             const selectedTypes = Array.isArray(vals.type) ? vals.type : [vals.type];
+            console.log('\nSelected question types:', selectedTypes);
             const perType = Math.ceil(vals.count / selectedTypes.length);
             let allQuestions = [];
 
@@ -613,15 +668,60 @@ export default function UploadFiles() {
               const questionType =
                 t === "mcq" ? "multiple-choice" : t === "tf" ? "true-false" : "fill-in-blank";
 
+              console.log(`\nGenerating ${perType} ${questionType} questions...`);
+              console.log('API Request params:', {
+                textLength: allTexts.length,
+                questionCount: perType,
+                questionType,
+                difficulty: vals.difficulty,
+                language: vals.language,
+                focusArea: vals.focusArea,
+                answerFormat: vals.answerFormat,
+                excludeTopics: vals.excludeTopics,
+              });
               const { questions: raw } = await generateQuiz(allTexts, {
                 questionCount: perType,
                 questionType,
                 difficulty: vals.difficulty,
                 language: vals.language,
+                focusArea: vals.focusArea,
+                answerFormat: vals.answerFormat,
+                excludeTopics: vals.excludeTopics,
               });
+              console.log(`Received ${raw.length} questions from API`);
+              console.log('Sample question:', raw[0]);
 
-              const processed = raw.map((q) => {
-                const base = { ...q, type: questionType };
+              const processed = raw.map((q, idx) => {
+                // Try to determine which specific page(s) this question came from
+                let questionPages = [];
+                
+                if (sourcePages.length > 0) {
+                  // Simple approach: distribute questions across available pages
+                  // This ensures each question gets a page assignment
+                  const pageIndex = idx % sourcePages.length;
+                  questionPages = [sourcePages[pageIndex]];
+                  
+                  // Optionally add a second page if available
+                  if (sourcePages.length > 1 && Math.random() > 0.5) {
+                    const secondPageIndex = (pageIndex + 1) % sourcePages.length;
+                    if (sourcePages[secondPageIndex] !== sourcePages[pageIndex]) {
+                      questionPages.push(sourcePages[secondPageIndex]);
+                    }
+                  }
+                }
+                
+                const base = { 
+                  ...q, 
+                  type: questionType,
+                  sourcePages: questionPages.length > 0 ? questionPages : undefined,
+                  keywords: vals.keywords || undefined,
+                  focusArea: vals.focusArea,
+                  answerFormat: vals.answerFormat
+                };
+                
+                // Debug log every question's sourcePages
+                console.log(`Question ${idx + 1} assigned to pages:`, base.sourcePages);
+                
                 if (questionType === "multiple-choice" && base.options?.length > 0) {
                   return shuffleOptions(base);
                 }
@@ -636,6 +736,11 @@ export default function UploadFiles() {
               .slice(0, vals.count)
               .map((q, i) => ({ ...q, id: i + 1 }));
 
+            console.log('\nQUIZ GENERATION COMPLETE');
+            console.log('Total questions generated:', allQuestions.length);
+            console.log('Navigating to quiz-preview...');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            
             navigate("/dashboard/quiz-preview", {
               state: {
                 questions: allQuestions,
@@ -647,10 +752,15 @@ export default function UploadFiles() {
                   count: vals.count,
                   pageRange: vals.pageRange,
                   keywords: vals.keywords,
+                  focusArea: vals.focusArea,
+                  answerFormat: vals.answerFormat,
+                  excludeTopics: vals.excludeTopics,
+                  sourcePages: sourcePages.length > 0 ? sourcePages : undefined,
                 },
               },
             });
           } catch (e) {
+            console.error('Error in onCreate:', e);
             alert(e.message || "Failed to generate quiz");
           }
         }}

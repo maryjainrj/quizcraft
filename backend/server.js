@@ -5,6 +5,7 @@ require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth"); // For Word documents
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
@@ -252,6 +253,10 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowed = [
       "application/pdf",
+      "application/msword", // .doc
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      "application/vnd.ms-powerpoint", // .ppt
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
       "image/png",
       "image/jpeg",
       "image/jpg",
@@ -260,7 +265,7 @@ const upload = multer({
     ];
     allowed.includes(file.mimetype)
       ? cb(null, true)
-      : cb(new Error("Invalid file type. Only PDF and images are allowed."));
+      : cb(new Error("Invalid file type. Only PDF, Word, PowerPoint, and images are allowed."));
   },
 });
 
@@ -277,8 +282,9 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     const fileType = req.file.mimetype;
     let extractedText = "";
 
-    console.log(`Processing file: ${req.file.originalname}`);
+    console.log(`Processing file: ${req.file.originalname}, type: ${fileType}`);
 
+    // Handle PDF files
     if (fileType === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       try {
@@ -293,7 +299,49 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
         console.error("PDF text extraction failed:", error);
         extractedText = "Failed to extract text from PDF.";
       }
-    } else {
+    } 
+    // Handle Word documents (.doc, .docx)
+    else if (fileType === "application/msword" || 
+             fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      try {
+        console.log("Extracting text from Word document...");
+        const result = await mammoth.extractRawText({ path: filePath });
+        
+        // Split text into pages (approximate 500 words per page)
+        const words = result.value.split(/\s+/);
+        const wordsPerPage = 500;
+        let pageNumber = 1;
+        let pageTexts = [];
+        
+        for (let i = 0; i < words.length; i += wordsPerPage) {
+          const pageWords = words.slice(i, i + wordsPerPage);
+          const pageText = pageWords.join(' ');
+          if (pageText.trim()) {
+            pageTexts.push(`\n--- Page ${pageNumber} ---\n${pageText}`);
+            pageNumber++;
+          }
+        }
+        
+        extractedText = pageTexts.join('\n');
+        console.log(`Word extraction successful. Text length: ${extractedText.length} characters`);
+        console.log(`Estimated pages: ${pageNumber - 1}`);
+        console.log(`First 200 chars: ${extractedText.substring(0, 200)}`);
+        
+        if (!extractedText.trim()) {
+          extractedText = "No text found in Word document.";
+        }
+      } catch (error) {
+        console.error("Word document extraction failed:", error);
+        extractedText = "Failed to extract text from Word document: " + error.message;
+      }
+    }
+    // Handle PowerPoint files (.ppt, .pptx) - For now, return message
+    else if (fileType === "application/vnd.ms-powerpoint" || 
+             fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+      extractedText = "PowerPoint text extraction is not yet fully implemented. Please convert to PDF or upload images of slides.";
+    }
+    // Handle images
+    else {
       const imageBuffer = fs.readFileSync(filePath);
       extractedText = await performOCR(imageBuffer);
     }
