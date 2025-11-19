@@ -236,9 +236,9 @@ module.exports = {
           question_id: question._id,
           question_order: i + 1
         });
-        console.log(`✅ Question ${i + 1} created successfully`);
+        console.log(`Question ${i + 1} created successfully`);
       } catch (err) {
-        console.error(`❌ Failed to create question ${i + 1}:`, err.message);
+        console.error(`Failed to create question ${i + 1}:`, err.message);
         throw new Error(`Failed to create question ${i + 1}: ${err.message}`);
       }
     }

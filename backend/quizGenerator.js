@@ -16,24 +16,44 @@ async function generateQuiz(text, settings = {}) {
     questionCount = 5,
     questionType = 'multiple-choice',
     difficulty = 'medium',
-    language = 'english'
+    language = 'english',
+    focusArea = 'general',
+    answerFormat = 'brief',
+    excludeTopics = ''
   } = settings;
 
   console.log('\nAI Quiz Generation Started...');
   console.log(`   Questions: ${questionCount}`);
   console.log(`   Type: ${questionType}`);
   console.log(`   Difficulty: ${difficulty}`);
+  console.log(`   Focus: ${focusArea}`);
+  console.log(`   Answer Format: ${answerFormat}`);
+  if (excludeTopics) console.log(`   Excluding: ${excludeTopics}`);
 
   try {
+    // Filter out excluded topics from text
+    let filteredText = text;
+    if (excludeTopics && excludeTopics.trim()) {
+      const excludeList = excludeTopics.split(',').map(t => t.trim().toLowerCase());
+      console.log(`Filtering out topics: ${excludeList.join(', ')}`);
+      // Simple filtering - remove paragraphs containing excluded topics
+      const paragraphs = text.split(/\n\n+/);
+      filteredText = paragraphs.filter(para => {
+        const lowerPara = para.toLowerCase();
+        return !excludeList.some(topic => lowerPara.includes(topic));
+      }).join('\n\n');
+      console.log(`Text filtered: ${text.length} -> ${filteredText.length} characters`);
+    }
+    
     // Extract math content if present (for enhanced prompts)
-    const eqs = extractEquations(text);
+    const eqs = extractEquations(filteredText);
     const hasMathContent = eqs.latex.length > 0 || eqs.linear.length > 2 || eqs.inequalities.length > 0;
     
     if (hasMathContent) {
       console.log(`📐 Math content detected: LaTeX=${eqs.latex.length}, Equations=${eqs.linear.length}, Inequalities=${eqs.inequalities.length}`);
     }
 
-    const prompt = createPrompt(text, questionCount, questionType, difficulty, language, eqs, hasMathContent);
+    const prompt = createPrompt(filteredText, questionCount, questionType, difficulty, language, eqs, hasMathContent, focusArea, answerFormat);
     console.log('Sending request to Hugging Face AI...');
     
     // Use chatCompletion instead of textGeneration for Mistral models
@@ -59,7 +79,7 @@ async function generateQuiz(text, settings = {}) {
     if (questions.length < questionCount) {
       console.log(`Only got ${questions.length}/${questionCount} questions, adding fallback...`);
       const fallbackNeeded = questionCount - questions.length;
-      const fallbackQuestions = generateFallbackQuestions(text, fallbackNeeded, questionType, eqs, hasMathContent);
+      const fallbackQuestions = generateFallbackQuestions(filteredText, fallbackNeeded, questionType, eqs, hasMathContent);
       return [...questions, ...fallbackQuestions];
     }
     
@@ -74,14 +94,38 @@ async function generateQuiz(text, settings = {}) {
   }
 }
 
-function createPrompt(text, count, type, difficulty, language, eqs, hasMathContent) {
+function createPrompt(text, count, type, difficulty, language, eqs, hasMathContent, focusArea = 'general', answerFormat = 'brief') {
   const truncatedText = text.slice(0, 3000);
+
+  // Focus area specific instructions
+  let focusInstruction = '';
+  switch (focusArea) {
+    case 'definitions':
+      focusInstruction = 'Focus on testing definitions, terminology, and key concepts.';
+      break;
+    case 'concepts':
+      focusInstruction = 'Focus on testing understanding of main ideas and theoretical concepts.';
+      break;
+    case 'facts':
+      focusInstruction = 'Focus on testing factual information, dates, names, and specific details.';
+      break;
+    case 'applications':
+      focusInstruction = 'Focus on testing practical applications and real-world use cases.';
+      break;
+    default:
+      focusInstruction = 'Create balanced questions covering various aspects.';
+  }
+
+  // Answer format instruction
+  const formatInstruction = answerFormat === 'detailed' 
+    ? 'Provide detailed explanations for answers.'
+    : 'Keep answers concise and to the point.';
 
   let instruction = '';
   let example = '';
 
   if (type === 'multiple-choice') {
-    instruction = `Create ${count} multiple-choice questions with EXACTLY 4 options (A, B, C, D). One correct answer.`;
+    instruction = `Create ${count} multiple-choice questions with EXACTLY 4 options (A, B, C, D). One correct answer. ${focusInstruction} ${formatInstruction}`;
     example = `Q1: What is the capital of France?
 A) Berlin
 B) Madrid
@@ -96,7 +140,7 @@ C) Mars
 D) Earth
 ANSWER: B`;
   } else if (type === 'true-false') {
-    instruction = `Create ${count} True/False questions. Answer must be TRUE or FALSE only.`;
+    instruction = `Create ${count} True/False questions. Answer must be TRUE or FALSE only. ${focusInstruction}`;
     example = `Q1: The Earth is flat.
 ANSWER: FALSE
 
@@ -253,8 +297,22 @@ function generateGeneralFallback(text, count, type) {
     const sentence = sentences[i];
     
     if (type === 'multiple-choice') {
-      const words = sentence.split(' ').filter(w => w.length > 4);
-      const keyword = words[Math.floor(words.length / 2)] || 'topic';
+      // Extract meaningful words, filtering out URLs, special chars, and short words
+      const words = sentence
+        .split(' ')
+        .filter(w => {
+          // Remove URLs
+          if (w.includes('http://') || w.includes('https://') || w.includes('www.')) return false;
+          // Remove words with special chars except hyphens
+          if (/[^a-zA-Z0-9\s\-]/.test(w)) return false;
+          // Only words 4+ characters
+          return w.length > 4;
+        });
+      
+      // Pick a keyword from middle of sentence for better context
+      const keyword = words.length > 0 
+        ? words[Math.floor(words.length / 2)] 
+        : 'the topic';
       
       questions.push({
         id: questions.length + 1,

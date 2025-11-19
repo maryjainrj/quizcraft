@@ -245,9 +245,64 @@ const QuizPreviewPage = () => {
       <p className="text-sm text-gray-600 mb-2">
         {localQuestions.length} question{localQuestions.length !== 1 ? 's' : ''} generated from {fileNames.join(', ')}
       </p>
-      <p className="text-xs text-gray-500 mb-8">
+      <p className="text-xs text-gray-500 mb-2">
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
+      
+      {/* Display generation settings */}
+      {settings && (
+        <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-xl shadow-sm">
+          <h3 className="text-base font-bold text-indigo-900 mb-3">
+            Generation Settings
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {settings.difficulty && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Difficulty</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.difficulty}</span>
+              </div>
+            )}
+            {settings.focusArea && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Focus Area</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.focusArea}</span>
+              </div>
+            )}
+            {settings.answerFormat && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Answer Format</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.answerFormat}</span>
+              </div>
+            )}
+            {settings.pageRange && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Page Filter</span>
+                <span className="text-sm font-semibold text-indigo-900">{settings.pageRange}</span>
+              </div>
+            )}
+            {settings.keywords && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
+                <span className="text-xs text-gray-500 block mb-1">Keywords</span>
+                <span className="text-sm font-semibold text-indigo-900">{settings.keywords}</span>
+              </div>
+            )}
+            {settings.excludeTopics && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
+                <span className="text-xs text-gray-500 block mb-1">Excluded Topics</span>
+                <span className="text-sm font-semibold text-red-600">{settings.excludeTopics}</span>
+              </div>
+            )}
+            {settings.sourcePages && settings.sourcePages.length > 0 && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 col-span-full">
+                <span className="text-xs text-gray-500 block mb-1">Source Pages Used</span>
+                <span className="text-sm font-semibold text-indigo-900">
+                  {settings.sourcePages.length} pages: {settings.sourcePages.join(', ')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Questions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -339,9 +394,18 @@ const QuizPreviewPage = () => {
                   </div>
                 ) : (
                   <>
-                    <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">
+                    <p className="text-gray-900 font-medium mb-2 text-base leading-relaxed text-left">
                       {q.question}
                     </p>
+                    
+                    {/* Display source pages for this question */}
+                    {q.sourcePages && Array.isArray(q.sourcePages) && q.sourcePages.length > 0 && (
+                      <div className="mb-3">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          From page{q.sourcePages.length > 1 ? 's' : ''}: {q.sourcePages.join(', ')}
+                        </span>
+                      </div>
+                    )}
 
                     {q.type === "multiple-choice" && q.options && (
                       <ul className="space-y-2 text-sm text-gray-700">
@@ -419,7 +483,7 @@ const QuizPreviewPage = () => {
                 )}
               </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

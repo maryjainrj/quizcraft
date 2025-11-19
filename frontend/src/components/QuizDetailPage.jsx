@@ -204,15 +204,15 @@ export default function QuizDetailPage() {
       // If shape like { questionText: "...", correctAnswer: "..." }
       if (q && typeof q === "object") {
         return (
-          src.questionText ||
-          src.text || // from QuestionNew
-          src.prompt ||
-          src.question ||
-          src.title ||
+          q.questionText ||
+          q.text || // from QuestionNew
+          q.prompt ||
+          q.question ||
+          q.title ||
           ""
         );
       }
-      if (typeof src === "string") return src;
+      if (typeof q === "string") return q;
       return "";
     });
 
@@ -777,7 +777,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export questions (stub)")}
               >
-                <div className="export-icon">📄</div>
+                <div className="export-icon">PDF</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf questions</div>
                   <div className="export-desc">
@@ -790,7 +790,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export answers (stub)")}
               >
-                <div className="export-icon">📄</div>
+                <div className="export-icon">PDF</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf Answers</div>
                   <div className="export-desc">
