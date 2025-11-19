@@ -287,11 +287,13 @@
 .empty-state__img { width: 220px; max-width: 60%; height: auto;  margin: 0 auto; margin-bottom: 0.75rem;}
 .empty-state__title { color: #04103B; margin-bottom: 0.25rem; }
 .empty-state__desc { color: #808080; margin-bottom: 1rem; }
+
 .sidebar-logo {
   width: 120px;          /* ← change this value to the size you want */
   height: auto;          /* keeps the aspect ratio */
 }
-/* Buttons */
+
+/* Buttons (basic) */
 .primary-btn {
   background: #40189D; color: white; border: 1px solid black; border-radius: 15px;
   padding: 0.7rem 4.1rem; font-weight: 600; cursor: pointer;
@@ -455,7 +457,6 @@
 /* File item remove button (right side) */
 .file-item { position: relative; }
 
-/* If className="remove-btn" to the Remove button, if used */
 .file-item .remove-btn {
   margin-left: auto;
   background: none;
@@ -537,12 +538,15 @@
 
 /* --- Detail page panels --- */
 .detail-header {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   gap: 1rem;
-  margin-bottom: .75rem;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 .back-btn { margin-right: .25rem; }
+.detail-heading { text-align: left; }
+.detail-actions { display: flex; gap: 0.5rem; }
 
 .panel {
   background: #fff;
@@ -588,17 +592,6 @@
   .feed-header { flex-direction: column; align-items: flex-start; }
   .feed-cta { align-self: flex-start; }
 }
-
-/* ===== Detail header & actions ===== */
-.detail-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.detail-heading { text-align: left; }
-.detail-actions { display: flex; gap: 0.5rem; }
 
 /* Buttons variants used here */
 .danger-btn {
@@ -721,7 +714,7 @@ body.hide-sidebar .header-brand { display: flex !important; }
 }
 
 .donate-fab:hover {
-  background: #2EAE71;           /* green hover per your buttons */
+  background: #2EAE71;
   transform: translateY(-1px);
   box-shadow: 0 16px 30px rgba(46, 174, 113, 0.28), 0 4px 10px rgba(0,0,0,.12);
 }
@@ -765,13 +758,13 @@ body.hide-sidebar .header-brand { display: flex !important; }
   left: 50%;
   bottom: 8px;
   transform: translateX(-50%);
-  background: rgba(64, 24, 157, 0.90);      /* brand purple w/ opacity */
+  background: rgba(64, 24, 157, 0.90);
   color: #fff;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  pointer-events: none;                      /* don’t interfere with clicks */
+  pointer-events: none;
   opacity: 0;
   transition: opacity .18s ease;
 }
@@ -825,11 +818,11 @@ body.hide-sidebar .header-brand { display: flex !important; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* small screens */
 @media (max-width: 480px) {
   .toast-container { left: 10px; right: 10px; }
   .toast { max-width: 100%; }
 }
+
 /* whole empty dashboard area */
 .dashboard-empty {
   max-width: 900px;
@@ -837,7 +830,7 @@ body.hide-sidebar .header-brand { display: flex !important; }
   padding: 2rem 1.5rem 4rem;
 }
 
-/* centered header like screenshot */
+/* centered header generic */
 .feed-header--center {
   display: flex;
   flex-direction: column;
@@ -848,33 +841,6 @@ body.hide-sidebar .header-brand { display: flex !important; }
   margin-bottom: 1.5rem;
 }
 
-/* small loading text */
-.feed-loading {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-/* whole empty dashboard area */
-.dashboard-empty {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
-}
-
-/* centered header */
-.feed-header--center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.25rem;
-  margin-top: 2.5rem;
-  margin-bottom: 1.5rem;
-}
-
-/* small loading text */
 .feed-loading {
   margin-top: 1.5rem;
   text-align: center;
@@ -918,7 +884,7 @@ body.hide-sidebar .header-brand { display: flex !important; }
   margin-bottom: 1.75rem;
 }
 
-/* Same  */
+/* Fancy primary button version (overrides basic) */
 .primary-btn {
   display: inline-flex;
   align-items: center;

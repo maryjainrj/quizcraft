@@ -1,4 +1,3 @@
-// src/pages/ShareQuizPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";

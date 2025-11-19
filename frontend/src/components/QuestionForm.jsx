@@ -1,4 +1,3 @@
-// src/components/QuestionForm.js
 import React, { useState, useEffect } from 'react';
 import './QuestionForm.css';
 

@@ -1,4 +1,3 @@
-// src/pages/QuizPreviewPage.jsx
 import React, { useState, useEffect } from "react";
 import { saveQuestionSetToDB } from '../services/quizER';
 import { useLocation, useNavigate } from "react-router-dom";

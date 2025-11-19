@@ -35,22 +35,45 @@ export default function QuizSettingsModal({
     setValues((s) => {
       const currentTypes = Array.isArray(s.type) ? s.type : [s.type];
       const isSelected = currentTypes.includes(typeValue);
-      
+
       let newTypes;
       if (isSelected) {
-        // Remove if already selected (but keep at least one)
-        newTypes = currentTypes.filter(t => t !== typeValue);
-        if (newTypes.length === 0) newTypes = [typeValue]; // Keep at least one
+        newTypes = currentTypes.filter((t) => t !== typeValue);
+        if (newTypes.length === 0) newTypes = [typeValue]; // keep at least one
       } else {
-        // Add to selection
         newTypes = [...currentTypes, typeValue];
       }
-      
+
       return { ...s, type: newTypes };
     });
   };
 
   const selectedTypes = Array.isArray(values.type) ? values.type : [values.type];
+
+  // Helpers for filters
+  const setFilterField = (key, val) => {
+    setValues((s) => ({
+      ...s,
+      filters: {
+        ...(s.filters ?? { keywords: "", pageFrom: "", pageTo: "" }),
+        [key]: val,
+      },
+    }));
+  };
+
+  // Normalize numeric inputs but allow empty for "optional"
+  const handlePageInput = (key) => (e) => {
+    const raw = e.target.value;
+    if (raw === "") return setFilterField(key, "");
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n) || n < 1) return; // ignore invalid negatives/zero
+    setFilterField(key, n);
+  };
+
+  const hasKeyword = Boolean((filters.keywords || "").trim());
+  const hasRange =
+    (filters.pageFrom || filters.pageFrom === 0) &&
+    (filters.pageTo || filters.pageTo === 0);
 
   return (
     <div className="qs-overlay" role="dialog" aria-modal="true" aria-labelledby="qs-title">
@@ -58,7 +81,9 @@ export default function QuizSettingsModal({
         <button className="qs-close" aria-label="Close" onClick={onClose}>×</button>
 
         <h2 id="qs-title" className="qs-heading">Quiz Settings</h2>
-        <p className="qs-subheading">Configure your quiz generation conditions. You can select multiple question types.</p>
+        <p className="qs-subheading">
+          Configure your quiz generation conditions. You can select multiple question types.
+        </p>
 
         {/* Language */}
         <div className="qs-block">
@@ -81,8 +106,8 @@ export default function QuizSettingsModal({
               { value: "mcq", label: "Multiple Choice" },
               { value: "tf", label: "True or False" },
             ].map((opt) => (
-              <label 
-                key={opt.value} 
+              <label
+                key={opt.value}
                 className={`qs-option ${selectedTypes.includes(opt.value) ? "is-selected" : ""}`}
               >
                 <input
@@ -125,41 +150,76 @@ export default function QuizSettingsModal({
           </div>
         </div>
 
-        {/* Page Range Filter */}
-        {showPageRange && (
-          <div className="qs-block">
-            <label className="qs-label" htmlFor="pageRange">
-              Page Range (Optional)
-              <span className="qs-hint">e.g., "1-5" or "1,3,5-7" or leave empty for all pages</span>
+        {/* Optional filters: Keywords full width; page range compact on one line */}
+        <div className="qs-block">
+          <label className="qs-label">Optional Filters for Content</label>
+
+          {/* Keywords – full width */}
+          <div className="qs-field">
+            <label className="qs-sublabel" htmlFor="qs-keywords">
+              Keyword Hints (optional)
             </label>
             <input
-              id="pageRange"
+              id="qs-keywords"
               type="text"
               className="qs-input"
-              placeholder="e.g., 1-5 or 1,3,7-10"
-              value={values.pageRange || ''}
-              onChange={(e) => setValues((s) => ({ ...s, pageRange: e.target.value }))}
+              placeholder="e.g., Renaissance art; Luther; printing press"
+              value={filters.keywords ?? ""}
+              onChange={(e) => setFilterField("keywords", e.target.value)}
             />
           </div>
-        )}
 
-        {/* Keywords/Topic Filter */}
-        <div className="qs-block">
-          <label className="qs-label" htmlFor="keywords">
-            Keywords/Topics (Optional)
-            <span className="qs-hint">e.g., "chapter 1 to chapter 2" or "introduction, methodology"</span>
-          </label>
-          <input
-            id="keywords"
-            type="text"
-            className="qs-input"
-            placeholder="e.g., chapter 1, introduction"
-            value={values.keywords || ''}
-            onChange={(e) => setValues((s) => ({ ...s, keywords: e.target.value }))}
-          />
+          {/* Page range – compact single row */}
+          <div className="qs-field">
+            <label className="qs-sublabel">Page range (optional)</label>
+            <div className="qs-inline-range">
+              <div className="qs-range-item">
+                <span className="qs-inline-label">From</span>
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  className="qs-input qs-input--num"
+                  placeholder="3"
+                  value={filters.pageFrom ?? ""}
+                  onChange={handlePageInput("pageFrom")}
+                  aria-label="Page from"
+                />
+              </div>
+
+              <span className="qs-inline-dash">—</span>
+
+              <div className="qs-range-item">
+                <span className="qs-inline-label">To</span>
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  className="qs-input qs-input--num"
+                  placeholder="12"
+                  value={filters.pageTo ?? ""}
+                  onChange={handlePageInput("pageTo")}
+                  aria-label="Page to"
+                />
+              </div>
+            </div>
+
+            <p className="qs-hint">
+              Leave blank to include all pages. If both provided, the generator should prefer that range.
+            </p>
+          </div>
+
+          {(hasKeyword || hasRange) && (
+            <div className="qs-filter-preview">
+              <strong>Will apply:</strong>{" "}
+              {hasKeyword && <>keywords: “{filters.keywords}”</>}
+              {hasKeyword && hasRange && " · "}
+              {hasRange && <>pages: {filters.pageFrom}–{filters.pageTo}</>}
+            </div>
+          )}
         </div>
 
-        {/* No of Quiz (Range): 6..30 */}
+        {/* Number of questions (Range): 6..30 */}
         <div className="qs-block">
           <div className="qs-range-labels">
             <span>Minimum 6 Questions</span>
@@ -178,7 +238,7 @@ export default function QuizSettingsModal({
             }}
           />
           <div className="qs-range-value">
-            Selected: {values.count} question{values.count !== 1 ? 's' : ''}
+            Selected: {values.count} question{values.count !== 1 ? "s" : ""}
             {selectedTypes.length > 1 && ` (${Math.ceil(values.count / selectedTypes.length)} per type)`}
           </div>
         </div>

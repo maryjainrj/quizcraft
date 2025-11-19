@@ -1,4 +1,3 @@
-// src/components/QuizDetailPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -88,9 +87,8 @@ export default function QuizDetailPage() {
     fetchQuiz();
   }, [id]);
 
-  // ===== Decide which questions to use =====
-  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available,
-  // so you see exactly what was generated at creation time.
+  // ===== Decide which questions + answers to use =====
+  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available.
   const { title, questions, answers, createdAt, updatedAt } = useMemo(() => {
     if (!rawQuiz) {
       return {
@@ -206,16 +204,15 @@ export default function QuizDetailPage() {
       // If shape like { questionText: "...", correctAnswer: "..." }
       if (q && typeof q === "object") {
         return (
-          q.questionText ||
-          q.text ||
-          q.prompt ||
-          q.question ||
-          q.title ||
+          src.questionText ||
+          src.text || // from QuestionNew
+          src.prompt ||
+          src.question ||
+          src.title ||
           ""
         );
       }
-      // If it is a plain string
-      if (typeof q === "string") return q;
+      if (typeof src === "string") return src;
       return "";
     });
 
@@ -285,7 +282,7 @@ export default function QuizDetailPage() {
     }
   };
 
-  // ✅ delete quiz in DB instead of front-end only
+  // ✅ delete quiz in DB
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
