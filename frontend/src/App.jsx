@@ -14,6 +14,7 @@ import "./App.css";
 
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import LandingPage from "./components/LandingPage";
 
 import DashboardLayout from "./components/DashboardLayout";
 import QuizzesPage from "./components/QuizzesPage";          // list of quizzes
@@ -112,10 +113,11 @@ function App() {
 
   const handleCancelEdit = () => setEditingQuestion(null);
 
-  useEffect(() => {
-    loadQuestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Don't auto-load questions on mount - let individual routes handle it
+  // useEffect(() => {
+  //   loadQuestions();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   // Legacy demo admin panel
   const QuizAdmin = () => (
@@ -177,8 +179,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
@@ -203,7 +205,7 @@ function App() {
         <Route path="/admin" element={<QuizAdmin />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

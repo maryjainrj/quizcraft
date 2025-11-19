@@ -1,8 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
+.dashboard-wrapper {
+  padding-top: 70px; /* Space for fixed header */
+}
+
 .dashboard-page {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - 70px);
   background-color: #f5f6fa;
   font-family: 'Poppins', sans-serif;
 }
@@ -12,7 +16,7 @@
   width: 250px;
   background-color: #40189D;
   color: #fff;
-  padding: 2rem 1rem;
+  padding: 1rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -37,7 +41,7 @@
   align-items: stretch;
   width: 100%;
   gap: 1rem;
-  margin-top: 4rem;
+  margin-top: 1rem;
 }
 
 .nav-btn {
@@ -66,6 +70,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
 /* Header */
@@ -162,6 +167,8 @@
   flex: 1;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-content h3 {
@@ -489,6 +496,10 @@
   gap: 1rem;
   align-items: flex-start;
   justify-content: space-between;
+}
+.feed-header-main {
+  text-align: center;
+  flex: 1;
 }
 .feed-title { color: #04103B; font-weight: bold; margin: 0 0 0.25rem; }
 .feed-subtitle { color: #808080; margin: 0; }

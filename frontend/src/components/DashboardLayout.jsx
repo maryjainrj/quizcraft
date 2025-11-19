@@ -3,6 +3,8 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import "./Auth.css";
 import quizcraftwhite from "../assets/logo_quizcraftwhite.png";
+import Footer from "./Footer";
+import Header from "./Header";
 
 // Brand + sidebar icons
 import quizcraft from "../assets/logo_quizcraft.png";
@@ -59,12 +61,12 @@ const DashboardLayout = () => {
   const isExport = location.pathname.startsWith("/dashboard/exportquiz");
 
   return (
-    <div className="dashboard-page">
+    <>
+      <Header />
+      <div className="dashboard-wrapper">
+        <div className="dashboard-page">
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
-        <div className="auth-logo">
-          <img src={quizcraftwhite} style={{ width: '120px', height: 'auto' }} alt="QuizzCraft logo" />
-        </div>
         <nav className="sidebar-nav">
           <Link
             to="/dashboard"
@@ -106,45 +108,13 @@ const DashboardLayout = () => {
 
       {/* Main */}
       <div className="dashboard-main">
-        {/* Header */}
-        <header className="dashboard-header">
-          {/* Header brand shows only when body has .hide-sidebar */}
-          <div className="header-brand">
-            <img src={quizcraft} alt="QuizCraft" className="header-logo" />
-          </div>
-
-          <div className="search-container">
-            <input type="text" placeholder="Search..." />
-            <FaSearch className="search-icon" />
-          </div>
-
-          <div
-            className="profile-container"
-            onClick={() => setShowDropdown(!showDropdown)}
-          >
-            <span className="username">{displayName}</span>
-            <FaChevronDown className="dropdown-icon" />
-            {showDropdown && (
-              <div className="dropdown-menu">
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    localStorage.removeItem("sessionExpiry");
-                    navigate("/login", { replace: true });
-                  }}
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
         {/* Routed pages */}
         <main className="dashboard-content">
           <Outlet />
         </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
 
       {/* Floating Donate Button (visible on all dashboard screens) */}
@@ -157,7 +127,9 @@ const DashboardLayout = () => {
         <span className="donate-fab__emoji" aria-hidden="true">💜</span>
         <span className="donate-fab__text">Donate</span>
       </button>
-    </div>
+        </div>
+      </div>
+    </>
   );
 };
 

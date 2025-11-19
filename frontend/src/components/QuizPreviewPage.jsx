@@ -483,7 +483,7 @@ const QuizPreviewPage = () => {
                 )}
               </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
 
