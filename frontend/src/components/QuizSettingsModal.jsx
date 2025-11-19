@@ -9,6 +9,7 @@ export default function QuizSettingsModal({
   onCreate,
   values,
   setValues,
+  showPageRange = true, // Allow hiding page range for pasted text
 }) {
   if (!open) return null;
 
@@ -18,6 +19,16 @@ export default function QuizSettingsModal({
     const p = ((values.count - min) / (max - min)) * 100;
     return `${clamp(p, 0, 100)}%`;
   }, [values.count]);
+
+  // Initialize filters if not present
+  React.useEffect(() => {
+    if (!values.pageRange) {
+      setValues(prev => ({ ...prev, pageRange: '' }));
+    }
+    if (!values.keywords) {
+      setValues(prev => ({ ...prev, keywords: '' }));
+    }
+  }, []);
 
   // Handle checkbox toggle for multiple question types
   const handleTypeToggle = (typeValue) => {
@@ -112,6 +123,40 @@ export default function QuizSettingsModal({
               </label>
             ))}
           </div>
+        </div>
+
+        {/* Page Range Filter */}
+        {showPageRange && (
+          <div className="qs-block">
+            <label className="qs-label" htmlFor="pageRange">
+              Page Range (Optional)
+              <span className="qs-hint">e.g., "1-5" or "1,3,5-7" or leave empty for all pages</span>
+            </label>
+            <input
+              id="pageRange"
+              type="text"
+              className="qs-input"
+              placeholder="e.g., 1-5 or 1,3,7-10"
+              value={values.pageRange || ''}
+              onChange={(e) => setValues((s) => ({ ...s, pageRange: e.target.value }))}
+            />
+          </div>
+        )}
+
+        {/* Keywords/Topic Filter */}
+        <div className="qs-block">
+          <label className="qs-label" htmlFor="keywords">
+            Keywords/Topics (Optional)
+            <span className="qs-hint">e.g., "chapter 1 to chapter 2" or "introduction, methodology"</span>
+          </label>
+          <input
+            id="keywords"
+            type="text"
+            className="qs-input"
+            placeholder="e.g., chapter 1, introduction"
+            value={values.keywords || ''}
+            onChange={(e) => setValues((s) => ({ ...s, keywords: e.target.value }))}
+          />
         </div>
 
         {/* No of Quiz (Range): 6..30 */}

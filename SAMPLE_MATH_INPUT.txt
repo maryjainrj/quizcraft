@@ -4,19 +4,19 @@ Linear Equations Practice
 Example 1: Solve 4x - 6 = 10
 Step 1: Add 6 to both sides: 4x = 16
 Step 2: Divide by 4: x = 4
-Check: 4(4) - 6 = 10 ✓
+Check: 4(4) - 6 = 10 
 
 Example 2: Solve 3(2y + 1) - 5 = 13
 Step 1: Distribute: 6y + 3 - 5 = 13
 Step 2: Simplify: 6y - 2 = 13
 Step 3: Add 2: 6y = 15
 Step 4: Divide: y = 2.5
-Check: 3(2(2.5) + 1) - 5 = 13 ✓
+Check: 3(2(2.5) + 1) - 5 = 13  
 
 Example 3: Solve z/4 + 2 = 5
 Step 1: Subtract 2: z/4 = 3
 Step 2: Multiply by 4: z = 12
-Check: 12/4 + 2 = 5 ✓
+Check: 12/4 + 2 = 5  
 
 Example 4: Age Problem
 Five years ago, John's age was twice Sarah's. Now, John is 25. How old is Sarah?

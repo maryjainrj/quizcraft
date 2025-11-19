@@ -37,10 +37,32 @@
 
 /* Blocks */
 .qs-block { margin: 14px 0 18px; }
-.qs-label { color: #1f2937; margin-bottom: 8px; font-weight: 600; display: block; }
+.qs-label { 
+  color: #1f2937; 
+  margin-bottom: 8px; 
+  font-weight: 600; 
+  display: block; 
+}
+.qs-hint {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-top: 4px;
+}
 .qs-input {
   width: 100%; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 10px;
-  color: #6b7280; background: #f9fafb;
+  color: #111827; background: #fff;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.qs-input:focus {
+  outline: none;
+  border-color: #4b1fb5;
+  box-shadow: 0 0 0 3px rgba(75, 31, 181, 0.1);
+}
+.qs-input::placeholder {
+  color: #9ca3af;
 }
 
 /* Options (radio as pills) */
