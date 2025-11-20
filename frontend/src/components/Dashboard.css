@@ -822,6 +822,15 @@
 body.hide-sidebar .header-brand { display: flex !important; }
 
 /* Floating Donate FAB */
+.donate-fab.supporter {
+  background: #4caf50 !important;
+  cursor: default !important;
+}
+
+.donate-fab.supporter:hover {
+  background: #45a049 !important;
+  transform: none !important;
+}
 .donate-fab {
   position: fixed;
   right: 20px;
@@ -1156,6 +1165,85 @@ body.hide-sidebar .header-brand { display: flex !important; }
   transform: translateY(-1px);
   box-shadow: 0 20px 40px rgba(64, 24, 157, 0.5);
   background: #2c0f73;
+}
+.search-info {
+  background: #f6f4ff;
+  border: 1px solid #e9e7ff;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-info__text {
+  margin: 0;
+  color: #40189D;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* Clear search button in search container (optional enhancement) */
+.search-container {
+  position: relative;
+  margin-left: auto;
+  max-width: 300px;
+  width: 100%;
+  padding-right: 2rem;
+}
+
+.search-clear {
+  position: absolute;
+  right: 3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: none;
+  font-size: 1rem;
+}
+
+.search-container input:not(:placeholder-shown) ~ .search-clear {
+  display: block;
+}
+
+.search-clear:hover {
+  color: #40189D;
+}
+.highlight {
+  background: #fef08a;
+  color: #854d0e;
+  padding: 0.1em 0.2em;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Panel header with count */
+.panel__count {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  background: #f3f4f6;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+}
+
+.panel__header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Update panel header to use flexbox */
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem 0.75rem;
+  color: #04103B;
+  font-weight: 600;
+  gap: 0.5rem;
 }
 
 /* ===== Quiz dropdown menu ===== */

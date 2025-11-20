@@ -1,3 +1,4 @@
+// src/components/QuizDetailPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "./ToastProvider";
@@ -87,8 +88,9 @@ export default function QuizDetailPage() {
     fetchQuiz();
   }, [id]);
 
-  // ===== Decide which questions + answers to use =====
-  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available.
+  // ===== Decide which questions to use =====
+  // Prefer ORIGINAL snapshot (originalQuestionsJSON) if available,
+  // so you see exactly what was generated at creation time.
   const { title, questions, answers, createdAt, updatedAt } = useMemo(() => {
     if (!rawQuiz) {
       return {
@@ -128,142 +130,54 @@ export default function QuizDetailPage() {
       }
     }
 
-    // 2) Prefer snapshot (reflects saved edits), fallback to populated DB
+    // 2) Fallback to current joined questions if snapshot is empty
     let rawQuestions = [];
-    let source = "none";
     if (originalQuestions.length) {
       rawQuestions = originalQuestions;
-      source = "snapshot";
-    } else if (Array.isArray(rawQuiz.questions) && rawQuiz.questions.length > 0) {
+    } else if (Array.isArray(rawQuiz.questions)) {
       rawQuestions = rawQuiz.questions;
-      source = "populated-db";
     } else if (Array.isArray(rawQuiz?.data?.questions)) {
       rawQuestions = rawQuiz.data.questions;
-      source = "raw-data-questions";
     }
-
-    console.log(`[QuizDetailPage] Source=${source} Raw questions count=`, rawQuestions?.length || 0);
-
-    // Helper to map letter answers (A, B, C, D) to actual option text
-    const mapAnswerToText = (q) => {
-      if (!q || typeof q !== "object") return "";
-
-      // If populated from QuestionNew (backend populated data)
-      if (q.question_id && typeof q.question_id === "object") {
-        const qi = q.question_id;
-        if (qi.type === "mcq" && Array.isArray(qi.options) && qi.options.length) {
-          const correct = qi.options.find(o => o?.is_correct);
-          return correct?.option_text || "";
-        }
-        return qi.correctText || "";
-      }
-
-      // Get the raw answer value from various possible fields
-      let rawAnswer = 
-        q.correctAnswer ||
-        q.answer ||
-        q.solution ||
-        q.correct ||
-        q.correctOption ||
-        q.answerText ||
-        q.correctAnswerText ||
-        "";
-
-      // If this is a multiple-choice with options array and answer is a letter
-      if (Array.isArray(q.options) && q.options.length > 0 && rawAnswer) {
-        const answerStr = String(rawAnswer).trim().toUpperCase();
-        
-        // Map letter to index (A=0, B=1, C=2, D=3)
-        const letterToIndex = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
-        
-        if (letterToIndex[answerStr] !== undefined) {
-          const index = letterToIndex[answerStr];
-          if (q.options[index]) {
-            console.log(`[QuizDetailPage] Mapped answer "${answerStr}" to option text: "${q.options[index]}"`);
-            return q.options[index];
-          }
-        }
-        
-        // If answer is numeric index
-        const numIndex = parseInt(answerStr);
-        if (!isNaN(numIndex) && q.options[numIndex]) {
-          return q.options[numIndex];
-        }
-      }
-
-      // Return raw answer for other types (true-false, fill-in-blank)
-      return rawAnswer;
-    };
 
     // 3) Normalize into text + answer arrays
     const questions = rawQuestions.map((q) => {
-      // If populated from QuestionSet -> { question_id: { text, ... } }
-      if (q && q.question_id && typeof q.question_id === "object") {
-        return q.question_id.text || q.question_id.question || "";
-      }
       // If shape like { questionText: "...", correctAnswer: "..." }
       if (q && typeof q === "object") {
         return (
           q.questionText ||
-          q.text || // from QuestionNew
+          q.text ||
           q.prompt ||
           q.question ||
           q.title ||
           ""
         );
       }
+      // If it is a plain string
       if (typeof q === "string") return q;
       return "";
     });
 
-    let answers = rawQuestions.map((q, idx) => {
-      const answer = mapAnswerToText(q);
-      
-      // Debug log to see what we're extracting
-      if (!answer) {
-        console.log(`[QuizDetailPage] No answer found for question ${idx}:`, q);
-      } else {
-        console.log(`[QuizDetailPage] Answer ${idx}:`, answer);
-      }
-      
-      return answer;
-    });
-
-    // 3b) Fallback: if many answers missing, try alternate source
-    const missingCount = answers.filter(a => !a).length;
-    if (missingCount === answers.length) {
-      // All answers missing; try alternate source
-      let fallbackRaw = null;
-      if (source === "populated-db" && originalQuestions.length) {
-        fallbackRaw = originalQuestions;
-        console.log("[QuizDetailPage] Fallback to snapshot for answers");
-      } else if (source !== "populated-db" && Array.isArray(rawQuiz.questions) && rawQuiz.questions.length) {
-        fallbackRaw = rawQuiz.questions;
-        console.log("[QuizDetailPage] Fallback to populated DB for answers");
-      }
-      if (fallbackRaw) {
-        answers = fallbackRaw.map((q) => mapAnswerToText(q));
-      }
-    }
-
-    console.log("[QuizDetailPage] Extracted questions:", questions);
-    console.log("[QuizDetailPage] Extracted answers:", answers);
+    const answers =
+      rawQuestions.map((q) => {
+        if (q && typeof q === "object") {
+          return (
+            q.correctAnswer ||
+            q.answer ||
+            q.solution ||
+            q.correct ||
+            q.correctOption ||
+            ""
+          );
+        }
+        return "";
+      }) || [];
 
     result.questions = questions;
     result.answers = answers;
 
     return result;
   }, [rawQuiz, state?.title]);
-
-  // Initialize edited values when questions/answers load
-  useEffect(() => {
-    if (rawQuiz && !isEditMode) {
-      setEditedTitle(rawQuiz.title || rawQuiz.name || "");
-      setEditedDescription(rawQuiz.description || "");
-      setEditedQuestions(questions);
-      setEditedAnswers(answers);
-    }
-  }, [questions, answers, rawQuiz, isEditMode]);
 
   const shareUrl = `${window.location.origin}/dashboard/quiz/${id}`;
 
@@ -282,7 +196,7 @@ export default function QuizDetailPage() {
     }
   };
 
-  // ✅ delete quiz in DB
+  // ✅ delete quiz in DB instead of front-end only
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -492,15 +406,6 @@ export default function QuizDetailPage() {
           <button className="secondary-btn" onClick={() => setShowShare(true)}>
             Share
           </button> */}
-          {!isEditMode && (
-            <button
-              className="primary-btn"
-              onClick={handleEnterEditMode}
-              aria-label="Edit quiz"
-            >
-              Edit Quiz
-            </button>
-          )}
           <button
             className="danger-btn"
             onClick={() => setShowDelete(true)}
@@ -670,12 +575,30 @@ export default function QuizDetailPage() {
                 </div>
               )}
             </div>
+            <ul className="question-list">
+              {questions.map((q, idx) => (
+                <li key={idx} className="question-row">
+                  <span className="q-index">{idx + 1}.</span>
+                  <span className="q-text">{q}</span>
+                  <button className="kebab" aria-label="More actions">
+                    ⋮
+                  </button>
+                </li>
+              ))}
+              {questions.length === 0 && (
+                <li className="question-row">
+                  <span className="q-text">
+                    No questions were stored for this quiz.
+                  </span>
+                </li>
+              )}
+            </ul>
           </div>
 
           {/* View Answers */}
           <div className="panel">
             <div className="panel__header">
-              <h3>{isEditMode ? "Edit Answers" : "View Answers"}</h3>
+              <h3>View Answers</h3>
               <button
                 className="chevron"
                 aria-label="Toggle answers"
@@ -685,66 +608,29 @@ export default function QuizDetailPage() {
               </button>
             </div>
 
-            {showAnswers && !isEditMode && (
-              <div className="answers-container">
-                {(isEditMode ? editedAnswers : answers).map((a, idx) => (
-                  <div key={idx} className="answer-item">
-                    <span className="answer-number">{idx + 1}.</span>
-                    <span className="answer-text">
+            {showAnswers && (
+              <ul className="question-list">
+                {answers.map((a, idx) => (
+                  <li key={idx} className="question-row">
+                    <span className="q-index">{idx + 1}.</span>
+                    <span className="q-text">
                       {a || "(No answer stored for this question)"}
                     </span>
-                  </div>
-                ))}
-                {(isEditMode ? editedAnswers : answers).length === 0 && (
-                  <div className="empty-answers">
-                    <span>No answers were stored for this quiz.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {showAnswers && isEditMode && (
-              <ul className="question-list">
-                {(isEditMode ? editedAnswers : answers).map((a, idx) => (
-                  <li key={idx} className="question-row edit-mode">
-                    <span className="q-index">{idx + 1}.</span>
-                    {isEditMode ? (
-                      <input
-                        type="text"
-                        value={a}
-                        onChange={(e) => handleUpdateAnswer(idx, e.target.value)}
-                        className="edit-question-input"
-                      />
-                    ) : (
-                      <span className="q-text">
-                        {a || "(No answer stored for this question)"}
-                      </span>
-                    )}
+                    <button className="kebab" aria-label="More actions">
+                      ⋮
+                    </button>
                   </li>
                 ))}
+                {answers.length === 0 && (
+                  <li className="question-row">
+                    <span className="q-text">
+                      No answers were stored for this quiz.
+                    </span>
+                  </li>
+                )}
               </ul>
             )}
           </div>
-
-          {/* Edit Mode Actions */}
-          {isEditMode && (
-            <div className="edit-mode-actions">
-              <button
-                className="primary-btn"
-                onClick={handleSaveEdit}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : "Save All Changes"}
-              </button>
-              <button
-                className="secondary-btn"
-                onClick={handleCancelEdit}
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
         </>
       )}
 
@@ -769,7 +655,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export questions (stub)")}
               >
-                <div className="export-icon">PDF</div>
+                <div className="export-icon">📄</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf questions</div>
                   <div className="export-desc">
@@ -782,7 +668,7 @@ export default function QuizDetailPage() {
                 className="export-item"
                 onClick={() => alert("Export answers (stub)")}
               >
-                <div className="export-icon">PDF</div>
+                <div className="export-icon">📄</div>
                 <div className="export-body">
                   <div className="export-title">Export pdf Answers</div>
                   <div className="export-desc">
@@ -870,4 +756,3 @@ export default function QuizDetailPage() {
     </section>
   );
 }
-  

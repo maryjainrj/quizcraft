@@ -1,7 +1,7 @@
 // src/components/UploadFiles.jsx
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import QuizSettingsModal from "../components/QuizSettingsModal";
+import QuizSettingsModal from "./QuizSettingsModal";
 import { generateQuiz } from "../api/quiz";
 import { shuffleOptions } from "../utils/Shuffle";
 

@@ -6,8 +6,6 @@ import jsPDF from 'jspdf';
 import QuizNameModal from '../components/QuizNameModal';
 import { useToast } from './ToastProvider';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
-
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -33,6 +31,37 @@ const QuizPreviewPage = () => {
       localStorage.setItem("lastQuiz", JSON.stringify({ questions: localQuestions, fileNames, settings }));
     }
   }, [localQuestions, fileNames, settings]);
+
+  // ✅ FILTER QUESTIONS BASED ON SEARCH QUERY
+  const filteredQuestions = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return localQuestions.map((q, idx) => ({ ...q, originalIdx: idx }));
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return localQuestions
+      .map((q, idx) => ({ ...q, originalIdx: idx }))
+      .filter(q => {
+        const qMatch = q.question?.toLowerCase().includes(query);
+        const aMatch = q.correctAnswer?.toLowerCase().includes(query);
+        const oMatch = q.options?.some(opt => opt?.toLowerCase().includes(query));
+        return qMatch || aMatch || oMatch;
+      });
+  }, [localQuestions, searchQuery]);
+
+  // ✅ HIGHLIGHT MATCHING TEXT IN SEARCH RESULTS
+  const highlightText = (text, query) => {
+    if (!query.trim() || !text) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase() ?
+        <mark key={i} className="bg-yellow-200 px-1 rounded">{part}</mark> : part
+    );
+  };
+
+  // Count AI vs Fallback questions
+  const aiCount = localQuestions.filter(q => q.source === 'ai').length;
+  const fallbackCount = localQuestions.filter(q => q.source === 'fallback').length;
 
   // Delete question
   const handleDelete = (index) => {
@@ -178,7 +207,7 @@ const QuizPreviewPage = () => {
       const formData = new FormData();
       formData.append('pdf', pdfBlob, 'quiz.pdf');
 
-      const response = await fetch(`${API_BASE}/api/upload-pdf`, {
+      const response = await fetch('http://localhost:5000/api/upload-pdf', {
         method: 'POST',
         body: formData,
       });
@@ -259,180 +288,199 @@ const QuizPreviewPage = () => {
       <p className="text-sm text-gray-600 mb-2">
         {localQuestions.length} question{localQuestions.length !== 1 ? 's' : ''} generated from {fileNames.join(', ')}
       </p>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-xs text-gray-500 mb-4">
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
-      
-      {/* Display generation settings */}
-      {settings && (
-        <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-xl shadow-sm">
-          <h3 className="text-base font-bold text-indigo-900 mb-3">
-            Generation Settings
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {settings.difficulty && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
-                <span className="text-xs text-gray-500 block mb-1">Difficulty</span>
-                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.difficulty}</span>
-              </div>
-            )}
-            {settings.focusArea && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
-                <span className="text-xs text-gray-500 block mb-1">Focus Area</span>
-                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.focusArea}</span>
-              </div>
-            )}
-            {settings.answerFormat && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
-                <span className="text-xs text-gray-500 block mb-1">Answer Format</span>
-                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.answerFormat}</span>
-              </div>
-            )}
-            {settings.pageRange && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
-                <span className="text-xs text-gray-500 block mb-1">Page Filter</span>
-                <span className="text-sm font-semibold text-indigo-900">{settings.pageRange}</span>
-              </div>
-            )}
-            {settings.keywords && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
-                <span className="text-xs text-gray-500 block mb-1">Keywords</span>
-                <span className="text-sm font-semibold text-indigo-900">{settings.keywords}</span>
-              </div>
-            )}
-            {settings.excludeTopics && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
-                <span className="text-xs text-gray-500 block mb-1">Excluded Topics</span>
-                <span className="text-sm font-semibold text-red-600">{settings.excludeTopics}</span>
-              </div>
-            )}
-            {settings.sourcePages && settings.sourcePages.length > 0 && (
-              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 col-span-full">
-                <span className="text-xs text-gray-500 block mb-1">Source Pages Used</span>
-                <span className="text-sm font-semibold text-indigo-900">
-                  {settings.sourcePages.length} pages: {settings.sourcePages.join(', ')}
-                </span>
-              </div>
-            )}
-          </div>
+
+
+
+      {/* ✅ SEARCH RESULTS COUNTER */}
+      {searchQuery.trim() && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Showing <strong>{filteredQuestions.length}</strong> of <strong>{localQuestions.length}</strong> questions matching "<strong>{searchQuery}</strong>"
+          </p>
         </div>
       )}
 
       {/* Questions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Questions</h2>
-        <div className="space-y-4">
-          {localQuestions.map((q, i) => (
-            <div
-              key={q.id || i}
-              className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:shadow-md"
-            >
-              <span className="font-medium text-gray-700 min-w-[20px]">{i + 1}.</span>
-              <div className="flex-1">
-                {i === editingIndex ? (
-                  <div className="space-y-3">
-                    {/* Question text input */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Question:</label>
-                      <input
-                        type="text"
-                        value={tempQuestion.question || ''}
-                        onChange={(e) => setTempQuestion(prev => ({ ...prev, question: e.target.value }))}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
+        
+        {filteredQuestions.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No questions match your search.</p>
+        ) : (
+          <div className="space-y-4">
+            {filteredQuestions.map((q) => {
+              const i = q.originalIdx; // Use original index for editing/deleting
+              const isAI = q.source === 'ai';
+              
+              return (
+                <div
+                  key={q.id || i}
+                  className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:shadow-md"
+                >
+                  <span className="font-medium text-gray-700 min-w-[20px]">{i + 1}.</span>
+                  
+                  <div className="flex-1">
+                    {i === editingIndex ? (
+                      <div className="space-y-3">
+                        {/* Question text input */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Question:</label>
+                          <input
+                            type="text"
+                            value={tempQuestion.question || ''}
+                            onChange={(e) => setTempQuestion(prev => ({ ...prev, question: e.target.value }))}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
 
-                    {tempQuestion.type === "multiple-choice" && tempQuestion.options && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Options:</label>
-                        {tempQuestion.options.map((opt, idx) => {
-                          const letter = String.fromCharCode(65 + idx);
-                          return (
-                            <div key={idx} className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-600 min-w-[24px]">{letter})</span>
-                              <input
-                                type="text"
-                                value={opt || ''}
-                                onChange={(e) => {
-                                  setTempQuestion(prev => ({
-                                    ...prev,
-                                    options: prev.options.map((o, j) => j === idx ? e.target.value : o)
-                                  }));
-                                }}
-                                className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              />
+                        {tempQuestion.type === "multiple-choice" && tempQuestion.options && (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Options:</label>
+                            {tempQuestion.options.map((opt, idx) => {
+                              const letter = String.fromCharCode(65 + idx);
+                              return (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <span className="font-semibold text-gray-600 min-w-[24px]">{letter})</span>
+                                  <input
+                                    type="text"
+                                    value={opt || ''}
+                                    onChange={(e) => {
+                                      setTempQuestion(prev => ({
+                                        ...prev,
+                                        options: prev.options.map((o, j) => j === idx ? e.target.value : o)
+                                      }));
+                                    }}
+                                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                  />
+                                </div>
+                              );
+                            })}
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
+                            <select
+                              value={tempQuestion.correctAnswer || ''}
+                              onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                              <option value="">Select Option</option>
+                              {tempQuestion.options?.map((_, idx) => (
+                                <option key={idx} value={String.fromCharCode(65 + idx)}>
+                                  {String.fromCharCode(65 + idx)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {tempQuestion.type === "true-false" && (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
+                            <select
+                              value={tempQuestion.correctAnswer || ''}
+                              onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                              <option value="TRUE">True</option>
+                              <option value="FALSE">False</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {tempQuestion.type === "fill-in-blank" && (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
+                            <input
+                              type="text"
+                              value={tempQuestion.correctAnswer || ''}
+                              onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {/*  HIGHLIGHTED QUESTION TEXT */}
+                        <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">
+                          {highlightText(q.question, searchQuery)}
+                        </p>
+
+                        {q.type === "multiple-choice" && q.options && (
+                          <ul className="space-y-2 text-sm text-gray-700">
+                            {q.options.map((opt, idx) => {
+                              const letter = String.fromCharCode(65 + idx);
+                              return (
+                                <li key={idx} className="flex items-center gap-3 py-1 text-left">
+                                  <span className="font-semibold text-gray-600 min-w-[24px]">{letter})</span>
+                                  {/*  HIGHLIGHTED OPTION TEXT */}
+                                  <span className="text-gray-900">{highlightText(opt, searchQuery)}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+
+                        {q.type === "true-false" && (
+                          <div className="flex justify-start gap-8 mt-4 mb-2">
+                            <label className="flex items-center gap-3 cursor-pointer group py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
+                              <span className="w-6 h-6 border-[3px] border-gray-400 rounded-full flex items-center justify-center group-hover:border-gray-600 transition-colors flex-shrink-0">
+                                <span className="w-0 h-0 bg-purple-600 rounded-full group-hover:w-3 group-hover:h-3 transition-all"></span>
+                              </span>
+                              <span className="text-base font-medium text-gray-700">True</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer group py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
+                              <span className="w-6 h-6 border-[3px] border-gray-400 rounded-full flex items-center justify-center group-hover:border-gray-600 transition-colors flex-shrink-0">
+                                <span className="w-0 h-0 bg-purple-600 rounded-full group-hover:w-3 group-hover:h-3 transition-all"></span>
+                              </span>
+                              <span className="text-base font-medium text-gray-700">False</span>
+                            </label>
+                          </div>
+                        )}
+
+                        {q.type === "fill-in-blank" && (
+                          <div className="ml-6 mt-2">
+                            <div className="w-full max-w-md h-10 border-2 border-dashed border-gray-300 rounded-md bg-gray-50 relative">
+                              <div className="absolute bottom-2 left-3 right-3 h-[2px] bg-gradient-to-r from-gray-300 via-transparent to-gray-300 opacity-50"></div>
                             </div>
-                          );
-                        })}
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
-                        <select
-                          value={tempQuestion.correctAnswer || ''}
-                          onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="">Select Option</option>
-                          {tempQuestion.options?.map((_, idx) => (
-                            <option key={idx} value={String.fromCharCode(65 + idx)}>
-                              {String.fromCharCode(65 + idx)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {tempQuestion.type === "true-false" && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
-                        <select
-                          value={tempQuestion.correctAnswer || ''}
-                          onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="TRUE">True</option>
-                          <option value="FALSE">False</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {tempQuestion.type === "fill-in-blank" && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer:</label>
-                        <input
-                          type="text"
-                          value={tempQuestion.correctAnswer || ''}
-                          onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                ) : (
-                  <>
-                    <p className="text-gray-900 font-medium mb-2 text-base leading-relaxed text-left">
-                      {q.question}
-                    </p>
-                    
-                    {/* Display source pages for this question */}
-                    {q.sourcePages && Array.isArray(q.sourcePages) && q.sourcePages.length > 0 && (
-                      <div className="mb-3">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          From page{q.sourcePages.length > 1 ? 's' : ''}: {q.sourcePages.join(', ')}
-                        </span>
-                      </div>
-                    )}
 
-                    {q.type === "multiple-choice" && q.options && (
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        {q.options.map((opt, idx) => {
-                          const letter = String.fromCharCode(65 + idx);
-                          return (
-                            <li key={idx} className="flex items-center gap-3 py-1 text-left">
-                              <span className="font-semibold text-gray-600 min-w-[24px]">{letter})</span>
-                              <span className="text-gray-900">{opt}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {i === editingIndex ? (
+                      <>
+                        <button
+                          onClick={handleEditSave}
+                          className="text-green-600 hover:text-green-800 transition p-2 rounded hover:bg-green-50"
+                        >
+                          <FiCheck size={18} />
+                        </button>
+                        <button
+                          onClick={handleEditCancel}
+                          className="text-gray-600 hover:text-gray-800 transition p-2 rounded hover:bg-gray-50"
+                        >
+                          <FiX size={18} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEditStart(i)}
+                          className="text-blue-600 hover:text-blue-800 transition p-2 rounded hover:bg-blue-50"
+                        >
+                          <FiEdit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(i)}
+                          className="text-red-600 hover:text-red-800 transition p-2 rounded hover:bg-red-50"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </>
                     )}
 
                     {q.type === "true-false" && (
@@ -513,7 +561,8 @@ const QuizPreviewPage = () => {
 
         {showAnswers && (
           <div className="mt-4 space-y-3 border-t border-gray-200 pt-4">
-            {localQuestions.map((q, i) => {
+            {filteredQuestions.map((q) => {
+              const i = q.originalIdx;
               let answerText = "";
               if (q.type === "multiple-choice") {
                 const correctIdx = q.options?.findIndex(
@@ -535,7 +584,10 @@ const QuizPreviewPage = () => {
                 >
                   <span className="font-semibold text-gray-700 min-w-[24px]">{i + 1}.</span>
                   <div className="flex-1 text-left">
-                    <span className="text-gray-900 font-semibold text-base">{answerText}</span>
+                    {/*  HIGHLIGHTED ANSWER */}
+                    <span className="text-gray-900 font-semibold text-base">
+                      {highlightText(answerText, searchQuery)}
+                    </span>
                   </div>
                 </div>
               );

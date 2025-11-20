@@ -1,6 +1,5 @@
 // server.js - Main server file for OCR and Auth
 require("dotenv").config();
-
 // ===== Core / existing OCR deps =====
 const express = require("express");
 const multer = require("multer");
@@ -12,6 +11,7 @@ const path = require("path");
 const { createCanvas, Image } = require("canvas");
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const vision = require("@google-cloud/vision");
+const configRoutes = require('./routes/config');
 
 // ===== Auth/DB/GraphQL deps =====
 const mongoose = require("mongoose");
@@ -72,6 +72,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/config', configRoutes);
 
 // 🔍 SMALL REQUEST LOGGER (helps you see if /api/questionsets/mine hits this server)
 app.use((req, res, next) => {

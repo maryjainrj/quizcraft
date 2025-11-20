@@ -8,7 +8,6 @@ import Header from "./Header";
 
 // Brand + sidebar icons
 import quizcraft from "../assets/logo_quizcraft.png";
-
 import dashboardImgPurple from "../assets/dashboardImgPurple.png";
 import dashboardImgWhite from "../assets/dashboardImgWhite.png";
 import exportQuizPurple from "../assets/exportQuizPurple.png";
@@ -17,8 +16,6 @@ import shareQuizPurple from "../assets/shareQuizPurple.png";
 import shareQuizWhite from "../assets/shareQuizWhite.png";
 
 import { FaSearch, FaChevronDown } from "react-icons/fa";
-
-const DONATE_URL = "https://example.com/donate"; // TODO: replace with your real donate link i.e. paypal
 
 const getDisplayName = () => {
   try {
@@ -36,9 +33,11 @@ const getDisplayName = () => {
 
 const DashboardLayout = () => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // Add search state
   const location = useLocation();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(getDisplayName);
+  const { donationStatus, isLoading } = useDonationStatus();
 
   useEffect(() => {
     const expiry = Number(localStorage.getItem("sessionExpiry") || 0);
@@ -55,6 +54,11 @@ const DashboardLayout = () => {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // Clear search when route changes
+  useEffect(() => {
+    setSearchQuery("");
+  }, [location.pathname]);
 
   const isDashboard = location.pathname === "/dashboard";
   const isShare = location.pathname.startsWith("/dashboard/sharequiz");
