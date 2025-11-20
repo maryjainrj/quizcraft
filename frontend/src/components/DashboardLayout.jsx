@@ -59,76 +59,110 @@ const DashboardLayout = () => {
   const isDashboard = location.pathname === "/dashboard";
   const isShare = location.pathname.startsWith("/dashboard/sharequiz");
   const isExport = location.pathname.startsWith("/dashboard/exportquiz");
+  const isQuizPreview = location.pathname.includes("/dashboard/quiz/") || 
+                        location.pathname.includes("/quiz-preview") ||
+                        location.pathname === "/dashboard/quiz-preview";
+  const isNewQuiz = location.pathname.startsWith("/dashboard/new");
+  
+  // Enable Share/Export only when:
+  // 1. On quiz preview page OR
+  // 2. On dashboard main page with saved quiz OR
+  // 3. Already on share/export page
+  const canShareExport = () => {
+    if (isShare || isExport) return true; // Already on these pages
+    if (isQuizPreview) return true; // Viewing a specific quiz or preview
+    if (isNewQuiz) return false; // Creating new quiz
+    
+    // On dashboard - check if there's a saved quiz
+    if (isDashboard) {
+      try {
+        const lastQuiz = localStorage.getItem("lastQuiz");
+        if (!lastQuiz) return false;
+        const quiz = JSON.parse(lastQuiz);
+        return quiz.questions && quiz.questions.length > 0;
+      } catch {
+        return false;
+      }
+    }
+    
+    return false;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionExpiry");
+    navigate("/", { replace: true });
+  };
+
+  const handleDisabledClick = (e) => {
+    e.preventDefault();
+  };
 
   return (
     <>
       <Header />
       <div className="dashboard-wrapper">
+        {/* Sidebar */}
+        <aside className="dashboard-sidebar">
+          <nav className="sidebar-nav">
+            <Link
+              to="/dashboard"
+              className={`nav-btn ${isDashboard ? "active" : ""}`}
+            >
+              <img
+                src={dashboardImgWhite}
+                alt="Dashboard"
+                className="nav-icon"
+              />
+              <span>My Quizzes</span>
+            </Link>
+
+            <Link
+              to="/dashboard/sharequiz"
+              className={`nav-btn ${isShare ? "active" : ""} ${!canShareExport() ? "disabled" : ""}`}
+              onClick={!canShareExport() ? handleDisabledClick : undefined}
+            >
+              <img
+                src={shareQuizWhite}
+                alt="Share Quiz"
+                className="nav-icon"
+              />
+              <span>Share Quiz</span>
+            </Link>
+
+            <Link
+              to="/dashboard/exportquiz"
+              className={`nav-btn ${isExport ? "active" : ""} ${!canShareExport() ? "disabled" : ""}`}
+              onClick={!canShareExport() ? handleDisabledClick : undefined}
+            >
+              <img
+                src={exportQuizWhite}
+                alt="Export Quiz"
+                className="nav-icon"
+              />
+              <span>Export Quiz</span>
+            </Link>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
         <div className="dashboard-page">
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar">
-        <nav className="sidebar-nav">
-          <Link
-            to="/dashboard"
-            className={`nav-btn ${isDashboard ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isDashboard ? dashboardImgPurple : dashboardImgWhite}
-              alt=""
-            />
-            <span>Dashboard</span>
-          </Link>
-
-          <Link
-            to="/dashboard/sharequiz"
-            className={`nav-btn ${isShare ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isShare ? shareQuizPurple : shareQuizWhite}
-              alt=""
-            />
-            <span>Share Quiz</span>
-          </Link>
-
-          <Link
-            to="/dashboard/exportquiz"
-            className={`nav-btn ${isExport ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isExport ? exportQuizPurple : exportQuizWhite}
-              alt=""
-            />
-            <span>Export Quiz</span>
-          </Link>
-        </nav>
-      </aside>
-
-      {/* Main */}
-      <div className="dashboard-main">
-        {/* Routed pages */}
-        <main className="dashboard-content">
           <Outlet />
-        </main>
-
-        {/* Footer */}
-        <Footer />
-      </div>
-
-      {/* Floating Donate Button (visible on all dashboard screens) */}
-      <button
-        className="donate-fab"
-        aria-label="Donate to support QuizCraft"
-        onClick={() => window.open(DONATE_URL, "_blank", "noopener,noreferrer")}
-        title="Support QuizCraft"
-      >
-        <span className="donate-fab__emoji" aria-hidden="true">💜</span>
-        <span className="donate-fab__text">Donate</span>
-      </button>
         </div>
+
+        {/* Donate FAB */}
+        <a
+          href={DONATE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="donate-fab"
+          title="Support QuizCraft"
+        >
+          <span style={{ color: '#9D6CFF' }}>❤️</span> Donate
+        </a>
       </div>
+      <Footer />
     </>
   );
 };

@@ -32,11 +32,9 @@ const Footer = () => {
           </div>
           
           <div className="footer-section">
-            <h4>Team</h4>
-            <p className="team-member">Mary Jain Joshy</p>
-            <p className="team-member">Arya Reghu</p>
-            <p className="team-member">Greeshma Prasad</p>
-            <p className="team-member">Bipin Kuinkel</p>
+            <h4>Contact</h4>
+            <a href="mailto:support@quizcraft.com">support@quizcraft.com</a>
+            <Link to="/contact">Contact Us</Link>
           </div>
         </div>
         

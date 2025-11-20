@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { saveQuestionSetToDB } from '../services/quizER';
+import { saveQuestionSetToDB, fetchMyQuestionSets } from '../services/quizER';
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload, FiCheck, FiX } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload, FiCheck, FiX, FiShare2 } from "react-icons/fi";
 import jsPDF from 'jspdf';
 import QuizNameModal from '../components/QuizNameModal';
+import { useToast } from './ToastProvider';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [showAnswers, setShowAnswers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -197,7 +199,7 @@ const QuizPreviewPage = () => {
 
   const handleSaveWithName = async (quizName) => {
     if (!localQuestions?.length) {
-      alert("No questions to save.");
+      toast.error("No questions to save.");
       return;
     }
 
@@ -205,14 +207,26 @@ const QuizPreviewPage = () => {
     setShowNameModal(false);
 
     try {
+      // Check if a quiz with this name already exists
+      const existingQuizzes = await fetchMyQuestionSets();
+      const duplicateExists = existingQuizzes.some(
+        quiz => quiz.title.toLowerCase() === quizName.toLowerCase()
+      );
+
+      if (duplicateExists) {
+        toast.error(`A quiz named "${quizName}" already exists. Please choose a different name.`);
+        setSaving(false);
+        setShowNameModal(true);
+        return;
+      }
+
       const pdfUrl = await uploadPDF();
       await saveQuestionSetToDB(quizName, localQuestions, fileNames, extractedTexts, settings, pdfUrl);
       
-      alert('Quiz and PDF saved successfully!');
-      navigate('/dashboard');
+      toast.success('Quiz and PDF saved successfully!');
     } catch (err) {
       console.error("Save failed:", err);
-      alert('Failed to save quiz: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to save quiz: ' + (err.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -542,7 +556,10 @@ const QuizPreviewPage = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: '#40189D', boxShadow: '0 4px 14px 0 rgba(64, 24, 157, 0.39)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2E1270'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#40189D'}
           >
             {saving ? 'Saving...' : 'Save Quiz'}
           </button>

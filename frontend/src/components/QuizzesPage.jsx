@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import emptyImg from "../assets/empty_quiz.png";
 import { deleteQuiz, updateQuiz } from "../services/api";
+import { useToast } from "./ToastProvider";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -20,6 +21,7 @@ const formatUpdatedTime = (iso) => {
 
 export default function QuizzesPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -28,10 +30,8 @@ export default function QuizzesPage() {
   const [editDescription, setEditDescription] = useState("");
   const [isDeleting, setIsDeleting] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-  const [updateError, setUpdateError] = useState("");
 
-  // Center layout: hide sidebar on this page
+  // Hide sidebar on dashboard
   useEffect(() => {
     document.body.classList.add("hide-sidebar");
     return () => document.body.classList.remove("hide-sidebar");
@@ -108,12 +108,11 @@ export default function QuizzesPage() {
     setEditTitle(quiz.title || quiz.name || "");
     setEditDescription(quiz.description || "");
     setOpenMenuId(null);
-    setUpdateError("");
   };
 
   const handleSaveEdit = async () => {
     if (!editTitle.trim()) {
-      setUpdateError("Quiz title cannot be empty");
+      toast.error("Quiz title cannot be empty");
       return;
     }
 
@@ -137,10 +136,10 @@ export default function QuizzesPage() {
       setEditingId(null);
       setEditTitle("");
       setEditDescription("");
-      setUpdateError("");
+      toast.success("Quiz updated successfully!");
     } catch (err) {
       console.error("Error updating quiz:", err);
-      setUpdateError(err.message || "Failed to update quiz");
+      toast.error(err.message || "Failed to update quiz");
     }
   };
 
@@ -148,7 +147,6 @@ export default function QuizzesPage() {
     setIsDeleting(quizId);
     setShowDeleteConfirm(true);
     setOpenMenuId(null);
-    setDeleteError("");
   };
 
   const handleConfirmDelete = async () => {
@@ -160,17 +158,18 @@ export default function QuizzesPage() {
 
       setShowDeleteConfirm(false);
       setIsDeleting(null);
-      setDeleteError("");
+      toast.success("Quiz deleted successfully!");
     } catch (err) {
       console.error("Error deleting quiz:", err);
-      setDeleteError(err.message || "Failed to delete quiz");
+      toast.error(err.message || "Failed to delete quiz");
+      setShowDeleteConfirm(false);
+      setIsDeleting(null);
     }
   };
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
     setIsDeleting(null);
-    setDeleteError("");
   };
 
   const handleMenuToggle = (quizId, e) => {
@@ -264,7 +263,6 @@ export default function QuizzesPage() {
                 <li key={id} className="quiz-item-card edit-mode">
                   <div className="edit-form">
                     <h3>Edit Quiz Name</h3>
-                    {updateError && <p className="error-msg">{updateError}</p>}
                     <input
                       type="text"
                       placeholder="Quiz Title"
@@ -287,10 +285,7 @@ export default function QuizzesPage() {
                       </button>
                       <button
                         className="secondary-btn"
-                        onClick={() => {
-                          setEditingId(null);
-                          setUpdateError("");
-                        }}
+                        onClick={() => setEditingId(null)}
                       >
                         Cancel
                       </button>
@@ -302,6 +297,18 @@ export default function QuizzesPage() {
 
             return (
               <li key={id} className="quiz-item-card">
+                <div className="quiz-card-header">
+                  <div className="quiz-stats">
+                    <div className="stat-item">
+                      <span className="stat-value">{total}</span>
+                      <span className="stat-label">Questions</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-value">{q.difficulty || "Medium"}</span>
+                      <span className="stat-label">Level</span>
+                    </div>
+                  </div>
+                </div>
                 <div
                   className="quiz-item-main"
                   role="button"
@@ -321,13 +328,24 @@ export default function QuizzesPage() {
                 >
                   <h3 className="quiz-item-title">{title}</h3>
                   <p className="quiz-item-summary">
-                    {q.description || "Questions generated from your sources."}
+                    {q.description || "AI-generated quiz questions from your uploaded documents. Test your knowledge and track your progress."}
                   </p>
-                  <div className="quiz-item-meta">
-                    <span className="badge">{total} Questions</span>
+                  <div className="quiz-item-footer">
+                    <div className="quiz-item-meta">
+                      {q.questionType && (
+                        <span className="badge type-badge">
+                          {q.questionType === 'multiple-choice' ? 'Multiple Choice' : 
+                           q.questionType === 'true-false' ? 'True/False' : 
+                           q.questionType === 'fill-blank' ? 'Fill in Blanks' : 'Mixed'}
+                        </span>
+                      )}
+                      {q.focusArea && q.focusArea !== 'general' && (
+                        <span className="badge focus-badge">{q.focusArea}</span>
+                      )}
+                    </div>
                     {updatedLabel && (
-                      <span className="badge soft">
-                        Last updated: {updatedLabel}
+                      <span className="time-stamp">
+                        {updatedLabel}
                       </span>
                     )}
                   </div>
@@ -373,7 +391,6 @@ export default function QuizzesPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Delete Quiz</h2>
             <p>Are you sure you want to delete this quiz? This action cannot be undone.</p>
-            {deleteError && <p className="error-msg">{deleteError}</p>}
             <div className="modal-actions">
               <button
                 className="danger-btn"

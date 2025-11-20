@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useToast } from "./ToastProvider";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -20,6 +21,7 @@ export default function QuizDetailPage() {
   const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [rawQuiz, setRawQuiz] = useState(null); // raw data from backend
   const [loading, setLoading] = useState(true);
@@ -38,13 +40,11 @@ export default function QuizDetailPage() {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
 
   // edit mode - single question
   const [editingQuestionIdx, setEditingQuestionIdx] = useState(null);
   const [singleEditQuestion, setSingleEditQuestion] = useState("");
   const [singleEditAnswer, setSingleEditAnswer] = useState("");
-  const [singleEditError, setSingleEditError] = useState("");
   const [isSavingSingleQuestion, setIsSavingSingleQuestion] = useState(false);
 
   // ===== fetch this quiz from DB using its id =====
@@ -270,7 +270,7 @@ export default function QuizDetailPage() {
   const copyShare = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      alert("Link copied to clipboard");
+      toast.success("Link copied to clipboard!");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = shareUrl;
@@ -278,7 +278,7 @@ export default function QuizDetailPage() {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      alert("Link copied to clipboard");
+      toast.success("Link copied to clipboard!");
     }
   };
 
@@ -287,7 +287,7 @@ export default function QuizDetailPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You are not logged in.");
+        toast.error("You are not logged in.");
         return;
       }
 
@@ -304,39 +304,36 @@ export default function QuizDetailPage() {
         throw new Error(body?.message || "Failed to delete quiz");
       }
 
-      alert("Quiz deleted");
+      toast.success("Quiz deleted successfully!");
       navigate("/dashboard", { replace: true });
     } catch (e) {
-      alert(e.message || "Could not delete quiz.");
+      toast.error(e.message || "Could not delete quiz.");
     }
   };
 
   // Enter edit mode
   const handleEnterEditMode = () => {
     setIsEditMode(true);
-    setSaveError("");
   };
 
   // Cancel edit mode
   const handleCancelEdit = () => {
     setIsEditMode(false);
-    setSaveError("");
   };
 
   // Save all changes
   const handleSaveEdit = async () => {
     if (!editedTitle.trim()) {
-      setSaveError("Quiz title cannot be empty");
+      toast.error("Quiz title cannot be empty");
       return;
     }
 
     try {
       setIsSaving(true);
-      setSaveError("");
       const token = localStorage.getItem("token");
 
       if (!token) {
-        setSaveError("You are not logged in.");
+        toast.error("You are not logged in.");
         return;
       }
 
@@ -376,10 +373,10 @@ export default function QuizDetailPage() {
       }));
 
       setIsEditMode(false);
-      alert("Quiz updated successfully!");
+      toast.success("Quiz updated successfully!");
     } catch (e) {
       console.error("Error saving quiz:", e);
-      setSaveError(e.message || "Failed to save changes");
+      toast.error(e.message || "Failed to save changes");
     } finally {
       setIsSaving(false);
     }
@@ -404,21 +401,19 @@ export default function QuizDetailPage() {
     setEditingQuestionIdx(idx);
     setSingleEditQuestion(questions[idx]);
     setSingleEditAnswer(answers[idx] || "");
-    setSingleEditError("");
   };
 
   const handleSaveSingleQuestion = async () => {
     if (!singleEditQuestion.trim()) {
-      setSingleEditError("Question cannot be empty");
+      toast.error("Question cannot be empty");
       return;
     }
 
     try {
       setIsSavingSingleQuestion(true);
-      setSingleEditError("");
       const token = localStorage.getItem("token");
       if (!token) {
-        setSingleEditError("You are not logged in.");
+        toast.error("You are not logged in.");
         return;
       }
 
@@ -459,9 +454,9 @@ export default function QuizDetailPage() {
       }));
 
       setEditingQuestionIdx(null);
-      alert("Question updated successfully!");
+      toast.success("Question updated successfully!");
     } catch (e) {
-      setSingleEditError(e.message || "Failed to save question");
+      toast.error(e.message || "Failed to save question");
     } finally {
       setIsSavingSingleQuestion(false);
     }
@@ -471,7 +466,6 @@ export default function QuizDetailPage() {
     setEditingQuestionIdx(null);
     setSingleEditQuestion("");
     setSingleEditAnswer("");
-    setSingleEditError("");
   };
 
   return (
@@ -527,7 +521,6 @@ export default function QuizDetailPage() {
           {isEditMode && (
             <div className="edit-mode-section">
               <h3>Edit Quiz Details</h3>
-              {saveError && <p className="error-msg">{saveError}</p>}
               <div className="form-group">
                 <label>Quiz Title</label>
                 <input
@@ -561,7 +554,6 @@ export default function QuizDetailPage() {
                   return (
                     <div key={idx} className="question-card single-edit-mode">
                       <h4 className="single-edit-title">Edit Question {idx + 1}</h4>
-                      {singleEditError && <p className="error-msg">{singleEditError}</p>}
                       
                       <div className="form-group">
                         <label>Question</label>

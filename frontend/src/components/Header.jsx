@@ -31,6 +31,27 @@ const Header = () => {
     navigate('/', { replace: true });
   };
 
+  const handleNavClick = (e, sectionId) => {
+    e.preventDefault();
+    if (isDashboard) {
+      // If on dashboard, navigate to landing page with hash
+      navigate(`/#${sectionId}`);
+      // Small delay to allow page to load before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      // If already on landing page, scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   return (
     <header className="app-header">
       <div className="header-content">
@@ -38,9 +59,10 @@ const Header = () => {
           <img src={quizcraft} alt="QuizCraft Logo" className="logo-image" />
         </Link>
         <nav className="header-nav">
-          <a href="/#features" className="nav-link">Features</a>
-          <a href="/#about" className="nav-link">About</a>
-          <a href="/#how-it-works" className="nav-link">How It Works</a>
+          <a href="/#features" onClick={(e) => handleNavClick(e, 'features')} className="nav-link">Features</a>
+          <a href="/#about" onClick={(e) => handleNavClick(e, 'about')} className="nav-link">About</a>
+          <a href="/#how-it-works" onClick={(e) => handleNavClick(e, 'how-it-works')} className="nav-link">How It Works</a>
+          <Link to="/contact" className="nav-link">Contact</Link>
           {isLoggedIn ? (
             <>
               {isDashboard && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './LandingPage.css';
 import sallyImage from "../assets/sally.png";
 import quizcraft from "../assets/logo_quizcraft.png";
@@ -218,6 +218,44 @@ const LandingPage = () => {
     })();
   }, [navigate]);
 
+  // Scroll-triggered animations using Intersection Observer
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -100px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+        }
+      });
+    }, observerOptions);
+
+    // Observe all sections and feature cards
+    const sections = document.querySelectorAll('.about-section, .features-section, .how-it-works-section, .cta-section');
+    const cards = document.querySelectorAll('.feature-card, .step-card, .stat-item');
+    
+    sections.forEach(section => observer.observe(section));
+    cards.forEach(card => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Handle hash navigation on page load
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove the # symbol
+    if (hash) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
+  }, []);
+
   return (
     <>
       <Header />
@@ -237,14 +275,14 @@ const LandingPage = () => {
             </h1>
             <p className="hero-description">
               QuizCraft uses advanced AI to automatically generate high-quality multiple-choice questions, 
-              true/false questions, and fill-in-the-blanks from your PDFs, Word documents, and images. 
+              true/false questions, and fill-in-the-blanks from your PDFs and Word documents. 
               Save hours of manual work and create engaging learning materials instantly.
             </p>
             <div className="hero-features">
               <div className="feature-item">
                 <div>
                   <h3>Multi-Format Support</h3>
-                  <p>PDF, Word, PowerPoint & Images</p>
+                  <p>PDF & Word Documents</p>
                 </div>
               </div>
               <div className="feature-item">
@@ -458,16 +496,36 @@ const LandingPage = () => {
                   <div className="stat-number">95%</div>
                   <div className="stat-label">Accuracy Rate</div>
                 </div>
-                <div className="stat-card">
-                  <div className="stat-number">5+</div>
-                  <div className="stat-label">File Formats</div>
-                </div>
               </div>
             </div>
 
-            <div className="about-image">
-              <div className="image-placeholder">
-                <p>AI-Powered Learning</p>
+            <div className="team-showcase">
+              <h3 className="team-title">Meet Our Team</h3>
+              <div className="team-grid">
+                <div className="team-card">
+                  <div className="team-avatar">BK</div>
+                  <h4 className="team-name">Bipin Kuinkel</h4>
+                  <p className="team-role">Front-End Developer</p>
+                  <p className="team-description">User interface design, frontend development, interactive components, and documentation</p>
+                </div>
+                <div className="team-card">
+                  <div className="team-avatar">MJ</div>
+                  <h4 className="team-name">Mary Jain Joshy</h4>
+                  <p className="team-role">Full-Stack & Operations</p>
+                  <p className="team-description">Backend systems, frontend development, system integration, and production deployment</p>
+                </div>
+                <div className="team-card">
+                  <div className="team-avatar">GP</div>
+                  <h4 className="team-name">Greeshma Prasad</h4>
+                  <p className="team-role">Backend & AI Developer</p>
+                  <p className="team-description">AI integration, backend systems, UI wireframes, architecture design, and version control</p>
+                </div>
+                <div className="team-card">
+                  <div className="team-avatar">AR</div>
+                  <h4 className="team-name">Arya Reghu</h4>
+                  <p className="team-role">Authentication & Testing</p>
+                  <p className="team-description">Product conceptualization, Google OAuth, database setup, data flow handling, and presentations</p>
+                </div>
               </div>
             </div>
           </div>
@@ -552,7 +610,7 @@ const LandingPage = () => {
               <div className="step-content">
                 <h3>Upload Your Documents</h3>
                 <p>
-                  Upload PDFs, Word documents, PowerPoint presentations, or images. 
+                  Upload PDFs or Word documents. 
                   Our system supports multiple file formats and handles scanned documents with OCR.
                 </p>
               </div>
@@ -628,11 +686,9 @@ const LandingPage = () => {
           </div>
           
           <div className="footer-section">
-            <h4>Team</h4>
-            <p className="team-member">Mary Jain Joshy</p>
-            <p className="team-member">Arya Reghu</p>
-            <p className="team-member">Greeshma Prasad</p>
-            <p className="team-member">Bipin Kuinkel</p>
+            <h4>Contact</h4>
+            <a href="mailto:support@quizcraft.com">support@quizcraft.com</a>
+            <Link to="/contact">Contact Us</Link>
           </div>
         </div>
         

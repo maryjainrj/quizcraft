@@ -15,6 +15,7 @@ import "./App.css";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import LandingPage from "./components/LandingPage";
+import ContactPage from "./components/ContactPage";
 
 import DashboardLayout from "./components/DashboardLayout";
 import QuizzesPage from "./components/QuizzesPage";          // list of quizzes
@@ -181,6 +182,7 @@ function App() {
       <Routes>
         {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
