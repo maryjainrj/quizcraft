@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './LandingPage.css';
-import sallyImage from "../assets/sally.png";
+import heroImage from "../assets/hero.png";
 import quizcraft from "../assets/logo_quizcraft.png";
 import Header from "./Header";
 import Footer from "./Footer";

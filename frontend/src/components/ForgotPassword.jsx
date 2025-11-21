@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 import quizcraft from "../assets/logo_quizcraft.png";
-import sallyImage from "../assets/sally.png";
+import heroImage from "../assets/hero.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
