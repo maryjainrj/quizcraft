@@ -4,7 +4,7 @@ import { FaSearch, FaChevronDown } from 'react-icons/fa';
 import './Header.css';
 import quizcraft from "../assets/logo_quizcraft.png";
 
-const Header = () => {
+const Header = ({ searchQuery = '', onSearchChange = null }) => {
   const isLoggedIn = !!localStorage.getItem('token');
   const location = useLocation();
   const isDashboard = location.pathname.startsWith('/dashboard');
@@ -33,8 +33,16 @@ const Header = () => {
 
   const handleNavClick = (e, sectionId) => {
     e.preventDefault();
-    if (isDashboard) {
-      // If on dashboard, navigate to landing page with hash
+    const isOnLandingPage = location.pathname === '/';
+    
+    if (isOnLandingPage) {
+      // If already on landing page, scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      // If on any other page (dashboard, contact, etc.), navigate to landing page with hash
       navigate(`/#${sectionId}`);
       // Small delay to allow page to load before scrolling
       setTimeout(() => {
@@ -43,12 +51,6 @@ const Header = () => {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
-    } else {
-      // If already on landing page, scroll to section
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
     }
   };
 
@@ -65,9 +67,14 @@ const Header = () => {
           <Link to="/contact" className="nav-link">Contact</Link>
           {isLoggedIn ? (
             <>
-              {isDashboard && (
+              {isDashboard && location.pathname === '/dashboard' && onSearchChange && (
                 <div className="search-container">
-                  <input type="text" placeholder="Search..." />
+                  <input 
+                    type="text" 
+                    placeholder="Search quizzes..." 
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                  />
                   <FaSearch className="search-icon" />
                 </div>
               )}

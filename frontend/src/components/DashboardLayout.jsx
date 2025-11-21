@@ -5,9 +5,9 @@ import "./Auth.css";
 import quizcraftwhite from "../assets/logo_quizcraftwhite.png";
 import Footer from "./Footer";
 import Header from "./Header";
+import { useDonationStatus } from "../hooks/useDonationStatus";
 
-// Brand + sidebar icons
-import quizcraft from "../assets/logo_quizcraft.png";
+// Sidebar icons
 import dashboardImgPurple from "../assets/dashboardImgPurple.png";
 import dashboardImgWhite from "../assets/dashboardImgWhite.png";
 import exportQuizPurple from "../assets/exportQuizPurple.png";
@@ -15,7 +15,7 @@ import exportQuizWhite from "../assets/exportQuizWhite.png";
 import shareQuizPurple from "../assets/shareQuizPurple.png";
 import shareQuizWhite from "../assets/shareQuizWhite.png";
 
-import { FaSearch, FaChevronDown } from "react-icons/fa";
+const DONATE_URL = "/donate";
 
 const getDisplayName = () => {
   try {
@@ -105,7 +105,7 @@ const DashboardLayout = () => {
 
   return (
     <>
-      <Header />
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       <div className="dashboard-wrapper">
         {/* Sidebar */}
         <aside className="dashboard-sidebar">
@@ -115,7 +115,7 @@ const DashboardLayout = () => {
               className={`nav-btn ${isDashboard ? "active" : ""}`}
             >
               <img
-                src={dashboardImgWhite}
+                src={isDashboard ? dashboardImgPurple : dashboardImgWhite}
                 alt="Dashboard"
                 className="nav-icon"
               />
@@ -128,7 +128,7 @@ const DashboardLayout = () => {
               onClick={!canShareExport() ? handleDisabledClick : undefined}
             >
               <img
-                src={shareQuizWhite}
+                src={isShare ? shareQuizPurple : shareQuizWhite}
                 alt="Share Quiz"
                 className="nav-icon"
               />
@@ -141,7 +141,7 @@ const DashboardLayout = () => {
               onClick={!canShareExport() ? handleDisabledClick : undefined}
             >
               <img
-                src={exportQuizWhite}
+                src={isExport ? exportQuizPurple : exportQuizWhite}
                 alt="Export Quiz"
                 className="nav-icon"
               />
@@ -152,7 +152,7 @@ const DashboardLayout = () => {
 
         {/* Main Content */}
         <div className="dashboard-page">
-          <Outlet />
+          <Outlet context={{ searchQuery }} />
         </div>
 
         {/* Donate FAB */}

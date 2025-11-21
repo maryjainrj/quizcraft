@@ -1,6 +1,7 @@
 .contact-page {
   min-height: 100vh;
   background: #f7fafc;
+  padding-top: 0;
 }
 
 /* Header Styles */
@@ -46,19 +47,11 @@
 }
 
 .contact-nav-link:hover {
-  color: #40189D;
+  color: #2563eb;
 }
 
 .contact-nav-link-primary {
-  background: #40189D;
-  color: white;
-  padding: 0.625rem 1.5rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  transition: background 0.3s;
-  white-space: nowrap;
+  display: none; /* Hide since we're using Header component now */
 }
 
 .contact-nav-link-primary:hover {
@@ -67,7 +60,8 @@
 
 .contact-hero {
   max-width: 1200px;
-  margin: 3rem auto 3rem;
+  margin: 0 auto 3rem;
+  margin-top: 120px;
   text-align: center;
   padding: 0 2rem;
 }

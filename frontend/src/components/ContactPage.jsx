@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./ContactPage.css";
-import quizcraft from "../assets/logo_quizcraft.png";
+import Header from "./Header";
+import Footer from "./Footer";
 
 const ContactPage = () => {
   const navigate = useNavigate();
@@ -31,23 +32,7 @@ const ContactPage = () => {
   return (
     <div className="contact-page">
       {/* Header */}
-      <header className="contact-page-header">
-        <div className="contact-header-content">
-          <Link to="/" className="contact-logo-section">
-            <img src={quizcraft} alt="QuizCraft Logo" className="contact-logo-image" />
-          </Link>
-          <nav className="contact-nav">
-            <Link to="/" className="contact-nav-link">Home</Link>
-            <Link to="/#features" className="contact-nav-link">Features</Link>
-            <Link to="/#about" className="contact-nav-link">About</Link>
-            {isLoggedIn ? (
-              <Link to="/dashboard" className="contact-nav-link-primary">Dashboard</Link>
-            ) : (
-              <Link to="/login" className="contact-nav-link-primary">Login</Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <div className="contact-hero">
         <h1>Contact Us</h1>
@@ -126,6 +111,9 @@ const ContactPage = () => {
           </form>
         </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

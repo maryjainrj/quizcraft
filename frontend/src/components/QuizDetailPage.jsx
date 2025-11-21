@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "./ToastProvider";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -33,6 +34,8 @@ export default function QuizDetailPage() {
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showDeleteQuestion, setShowDeleteQuestion] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
 
   // edit mode - whole quiz
   const [isEditMode, setIsEditMode] = useState(false);
@@ -161,20 +164,43 @@ export default function QuizDetailPage() {
     const answers =
       rawQuestions.map((q) => {
         if (q && typeof q === "object") {
-          return (
-            q.correctAnswer ||
+          // For multiple-choice questions, find the correct answer from options
+          if (q.type === "multiple-choice" && Array.isArray(q.options)) {
+            const correctOption = q.options.find(opt => opt.is_correct === true);
+            if (correctOption && correctOption.option_text) {
+              return String(correctOption.option_text);
+            }
+          }
+          
+          // For true-false questions
+          if (q.type === "true-false" && q.correct_answer) {
+            return String(q.correct_answer);
+          }
+          
+          // For fill-in-blank or other formats
+          const answer = q.correctAnswer ||
+            q.correct_answer ||
             q.answer ||
             q.solution ||
             q.correct ||
             q.correctOption ||
-            ""
-          );
+            "";
+          return String(answer);
         }
         return "";
       }) || [];
 
     result.questions = questions;
     result.answers = answers;
+
+    // Debug: Log to check data structure
+    console.log('[QuizDetailPage] rawQuiz:', rawQuiz);
+    console.log('[QuizDetailPage] rawQuestions length:', rawQuestions.length);
+    if (rawQuestions.length > 0) {
+      console.log('[QuizDetailPage] Sample question object:', JSON.stringify(rawQuestions[0], null, 2));
+      console.log('[QuizDetailPage] Extracted questions:', questions.slice(0, 2));
+      console.log('[QuizDetailPage] Extracted answers:', answers.slice(0, 2));
+    }
 
     return result;
   }, [rawQuiz, state?.title]);
@@ -227,6 +253,10 @@ export default function QuizDetailPage() {
 
   // Enter edit mode
   const handleEnterEditMode = () => {
+    setEditedTitle(title);
+    setEditedDescription(rawQuiz?.description || "");
+    setEditedQuestions([...questions]);
+    setEditedAnswers([...answers]);
     setIsEditMode(true);
   };
 
@@ -382,6 +412,51 @@ export default function QuizDetailPage() {
     setSingleEditAnswer("");
   };
 
+  // Handle individual question deletion
+  const handleDeleteQuestion = async () => {
+    if (questionToDelete === null) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("You are not logged in.");
+        return;
+      }
+
+      const updatedQuestions = questions.filter((_, i) => i !== questionToDelete);
+      const updatedAnswers = answers.filter((_, i) => i !== questionToDelete);
+      const updatedData = updatedQuestions.map((q, i) => ({
+        questionText: q,
+        correctAnswer: updatedAnswers[i] || ""
+      }));
+
+      const res = await fetch(`${API_BASE}/api/questionsets/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ questions: updatedData }),
+      });
+
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message || "Failed to delete question");
+      }
+
+      setRawQuiz((prev) => ({
+        ...prev,
+        originalQuestionsJSON: JSON.stringify(updatedData)
+      }));
+
+      setShowDeleteQuestion(false);
+      setQuestionToDelete(null);
+      toast.success("Question deleted successfully!");
+    } catch (e) {
+      toast.error(e.message || "Failed to delete question");
+    }
+  };
+
   return (
     <section>
       {/* Header + actions */}
@@ -529,27 +604,29 @@ export default function QuizDetailPage() {
                               onClick={() => handleEditSingleQuestion(idx)}
                               title="Edit"
                             >
-                              ✎
+                              <FiEdit2 />
                             </button>
                             <button 
                               className="action-btn delete-btn"
                               aria-label="Delete question"
                               title="Delete"
+                              onClick={() => {
+                                setQuestionToDelete(idx);
+                                setShowDeleteQuestion(true);
+                              }}
                             >
-                              🗑
+                              <FiTrash2 />
                             </button>
                           </>
                         )}
                       </div>
                     </div>
                     
-                    {/* Options - Show from answers if available */}
+                    {/* Show correct answer when not in edit mode */}
                     {!isEditMode && answers[idx] && (
-                      <div className="options-container">
-                        <div className="option">
-                          <span className="option-label">Correct Answer:</span>
-                          <span className="option-text">{answers[idx]}</span>
-                        </div>
+                      <div className="answer-display" style={{ marginTop: "12px", padding: "10px", backgroundColor: "#f0fdf4", borderLeft: "3px solid #22c55e", borderRadius: "4px" }}>
+                        <span style={{ fontWeight: "600", color: "#15803d", fontSize: "14px" }}>Correct Answer: </span>
+                        <span style={{ color: "#166534" }}>{answers[idx]}</span>
                       </div>
                     )}
 
@@ -575,30 +652,44 @@ export default function QuizDetailPage() {
                 </div>
               )}
             </div>
-            <ul className="question-list">
-              {questions.map((q, idx) => (
-                <li key={idx} className="question-row">
-                  <span className="q-index">{idx + 1}.</span>
-                  <span className="q-text">{q}</span>
-                  <button className="kebab" aria-label="More actions">
-                    ⋮
-                  </button>
-                </li>
-              ))}
-              {questions.length === 0 && (
-                <li className="question-row">
-                  <span className="q-text">
-                    No questions were stored for this quiz.
-                  </span>
-                </li>
-              )}
-            </ul>
+
+            {/* Edit Mode Actions */}
+            {isEditMode && (
+              <div className="edit-mode-actions" style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                <button
+                  className="primary-btn"
+                  onClick={handleSaveEdit}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save All Changes"}
+                </button>
+                <button
+                  className="secondary-btn"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Edit Button - Show when not in edit mode */}
+            {!isEditMode && (
+              <div style={{ marginTop: "20px" }}>
+                <button
+                  className="primary-btn"
+                  onClick={handleEnterEditMode}
+                >
+                  Edit Quiz
+                </button>
+              </div>
+            )}
           </div>
 
           {/* View Answers */}
           <div className="panel">
             <div className="panel__header">
-              <h3>View Answers</h3>
+              <h3>Answer Key</h3>
               <button
                 className="chevron"
                 aria-label="Toggle answers"
@@ -610,21 +701,21 @@ export default function QuizDetailPage() {
 
             {showAnswers && (
               <ul className="question-list">
-                {answers.map((a, idx) => (
+                {questions.map((q, idx) => (
                   <li key={idx} className="question-row">
                     <span className="q-index">{idx + 1}.</span>
-                    <span className="q-text">
-                      {a || "(No answer stored for this question)"}
-                    </span>
-                    <button className="kebab" aria-label="More actions">
-                      ⋮
-                    </button>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ marginBottom: "8px", color: "#4b5563", fontSize: "14px" }}>{q}</div>
+                      <div style={{ padding: "8px", backgroundColor: "#f0fdf4", borderRadius: "4px", color: "#166534", fontWeight: "500" }}>
+                        {answers[idx] || "(No answer stored)"}
+                      </div>
+                    </div>
                   </li>
                 ))}
-                {answers.length === 0 && (
+                {questions.length === 0 && (
                   <li className="question-row">
                     <span className="q-text">
-                      No answers were stored for this quiz.
+                      No questions were stored for this quiz.
                     </span>
                   </li>
                 )}
@@ -653,7 +744,7 @@ export default function QuizDetailPage() {
             <div className="export-list">
               <button
                 className="export-item"
-                onClick={() => alert("Export questions (stub)")}
+                onClick={() => toast.info("Export questions feature coming soon")}
               >
                 <div className="export-icon">📄</div>
                 <div className="export-body">
@@ -666,7 +757,7 @@ export default function QuizDetailPage() {
               </button>
               <button
                 className="export-item"
-                onClick={() => alert("Export answers (stub)")}
+                onClick={() => toast.info("Export answers feature coming soon")}
               >
                 <div className="export-icon">📄</div>
                 <div className="export-body">
@@ -748,6 +839,38 @@ export default function QuizDetailPage() {
               </button>
               <button className="danger-btn" onClick={handleDelete}>
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Question Confirm Modal */}
+      {showDeleteQuestion && (
+        <div className="modal-overlay" onClick={() => setShowDeleteQuestion(false)}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="modal-title">Delete Question?</h3>
+            <p className="modal-subtitle">
+              Are you sure you want to delete this question? This action cannot be undone.
+            </p>
+
+            <div className="modal-actions">
+              <button
+                className="secondary-btn"
+                onClick={() => {
+                  setShowDeleteQuestion(false);
+                  setQuestionToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button className="danger-btn" onClick={handleDeleteQuestion}>
+                Delete Question
               </button>
             </div>
           </div>

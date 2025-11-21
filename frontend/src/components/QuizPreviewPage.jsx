@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { saveQuestionSetToDB, fetchMyQuestionSets } from '../services/quizER';
-import { useLocation, useNavigate } from "react-router-dom";
-import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload, FiCheck, FiX, FiShare2 } from "react-icons/fi";
+// src/pages/QuizPreviewPage.jsx
+import React, { useState, useEffect, useMemo } from "react";
+import { saveQuestionSetToDB } from '../services/quizER';
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import { FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiDownload, FiCheck, FiX } from "react-icons/fi";
 import jsPDF from 'jspdf';
 import QuizNameModal from '../components/QuizNameModal';
-import { useToast } from './ToastProvider';
+import { useToast } from '../components/ToastProvider';
 
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { searchQuery } = useOutletContext() || { searchQuery: "" }; // ✅ GET SEARCH FROM CONTEXT
   const toast = useToast();
+  
   const [showAnswers, setShowAnswers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -236,23 +239,11 @@ const QuizPreviewPage = () => {
     setShowNameModal(false);
 
     try {
-      // Check if a quiz with this name already exists
-      const existingQuizzes = await fetchMyQuestionSets();
-      const duplicateExists = existingQuizzes.some(
-        quiz => quiz.title.toLowerCase() === quizName.toLowerCase()
-      );
-
-      if (duplicateExists) {
-        toast.error(`A quiz named "${quizName}" already exists. Please choose a different name.`);
-        setSaving(false);
-        setShowNameModal(true);
-        return;
-      }
-
       const pdfUrl = await uploadPDF();
       await saveQuestionSetToDB(quizName, localQuestions, fileNames, extractedTexts, settings, pdfUrl);
       
       toast.success('Quiz and PDF saved successfully!');
+      // Stay on the preview page instead of navigating away
     } catch (err) {
       console.error("Save failed:", err);
       toast.error('Failed to save quiz: ' + (err.message || 'Unknown error'));
@@ -292,7 +283,60 @@ const QuizPreviewPage = () => {
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
 
-
+      {/* Display generation settings */}
+      {settings && Object.keys(settings).length > 0 && (
+        <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-xl shadow-sm">
+          <h3 className="text-base font-bold text-indigo-900 mb-3">
+            General Settings
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {settings.difficulty && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Difficulty</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.difficulty}</span>
+              </div>
+            )}
+            {settings.focusArea && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Focus Area</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.focusArea}</span>
+              </div>
+            )}
+            {settings.answerFormat && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Answer Format</span>
+                <span className="text-sm font-semibold text-indigo-900 capitalize">{settings.answerFormat}</span>
+              </div>
+            )}
+            {settings.pageRange && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200">
+                <span className="text-xs text-gray-500 block mb-1">Page Filter</span>
+                <span className="text-sm font-semibold text-indigo-900">{settings.pageRange}</span>
+              </div>
+            )}
+            {settings.keywords && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
+                <span className="text-xs text-gray-500 block mb-1">Keywords</span>
+                <span className="text-sm font-semibold text-indigo-900">{settings.keywords}</span>
+              </div>
+            )}
+            {settings.excludeTopics && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 sm:col-span-2">
+                <span className="text-xs text-gray-500 block mb-1">Excluded Topics</span>
+                <span className="text-sm font-semibold text-red-600">{settings.excludeTopics}</span>
+              </div>
+            )}
+            {settings.sourcePages && settings.sourcePages.length > 0 && (
+              <div className="bg-white px-3 py-2 rounded-lg border border-blue-200 col-span-full">
+                <span className="text-xs text-gray-500 block mb-1">Source Pages Used</span>
+                <span className="text-sm font-semibold text-indigo-900">
+                  {settings.sourcePages.length} pages: {settings.sourcePages.join(', ')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ✅ SEARCH RESULTS COUNTER */}
       {searchQuery.trim() && (
@@ -403,9 +447,18 @@ const QuizPreviewPage = () => {
                     ) : (
                       <>
                         {/*  HIGHLIGHTED QUESTION TEXT */}
-                        <p className="text-gray-900 font-medium mb-3 text-base leading-relaxed text-left">
+                        <p className="text-gray-900 font-medium mb-2 text-base leading-relaxed text-left">
                           {highlightText(q.question, searchQuery)}
                         </p>
+
+                        {/* Display source pages for this question */}
+                        {q.sourcePages && Array.isArray(q.sourcePages) && q.sourcePages.length > 0 && (
+                          <div className="mb-3">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              From page{q.sourcePages.length > 1 ? 's' : ''}: {q.sourcePages.join(', ')}
+                            </span>
+                          </div>
+                        )}
 
                         {q.type === "multiple-choice" && q.options && (
                           <ul className="space-y-2 text-sm text-gray-700">
@@ -482,71 +535,12 @@ const QuizPreviewPage = () => {
                         </button>
                       </>
                     )}
-
-                    {q.type === "true-false" && (
-                      <div className="flex justify-start gap-8 mt-4 mb-2">
-                        <label className="flex items-center gap-3 cursor-pointer group py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
-                          <span className="w-6 h-6 border-[3px] border-gray-400 rounded-full flex items-center justify-center group-hover:border-gray-600 transition-colors flex-shrink-0">
-                            <span className="w-0 h-0 bg-purple-600 rounded-full group-hover:w-3 group-hover:h-3 transition-all"></span>
-                          </span>
-                          <span className="text-base font-medium text-gray-700">True</span>
-                        </label>
-                        <label className="flex items-center gap-3 cursor-pointer group py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
-                          <span className="w-6 h-6 border-[3px] border-gray-400 rounded-full flex items-center justify-center group-hover:border-gray-600 transition-colors flex-shrink-0">
-                            <span className="w-0 h-0 bg-purple-600 rounded-full group-hover:w-3 group-hover:h-3 transition-all"></span>
-                          </span>
-                          <span className="text-base font-medium text-gray-700">False</span>
-                        </label>
-                      </div>
-                    )}
-
-                    {q.type === "fill-in-blank" && (
-                      <div className="ml-6 mt-2">
-                        <div className="w-full max-w-md h-10 border-2 border-dashed border-gray-300 rounded-md bg-gray-50 relative">
-                          <div className="absolute bottom-2 left-3 right-3 h-[2px] bg-gradient-to-r from-gray-300 via-transparent to-gray-300 opacity-50"></div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="flex gap-2 flex-shrink-0">
-                {i === editingIndex ? (
-                  <>
-                    <button
-                      onClick={handleEditSave}
-                      className="text-green-600 hover:text-green-800 transition p-2 rounded hover:bg-green-50"
-                    >
-                      <FiCheck size={18} />
-                    </button>
-                    <button
-                      onClick={handleEditCancel}
-                      className="text-gray-600 hover:text-gray-800 transition p-2 rounded hover:bg-gray-50"
-                    >
-                      <FiX size={18} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleEditStart(i)}
-                      className="text-blue-600 hover:text-blue-800 transition p-2 rounded hover:bg-blue-50"
-                    >
-                      <FiEdit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(i)}
-                      className="text-red-600 hover:text-red-800 transition p-2 rounded hover:bg-red-50"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Answers Section */}
@@ -608,10 +602,7 @@ const QuizPreviewPage = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2.5 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#40189D', boxShadow: '0 4px 14px 0 rgba(64, 24, 157, 0.39)' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2E1270'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#40189D'}
+            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : 'Save Quiz'}
           </button>
