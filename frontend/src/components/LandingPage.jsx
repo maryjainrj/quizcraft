@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './LandingPage.css';
-import sallyImage from "../assets/sally.png";
+import heroImage from "../assets/hero.png";
 import quizcraft from "../assets/logo_quizcraft.png";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -304,7 +304,7 @@ const LandingPage = () => {
           <div className="auth-container">
             <div className="auth-card">
               <div className="auth-image-section">
-                <img src={sallyImage} alt="QuizCraft Mascot" className="sally-image" />
+                <img src={heroImage} alt="QuizCraft Mascot" className="sally-image" />
               </div>
               
               {err && <div className="error-message">{err}</div>}

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 import quizcraft from "../assets/logo_quizcraft.png";
-import sallyImage from "../assets/Sally.png";
+import heroImage from "../assets/hero.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -418,7 +418,7 @@ const Login = () => {
 
       {/* Right side - Image */}
       <div className="auth-right">
-        <img src={sallyImage} alt="Illustration" />
+        <img src={heroImage} alt="Illustration" />
       </div>
     </div>
   );
