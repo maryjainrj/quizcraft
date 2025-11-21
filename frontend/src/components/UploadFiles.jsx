@@ -20,11 +20,6 @@ const WORD_MIMES = new Set([
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
-const PPT_MIMES = new Set([
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-]);
-const IMG_PREFIX = "image/";
 
 function isPdf(file) {
   const name = (file.name || "").toLowerCase();
@@ -38,23 +33,8 @@ function isWord(file) {
     name.endsWith(".docx")
   );
 }
-function isPpt(file) {
-  const name = (file.name || "").toLowerCase();
-  return (
-    PPT_MIMES.has(file.type) ||
-    name.endsWith(".ppt") ||
-    name.endsWith(".pptx")
-  );
-}
-function isImage(file) {
-  const name = (file.name || "").toLowerCase();
-  return (
-    (file.type && file.type.startsWith(IMG_PREFIX)) ||
-    /\.(png|jpe?g|webp|bmp)$/i.test(name)
-  );
-}
 function isAllowed(file) {
-  return isPdf(file) || isWord(file) || isPpt(file) || isImage(file);
+  return isPdf(file) || isWord(file);
 }
 
 // ------- Page Range Filtering -------
@@ -273,7 +253,7 @@ export default function UploadFiles() {
     }
   };
 
-  // -------- FRONTEND VALIDATION (PDF, DOC/DOCX, PPT/PPTX, images) --------
+  // -------- FRONTEND VALIDATION (PDF, DOC/DOCX) --------
   const handleFileSelect = (selectedFiles) => {
     const incoming = Array.from(selectedFiles || []);
     const validationErrors = [];
@@ -281,7 +261,7 @@ export default function UploadFiles() {
     incoming.forEach((file) => {
       if (!isAllowed(file)) {
         validationErrors.push(
-          `Invalid file type for "${file.name}". Allowed: PDF, Word (.doc/.docx), PowerPoint (.ppt/.pptx), or images (PNG/JPG/JPEG/WEBP/BMP).`
+          `Invalid file type for "${file.name}". Allowed: PDF or Word (.doc/.docx).`
         );
       }
       if (file.size > MAX_BYTES) {
@@ -311,17 +291,10 @@ export default function UploadFiles() {
         },
       }));
 
-      if (isImage(file)) {
-        const reader = new FileReader();
-        reader.onload = (e) =>
-          setPreviews((p) => ({ ...p, [fileName]: e.target.result }));
-        reader.readAsDataURL(file);
-      } else if (isPdf(file)) {
+      if (isPdf(file)) {
         setPreviews((p) => ({ ...p, [fileName]: "pdf" }));
       } else if (isWord(file)) {
         setPreviews((p) => ({ ...p, [fileName]: "doc" }));
-      } else if (isPpt(file)) {
-        setPreviews((p) => ({ ...p, [fileName]: "ppt" }));
       } else {
         setPreviews((p) => ({ ...p, [fileName]: null }));
       }
@@ -370,7 +343,7 @@ export default function UploadFiles() {
           }
         }
 
-        // For Word, PowerPoint, Images (and PDF fallback), use backend extractor
+        // For Word (and PDF fallback), use backend extractor
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch(`${API_BASE}/api/upload`, {
@@ -446,10 +419,8 @@ export default function UploadFiles() {
     <section className="flow">
       <header className="flow__header">
         <h2 className="flow__title">Upload Files</h2>
-        <p className="flow__subtitle">
-          Upload <strong>PDF</strong>, <strong>Word</strong> (.doc/.docx),{" "}
-          <strong>PowerPoint</strong> (.ppt/.pptx), or{" "}
-          <strong>Images</strong> (PNG/JPG/JPEG/WEBP/BMP).
+        <p className="subtitle">
+          Upload <strong>PDF</strong> or <strong>Word</strong> (.doc/.docx) files.
         </p>
       </header>
 
@@ -474,7 +445,7 @@ export default function UploadFiles() {
           </label>
         </p>
         <p className="upload-dropzone__hint">
-          Max {MAX_MB} MB. Allowed: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp, .bmp
+          Max {MAX_MB} MB. Allowed: .pdf, .doc, .docx
         </p>
         <input
           ref={fileInputRef}
@@ -487,19 +458,6 @@ export default function UploadFiles() {
             ".docx",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ".ppt",
-            ".pptx",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".webp",
-            ".bmp",
-            "image/png",
-            "image/jpeg",
-            "image/webp",
-            "image/bmp",
           ].join(",")}
           multiple
           onChange={onBrowse}
@@ -517,16 +475,8 @@ export default function UploadFiles() {
               <span className="file-item__size">{formatSize(f.size)}</span>
 
               {/* Thumbnails/badges */}
-              {previews[f.name] && typeof previews[f.name] === "string" && previews[f.name].startsWith("data:") && (
-                <img
-                  src={previews[f.name]}
-                  alt="Preview"
-                  style={{ maxWidth: 50, maxHeight: 50, borderRadius: 6 }}
-                />
-              )}
               {previews[f.name] === "pdf" && <span className="badge">PDF</span>}
               {previews[f.name] === "doc" && <span className="badge">DOC</span>}
-              {previews[f.name] === "ppt" && <span className="badge">PPT</span>}
 
               <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: "auto" }}>
                 Remove

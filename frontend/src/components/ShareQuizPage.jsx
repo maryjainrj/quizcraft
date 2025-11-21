@@ -4,6 +4,8 @@ import jsPDF from "jspdf";
 import { FiX, FiCopy, FiCheck, FiShare2 } from "react-icons/fi";
 import quizcraftwhite from "../assets/logo_quizcraft.png";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+
 const ShareQuizPage = () => {
   const navigate = useNavigate();
 
@@ -116,7 +118,7 @@ const ShareQuizPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/upload-pdf", {
+      const res = await fetch(`${API_BASE}/api/upload-pdf`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

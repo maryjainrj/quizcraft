@@ -3,10 +3,11 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import "./Auth.css";
 import quizcraftwhite from "../assets/logo_quizcraftwhite.png";
-import { useDonationStatus } from '../hooks/useDonationStatus';
+import Footer from "./Footer";
+import Header from "./Header";
+import { useDonationStatus } from "../hooks/useDonationStatus";
 
-// Brand + sidebar icons
-import quizcraft from "../assets/logo_quizcraft.png";
+// Sidebar icons
 import dashboardImgPurple from "../assets/dashboardImgPurple.png";
 import dashboardImgWhite from "../assets/dashboardImgWhite.png";
 import exportQuizPurple from "../assets/exportQuizPurple.png";
@@ -14,7 +15,7 @@ import exportQuizWhite from "../assets/exportQuizWhite.png";
 import shareQuizPurple from "../assets/shareQuizPurple.png";
 import shareQuizWhite from "../assets/shareQuizWhite.png";
 
-import { FaSearch, FaChevronDown } from "react-icons/fa";
+const DONATE_URL = "/donate";
 
 const getDisplayName = () => {
   try {
@@ -62,121 +63,111 @@ const DashboardLayout = () => {
   const isDashboard = location.pathname === "/dashboard";
   const isShare = location.pathname.startsWith("/dashboard/sharequiz");
   const isExport = location.pathname.startsWith("/dashboard/exportquiz");
+  const isQuizPreview = location.pathname.includes("/dashboard/quiz/") || 
+                        location.pathname.includes("/quiz-preview") ||
+                        location.pathname === "/dashboard/quiz-preview";
+  const isNewQuiz = location.pathname.startsWith("/dashboard/new");
+  
+  // Enable Share/Export only when:
+  // 1. On quiz preview page OR
+  // 2. On dashboard main page with saved quiz OR
+  // 3. Already on share/export page
+  const canShareExport = () => {
+    if (isShare || isExport) return true; // Already on these pages
+    if (isQuizPreview) return true; // Viewing a specific quiz or preview
+    if (isNewQuiz) return false; // Creating new quiz
+    
+    // On dashboard - check if there's a saved quiz
+    if (isDashboard) {
+      try {
+        const lastQuiz = localStorage.getItem("lastQuiz");
+        if (!lastQuiz) return false;
+        const quiz = JSON.parse(lastQuiz);
+        return quiz.questions && quiz.questions.length > 0;
+      } catch {
+        return false;
+      }
+    }
+    
+    return false;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionExpiry");
+    navigate("/", { replace: true });
+  };
+
+  const handleDisabledClick = (e) => {
+    e.preventDefault();
+  };
 
   return (
-    <div className="dashboard-page">
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar">
-        <div className="auth-logo">
-          <img src={quizcraftwhite} style={{ width: '120px', height: 'auto' }} alt="QuizzCraft logo" />
-        </div>
-        <nav className="sidebar-nav">
-          <Link
-            to="/dashboard"
-            className={`nav-btn ${isDashboard ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isDashboard ? dashboardImgPurple : dashboardImgWhite}
-              alt=""
-            />
-            <span>Dashboard</span>
-          </Link>
+    <>
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <div className="dashboard-wrapper">
+        {/* Sidebar */}
+        <aside className="dashboard-sidebar">
+          <nav className="sidebar-nav">
+            <Link
+              to="/dashboard"
+              className={`nav-btn ${isDashboard ? "active" : ""}`}
+            >
+              <img
+                src={isDashboard ? dashboardImgPurple : dashboardImgWhite}
+                alt="Dashboard"
+                className="nav-icon"
+              />
+              <span>My Quizzes</span>
+            </Link>
 
-          <Link
-            to="/dashboard/sharequiz"
-            className={`nav-btn ${isShare ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isShare ? shareQuizPurple : shareQuizWhite}
-              alt=""
-            />
-            <span>Share Quiz</span>
-          </Link>
+            <Link
+              to="/dashboard/sharequiz"
+              className={`nav-btn ${isShare ? "active" : ""} ${!canShareExport() ? "disabled" : ""}`}
+              onClick={!canShareExport() ? handleDisabledClick : undefined}
+            >
+              <img
+                src={isShare ? shareQuizPurple : shareQuizWhite}
+                alt="Share Quiz"
+                className="nav-icon"
+              />
+              <span>Share Quiz</span>
+            </Link>
 
-          <Link
-            to="/dashboard/exportquiz"
-            className={`nav-btn ${isExport ? "active" : ""}`}
-          >
-            <img
-              className="nav-icon"
-              src={isExport ? exportQuizPurple : exportQuizWhite}
-              alt=""
-            />
-            <span>Export Quiz</span>
-          </Link>
-        </nav>
-      </aside>
+            <Link
+              to="/dashboard/exportquiz"
+              className={`nav-btn ${isExport ? "active" : ""} ${!canShareExport() ? "disabled" : ""}`}
+              onClick={!canShareExport() ? handleDisabledClick : undefined}
+            >
+              <img
+                src={isExport ? exportQuizPurple : exportQuizWhite}
+                alt="Export Quiz"
+                className="nav-icon"
+              />
+              <span>Export Quiz</span>
+            </Link>
+          </nav>
+        </aside>
 
-      {/* Main */}
-      <div className="dashboard-main">
-        {/* Header */}
-        <header className="dashboard-header">
-          <div className="header-brand">
-            <img src={quizcraft} alt="QuizCraft" className="header-logo" />
-          </div>
-
-          <div className="search-container">
-            <input 
-              type="text" 
-              placeholder="Search quizzes..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <FaSearch className="search-icon" />
-          </div>
-
-          <div
-            className="profile-container"
-            onClick={() => setShowDropdown(!showDropdown)}
-          >
-            <span className="username">{displayName}</span>
-            <FaChevronDown className="dropdown-icon" />
-            {showDropdown && (
-              <div className="dropdown-menu">
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    localStorage.removeItem("sessionExpiry");
-                    navigate("/login", { replace: true });
-                  }}
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Pass searchQuery to child routes */}
-        <main className="dashboard-content">
+        {/* Main Content */}
+        <div className="dashboard-page">
           <Outlet context={{ searchQuery }} />
-        </main>
-      </div>
+        </div>
 
-      {/* Floating Donate Button */}
-      <button
-        className="donate-fab"
-        aria-label="Donate to support QuizCraft"
-        onClick={() => navigate("/donate")}
-        title={donationStatus.hasDonated ? `Thank you! ${donationStatus.daysRemaining} days remaining` : "Support QuizCraft"}
-        style={{
-          background: donationStatus.hasDonated ? '#4caf50' : '#40189D',
-          cursor: donationStatus.hasDonated ? 'default' : 'pointer',
-        }}
-      >
-        <span className="donate-fab__emoji" aria-hidden="true">
-          {donationStatus.hasDonated ? '✓' : '💜'}
-        </span>
-        <span className="donate-fab__text">
-          {donationStatus.hasDonated 
-            ? `${donationStatus.packageLabel} (${donationStatus.daysRemaining}d)` 
-            : 'Donate'}
-        </span>
-      </button>
-    </div>
+        {/* Donate FAB */}
+        <a
+          href={DONATE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="donate-fab"
+          title="Support QuizCraft"
+        >
+          <span style={{ color: '#9D6CFF' }}>❤️</span> Donate
+        </a>
+      </div>
+      <Footer />
+    </>
   );
 };
 

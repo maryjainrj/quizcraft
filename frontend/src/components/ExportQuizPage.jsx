@@ -15,7 +15,7 @@ const ExportQuizPage = () => {
   const [includeAnswers, setIncludeAnswers] = useState(false);
 
   // Generate PDF
-  const generatePDF = () => {
+  const generatePDF = (withAnswers) => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -74,7 +74,7 @@ const ExportQuizPage = () => {
       }
 
       // Answer
-      if (includeAnswers) {
+      if (withAnswers) {
         let answer = "";
         if (q.type === "multiple-choice") {
           const idx = q.options?.findIndex(
@@ -112,7 +112,7 @@ const ExportQuizPage = () => {
       doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: "center" });
     }
 
-    const suffix = includeAnswers ? "answers" : "questions";
+    const suffix = withAnswers ? "answers" : "questions";
     doc.save(`QuizCraft_${suffix}.pdf`);
   };
 
@@ -147,8 +147,7 @@ const ExportQuizPage = () => {
 
         <button
           onClick={() => {
-            setIncludeAnswers(false);
-            setTimeout(generatePDF, 100);
+            generatePDF(false);
           }}
           className="w-full flex items-center justify-between bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg p-4 mb-3 transition-all group"
         >
@@ -161,8 +160,7 @@ const ExportQuizPage = () => {
 
         <button
           onClick={() => {
-            setIncludeAnswers(true);
-            setTimeout(generatePDF, 100);
+            generatePDF(true);
           }}
           className="w-full flex items-center justify-between bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg p-4 transition-all group"
         >

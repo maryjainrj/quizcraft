@@ -159,14 +159,15 @@
 }
 
 .save-btn {
-  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  background: #40189D;
   color: white;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 4px 14px 0 rgba(64, 24, 157, 0.39);
 }
 
 .save-btn:hover {
+  background: #2E1270;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 20px 0 rgba(64, 24, 157, 0.5);
 }
 
 .save-btn:active {

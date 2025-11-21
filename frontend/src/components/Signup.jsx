@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 import quizcraft from "../assets/logo_quizcraft.png";
-import sallyImage from "../assets/sally.png";
+import sallyImage from "../assets/Sally.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
