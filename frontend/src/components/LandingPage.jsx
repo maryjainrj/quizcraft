@@ -304,7 +304,7 @@ const LandingPage = () => {
           <div className="auth-container">
             <div className="auth-card">
               <div className="auth-image-section">
-                <img src={sallyImage} alt="QuizCraft Mascot" className="sally-image" />
+                <img src={heroImage} alt="QuizCraft Mascot" className="sally-image" />
               </div>
               
               {err && <div className="error-message">{err}</div>}

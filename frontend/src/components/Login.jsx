@@ -418,7 +418,7 @@ const Login = () => {
 
       {/* Right side - Image */}
       <div className="auth-right">
-        <img src={sallyImage} alt="Illustration" />
+        <img src={heroImage} alt="Illustration" />
       </div>
     </div>
   );

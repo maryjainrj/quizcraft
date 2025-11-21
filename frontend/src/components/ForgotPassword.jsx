@@ -146,7 +146,7 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      <div className="auth-right"><img src={sallyImage} alt="Illustration" /></div>
+      <div className="auth-right"><img src={heroImage} alt="Illustration" /></div>
     </div>
   );
 }
