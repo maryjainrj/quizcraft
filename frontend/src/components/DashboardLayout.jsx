@@ -1,3 +1,4 @@
+// DashboardLayout.jsx
 import React, { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
@@ -17,79 +18,110 @@ import shareQuizWhite from "../assets/shareQuizWhite.png";
 
 const DONATE_URL = "/donate";
 
-const getDisplayName = () => {
-  try {
-    const u = JSON.parse(localStorage.getItem("user") || "{}");
-    return (
-      u?.name ||
-      u?.username ||
-      (u?.email ? String(u.email).split("@")[0] : "") ||
-      "User"
-    );
-  } catch {
-    return "User";
-  }
-};
-
 const DashboardLayout = () => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // Add search state
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = checking
+  const [displayName, setDisplayName] = useState("User");
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const location = useLocation();
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState(getDisplayName);
-  const { donationStatus, isLoading } = useDonationStatus();
+  const { donationStatus, isLoading: donationLoading } = useDonationStatus();
 
+  // Step 1: Validate session on mount
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const expiry = Number(localStorage.getItem("sessionExpiry") || 0);
-    if (expiry && Date.now() > expiry) {
+    const now = Date.now();
+
+    if (!token || (expiry && now > expiry)) {
+      // Invalid or expired session → force logout
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("sessionExpiry");
+      localStorage.removeItem("lastQuiz"); // optional: clean up
       navigate("/login", { replace: true });
+      setIsAuthenticated(false);
+      return;
+    }
+
+    // Valid session
+    setIsAuthenticated(true);
+
+    // Safely get display name only if authenticated
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const name =
+        user?.name ||
+        user?.username ||
+        (user?.email ? user.email.split("@")[0] : "") ||
+        "User";
+      setDisplayName(name);
+    } catch (e) {
+      setDisplayName("User");
     }
   }, [navigate]);
 
+  // Step 2: Listen for storage changes (e.g. logout in another tab)
   useEffect(() => {
-    const onStorage = () => setDisplayName(getDisplayName());
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+    const handleStorageChange = () => {
+      if (!localStorage.getItem("token")) {
+        navigate("/login", { replace: true });
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [navigate]);
 
-  // Clear search when route changes
+  // Clear search on route change
   useEffect(() => {
     setSearchQuery("");
   }, [location.pathname]);
 
+  // Step 3: Show loading until auth is confirmed
+  if (isAuthenticated === null) {
+    return (
+      <div className="auth-loading-screen">
+        <div className="loader">
+          <img src={quizcraftwhite} alt="QuizCraft" style={{ height: 50 }} />
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If somehow not authenticated (shouldn't happen)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // Step 4: Helper to check if Share/Export should be enabled
   const isDashboard = location.pathname === "/dashboard";
   const isShare = location.pathname.startsWith("/dashboard/sharequiz");
   const isExport = location.pathname.startsWith("/dashboard/exportquiz");
-  const isQuizPreview = location.pathname.includes("/dashboard/quiz/") || 
+  const isQuizPreview = location.pathname.includes("/dashboard/quiz/") ||
                         location.pathname.includes("/quiz-preview") ||
                         location.pathname === "/dashboard/quiz-preview";
   const isNewQuiz = location.pathname.startsWith("/dashboard/new");
-  
-  // Enable Share/Export only when:
-  // 1. On quiz preview page OR
-  // 2. On dashboard main page with saved quiz OR
-  // 3. Already on share/export page
+
   const canShareExport = () => {
-    if (isShare || isExport) return true; // Already on these pages
-    if (isQuizPreview) return true; // Viewing a specific quiz or preview
-    if (isNewQuiz) return false; // Creating new quiz
-    
-    // On dashboard - check if there's a saved quiz
+    if (isShare || isExport || isQuizPreview) return true;
+    if (isNewQuiz) return false;
+
     if (isDashboard) {
       try {
         const lastQuiz = localStorage.getItem("lastQuiz");
         if (!lastQuiz) return false;
         const quiz = JSON.parse(lastQuiz);
-        return quiz.questions && quiz.questions.length > 0;
+        return quiz?.questions?.length > 0;
       } catch {
         return false;
       }
     }
-    
     return false;
+  };
+
+  const handleDisabledClick = (e) => {
+    e.preventDefault();
   };
 
   const handleLogout = () => {
@@ -99,13 +131,15 @@ const DashboardLayout = () => {
     navigate("/", { replace: true });
   };
 
-  const handleDisabledClick = (e) => {
-    e.preventDefault();
-  };
-
   return (
     <>
-      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <Header
+        displayName={displayName}
+        onLogout={handleLogout}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
       <div className="dashboard-wrapper">
         {/* Sidebar */}
         <aside className="dashboard-sidebar">
@@ -150,7 +184,7 @@ const DashboardLayout = () => {
           </nav>
         </aside>
 
-        {/* Main Content */}
+        {/* Main Content Area */}
         <div className="dashboard-page">
           <Outlet context={{ searchQuery }} />
         </div>
@@ -161,11 +195,12 @@ const DashboardLayout = () => {
           target="_blank"
           rel="noopener noreferrer"
           className="donate-fab"
-          title="Support QuizCraft"
+          title="Support QuizCraft ❤️"
         >
           <span style={{ color: '#9D6CFF' }}>❤️</span> Donate
         </a>
       </div>
+
       <Footer />
     </>
   );

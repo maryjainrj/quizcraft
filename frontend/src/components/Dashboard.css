@@ -1789,4 +1789,139 @@ body.hide-sidebar .header-brand { display: flex !important; }
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* =====Fixed sidebar overlapping footer with proper layout ===== */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-wrapper {
+  display: flex;
+  padding-top: 70px;
+  min-height: calc(100vh - 70px); /* Full viewport minus header */
+  background: #f7fafc;
+  position: relative;
+}
+
+/* Sidebar - sticky positioned to stop at container bottom */
+.dashboard-sidebar {
+  width: 260px;
+  background: #40189D;
+  padding: 2rem 1rem;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 70px;
+  left: 0;
+  height: calc(100vh - 70px); /* Full viewport height minus header */
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+  z-index: 100;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* Main content area */
+.dashboard-page {
+  flex: 1;
+  margin-left: 0;
+  padding: 2rem;
+  padding-bottom: 3rem;
+  overflow-y: visible;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Donate FAB - positioned above footer */
+.donate-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 80px; /* Above footer (60px footer + 20px gap) */
+  z-index: 1100;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #40189D;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(64, 24, 157, 0.28), 0 2px 6px rgba(0,0,0,.12);
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.donate-fab:hover {
+  background: #2EAE71;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(46, 174, 113, 0.28), 0 4px 10px rgba(0,0,0,.12);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dashboard-wrapper {
+    flex-direction: column;
+    padding-top: 70px;
+  }
+
+  .dashboard-sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    top: 0;
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+  }
+
+  .nav-btn {
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    min-width: 80px;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .nav-btn span {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-page {
+    margin-left: 0;
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .donate-fab {
+    bottom: 20px;
+    right: 14px;
+    padding: 0.6rem 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-btn {
+    min-width: 70px;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .nav-btn span {
+    font-size: 0.75rem;
+  }
+
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
 
