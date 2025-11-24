@@ -1,11 +1,12 @@
-// Root route for friendly message
-app.get('/', (req, res) => {
-  res.send('QuizCraft API is running!');
-});
 // server.js - Main server file for OCR and Auth
 require("dotenv").config();
 // ===== Core / existing OCR deps =====
 const express = require("express");
+const app = express();
+// Root route for friendly message
+app.get('/', (req, res) => {
+  res.send('QuizCraft API is running!');
+});
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth"); // For Word documents
@@ -32,7 +33,6 @@ const crypto = require("crypto");
 const questionSetRoutes = require("./routes/questionSetRoutes");
 
 // ---------- Config ----------
-const app = express();
 const PORT = process.env.PORT || 5000;
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_ORIGIN || "http://localhost:5173";
