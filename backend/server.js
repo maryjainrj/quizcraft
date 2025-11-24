@@ -17,6 +17,7 @@ const { createCanvas, Image } = require("canvas");
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const vision = require("@google-cloud/vision");
 const configRoutes = require('./routes/config');
+const authRoutes = require('./routes/authRoutes');
 
 // ===== Auth/DB/GraphQL deps =====
 const mongoose = require("mongoose");
@@ -79,6 +80,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/config', configRoutes);
+app.use('/api/auth', authRoutes);
 
 // 🔍 SMALL REQUEST LOGGER (helps you see if /api/questionsets/mine hits this server)
 app.use((req, res, next) => {
