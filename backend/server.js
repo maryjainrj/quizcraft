@@ -1,3 +1,7 @@
+// Root route for friendly message
+app.get('/', (req, res) => {
+  res.send('QuizCraft API is running!');
+});
 // server.js - Main server file for OCR and Auth
 require("dotenv").config();
 // ===== Core / existing OCR deps =====
