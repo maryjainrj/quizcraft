@@ -16,6 +16,7 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import LandingPage from "./components/LandingPage";
 import ContactPage from "./components/ContactPage";
+import GoogleCallback from "./components/GoogleCallback";
 
 import DashboardLayout from "./components/DashboardLayout";
 import QuizzesPage from "./components/QuizzesPage";
@@ -199,6 +200,7 @@ function App() {
         {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
         {ForgotPassword && (
           <Route path="/forgot-password" element={<ForgotPassword />} />
         )}
