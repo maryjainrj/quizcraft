@@ -10,7 +10,7 @@ import { useToast } from '../components/ToastProvider';
 const QuizPreviewPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { searchQuery } = useOutletContext() || { searchQuery: "" }; // ✅ GET SEARCH FROM CONTEXT
+  const { searchQuery } = useOutletContext() || { searchQuery: "" };
   const toast = useToast();
   
   const [showAnswers, setShowAnswers] = useState(false);
@@ -23,19 +23,16 @@ const QuizPreviewPage = () => {
   const { fileNames = [], extractedTexts = {}, settings = {} } = state || {};
   const questions = state?.questions || [];
 
-  // Initialize localQuestions on mount
   useEffect(() => {
     setLocalQuestions(questions);
   }, [questions]);
 
-  // Save to localStorage
   useEffect(() => {
     if (localQuestions.length > 0) {
       localStorage.setItem("lastQuiz", JSON.stringify({ questions: localQuestions, fileNames, settings }));
     }
   }, [localQuestions, fileNames, settings]);
 
-  // ✅ FILTER QUESTIONS BASED ON SEARCH QUERY
   const filteredQuestions = useMemo(() => {
     if (!searchQuery.trim()) {
       return localQuestions.map((q, idx) => ({ ...q, originalIdx: idx }));
@@ -52,7 +49,6 @@ const QuizPreviewPage = () => {
       });
   }, [localQuestions, searchQuery]);
 
-  // ✅ HIGHLIGHT MATCHING TEXT IN SEARCH RESULTS
   const highlightText = (text, query) => {
     if (!query.trim() || !text) return text;
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
@@ -62,11 +58,9 @@ const QuizPreviewPage = () => {
     );
   };
 
-  // Count AI vs Fallback questions
   const aiCount = localQuestions.filter(q => q.source === 'ai').length;
   const fallbackCount = localQuestions.filter(q => q.source === 'fallback').length;
 
-  // Delete question
   const handleDelete = (index) => {
     setLocalQuestions(prev => prev.filter((_, i) => i !== index));
     if (editingIndex === index) {
@@ -76,37 +70,31 @@ const QuizPreviewPage = () => {
     }
   };
 
-  // Start editing
   const handleEditStart = (index) => {
     setEditingIndex(index);
     setTempQuestion({ ...localQuestions[index] });
   };
 
-  // Save edit
   const handleEditSave = () => {
     setLocalQuestions(prev => prev.map((q, i) => i === editingIndex ? tempQuestion : q));
     setEditingIndex(null);
   };
 
-  // Cancel edit
   const handleEditCancel = () => {
     setEditingIndex(null);
   };
 
-  // Generate PDF from quiz
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     let yPos = 20;
 
-    // Title
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
     doc.text('Quiz', margin, yPos);
     yPos += 10;
 
-    // Metadata
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.text(`Questions: ${localQuestions.length}`, margin, yPos);
@@ -116,7 +104,6 @@ const QuizPreviewPage = () => {
     doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPos);
     yPos += 15;
 
-    // Questions
     localQuestions.forEach((q, idx) => {
       if (yPos > 250) {
         doc.addPage();
@@ -158,7 +145,6 @@ const QuizPreviewPage = () => {
       yPos += 5;
     });
 
-    // Answer key
     doc.addPage();
     yPos = 20;
     doc.setFontSize(16);
@@ -243,7 +229,16 @@ const QuizPreviewPage = () => {
       await saveQuestionSetToDB(quizName, localQuestions, fileNames, extractedTexts, settings, pdfUrl);
       
       toast.success('Quiz and PDF saved successfully!');
-      // Stay on the preview page instead of navigating away
+      
+      // ✅ SOLUTION: Navigate to dashboard and force reload
+      // Option 1: Using window.location (forces full page reload)
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+      
+      // OR Option 2: Navigate with state to trigger refresh
+      // navigate('/dashboard', { state: { refresh: true }, replace: true });
+      
     } catch (err) {
       console.error("Save failed:", err);
       toast.error('Failed to save quiz: ' + (err.message || 'Unknown error'));
@@ -283,7 +278,6 @@ const QuizPreviewPage = () => {
         Types: {uniqueTypes.map(t => typeLabels[t]).join(', ')}
       </p>
 
-      {/* Display generation settings */}
       {settings && Object.keys(settings).length > 0 && (
         <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-xl shadow-sm">
           <h3 className="text-base font-bold text-indigo-900 mb-3">
@@ -338,7 +332,6 @@ const QuizPreviewPage = () => {
         </div>
       )}
 
-      {/* ✅ SEARCH RESULTS COUNTER */}
       {searchQuery.trim() && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
@@ -347,7 +340,6 @@ const QuizPreviewPage = () => {
         </div>
       )}
 
-      {/* Questions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Questions</h2>
         
@@ -356,7 +348,7 @@ const QuizPreviewPage = () => {
         ) : (
           <div className="space-y-4">
             {filteredQuestions.map((q) => {
-              const i = q.originalIdx; // Use original index for editing/deleting
+              const i = q.originalIdx;
               const isAI = q.source === 'ai';
               
               return (
@@ -369,7 +361,6 @@ const QuizPreviewPage = () => {
                   <div className="flex-1">
                     {i === editingIndex ? (
                       <div className="space-y-3">
-                        {/* Question text input */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Question:</label>
                           <input
@@ -446,12 +437,10 @@ const QuizPreviewPage = () => {
                       </div>
                     ) : (
                       <>
-                        {/*  HIGHLIGHTED QUESTION TEXT */}
                         <p className="text-gray-900 font-medium mb-2 text-base leading-relaxed text-left">
                           {highlightText(q.question, searchQuery)}
                         </p>
 
-                        {/* Display source pages for this question */}
                         {q.sourcePages && Array.isArray(q.sourcePages) && q.sourcePages.length > 0 && (
                           <div className="mb-3">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -467,7 +456,6 @@ const QuizPreviewPage = () => {
                               return (
                                 <li key={idx} className="flex items-center gap-3 py-1 text-left">
                                   <span className="font-semibold text-gray-600 min-w-[24px]">{letter})</span>
-                                  {/*  HIGHLIGHTED OPTION TEXT */}
                                   <span className="text-gray-900">{highlightText(opt, searchQuery)}</span>
                                 </li>
                               );
@@ -543,7 +531,6 @@ const QuizPreviewPage = () => {
         )}
       </div>
 
-      {/* Answers Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <button
           onClick={() => setShowAnswers(!showAnswers)}
@@ -578,7 +565,6 @@ const QuizPreviewPage = () => {
                 >
                   <span className="font-semibold text-gray-700 min-w-[24px]">{i + 1}.</span>
                   <div className="flex-1 text-left">
-                    {/*  HIGHLIGHTED ANSWER */}
                     <span className="text-gray-900 font-semibold text-base">
                       {highlightText(answerText, searchQuery)}
                     </span>
@@ -590,7 +576,6 @@ const QuizPreviewPage = () => {
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="mt-6 flex justify-between items-center gap-3">
         <div className="flex gap-3">
           <button
@@ -609,7 +594,6 @@ const QuizPreviewPage = () => {
         </div>
       </div>
 
-      {/* Quiz Name Modal */}
       <QuizNameModal
         open={showNameModal}
         defaultName={fileNames.length > 0 ? `Quiz from ${fileNames.join(', ')}` : 'My Quiz'}
