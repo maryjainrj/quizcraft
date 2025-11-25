@@ -154,36 +154,8 @@ const Login = () => {
           window.google?.accounts?.oauth2?.initCodeClient({
             client_id: GOOGLE_CLIENT_ID,
             scope: "openid email profile",
-            ux_mode: "popup",
-            callback: async ({ code, error, error_description }) => {
-              try {
-                if (error) throw new Error(error_description || error);
-                if (!code) throw new Error("No authorization code returned");
-
-                const res = await fetch(`${API_BASE}/api/auth/google/code`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ code }),
-                  credentials: "include",
-                });
-
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok)
-                  throw new Error(data.message || "Google sign-in failed");
-
-                const fallbackName =
-                  data?.user?.name ||
-                  data?.profile?.name ||
-                  data?.name ||
-                  "";
-
-                persistAuth(data, fallbackName);
-                navigate("/dashboard");
-              } catch (e) {
-                console.error("[GIS code flow] error:", e);
-                setErr(e.message || "Google sign-in failed");
-              }
-            },
+            ux_mode: "redirect",
+            redirect_uri: "https://quizcraft-mocha.vercel.app/auth/google/callback",
           });
       } catch (e) {
         console.warn("[GIS] initCodeClient failed:", e);
