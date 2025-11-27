@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaSearch, FaChevronDown } from 'react-icons/fa';
+import { FaSearch, FaChevronDown, FaBars } from 'react-icons/fa';
+// Breadcrumbs helper
+const getBreadcrumbs = (location) => {
+  const pathnames = location.pathname.split('/').filter((x) => x);
+  const crumbs = [
+    { name: 'Home', path: '/' },
+    ...pathnames.map((name, idx) => {
+      const path = '/' + pathnames.slice(0, idx + 1).join('/');
+      // Capitalize and prettify
+      return { name: name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), path };
+    })
+  ];
+  return crumbs;
+};
 import './Header.css';
 import quizcraft from "../assets/logo_quizcraft.png";
 
@@ -78,8 +91,9 @@ const Header = ({ searchQuery = '', onSearchChange = null }) => {
                   <FaSearch className="search-icon" />
                 </div>
               )}
+              {/* Hide Dashboard link on tablet/mobile */}
               {!isDashboard && (
-                <Link to="/dashboard" className="nav-link nav-link-primary">Dashboard</Link>
+                <Link to="/dashboard" className="nav-link nav-link-primary dashboard-link hide-on-mobile">Dashboard</Link>
               )}
               <div
                 className="profile-container"
@@ -98,6 +112,29 @@ const Header = ({ searchQuery = '', onSearchChange = null }) => {
             <Link to="/" className="nav-link nav-link-primary">Sign In</Link>
           )}
         </nav>
+      </div>
+      {/* Responsive Mobile Header */}
+      <div className="mobile-header-bar">
+        <button className="mobile-menu-btn" onClick={() => setShowDropdown(!showDropdown)} aria-label="Open menu">
+          <FaBars size={22} />
+        </button>
+        {showDropdown && (
+          <div className="mobile-menu-dropdown">
+            <Link to="/" className="mobile-menu-link" onClick={() => setShowDropdown(false)}>Home</Link>
+            <a href="/#features" className="mobile-menu-link" onClick={(e) => { handleNavClick(e, 'features'); setShowDropdown(false); }}>Features</a>
+            <a href="/#about" className="mobile-menu-link" onClick={(e) => { handleNavClick(e, 'about'); setShowDropdown(false); }}>About</a>
+            <a href="/#how-it-works" className="mobile-menu-link" onClick={(e) => { handleNavClick(e, 'how-it-works'); setShowDropdown(false); }}>How It Works</a>
+            <Link to="/contact" className="mobile-menu-link" onClick={() => setShowDropdown(false)}>Contact</Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/dashboard" className="mobile-menu-link" onClick={() => setShowDropdown(false)}>Dashboard</Link>
+                <button className="mobile-menu-link" onClick={() => { handleLogout(); setShowDropdown(false); }}>Logout</button>
+              </>
+            ) : (
+              <Link to="/" className="mobile-menu-link" onClick={() => setShowDropdown(false)}>Sign In</Link>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
