@@ -1,0 +1,552 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 3111
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 18 Tf
+20.6999999999999993 TL
+0 g
+56.6929133858267775 785.1970866141732586 Td
+(Quiz) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0 g
+56.6929133858267775 756.8506299212598378 Td
+(Questions: 5) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0 g
+56.6929133858267775 739.8427559055118081 Td
+(Source: chapter_content.pdf) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0 g
+56.6929133858267775 722.8348818897637784 Td
+(Date: 11/26/2025) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 680.3151968503937042 Td
+(1. Which of the following concepts is NOT a fundamental building block of) Tj
+T* (JavaScript?) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 626.4569291338582389 Td
+(A\) Functions) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 600.9451181102361943 Td
+(B\) Promises) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 575.4333070866141497 Td
+(C\) Variables) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 549.9214960629921052 Td
+(D\) DOM manipulation) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 510.2364566929133503 Td
+(2. Which of the following is NOT a popular full-stack development stack?) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 476.2207086614172908 Td
+(A\) MEVN \(MongoDB, Express, Vue, Node\)) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 450.7088976377952463 Td
+(B\) MERN \(MongoDB, Express, React, Node.js\)) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 425.1970866141731449 Td
+(C\) MEVN \(MongoDB, Express, Ruby, Node\)) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 399.6852755905511003 Td
+(D\) LAMP \(Linux, Apache, MySQL, PHP\)) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 360.0002362204724022 Td
+(3. What is the primary function of CSS in web development?) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 325.9844881889763428 Td
+(A\) To manipulate the DOM and fetch data from APIs) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 300.4726771653542983 Td
+(B\) To create dynamic content and handle user events) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 274.9608661417322537 Td
+(C\) To style and layout web pages) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 249.4490551181102092 Td
+(D\) To manage databases and authentication) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 209.7640157480313974 Td
+(4. What is the main advantage of mastering CSS in web development?) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 175.748267716535338 Td
+(A\) Enhanced server logic) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 150.2364566929132934 Td
+(B\) Increased deployment speed) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 124.7246456692912489 Td
+(C\) Improved database management) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 99.2128346456692043 Td
+(D\) Improved website accessibility, readability, and maintainability) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 731
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 785.1970866141732586 Td
+(5. What is the main purpose of HTML in web development?) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 751.1813385826771992 Td
+(A\) To manage databases and server logic) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 725.6695275590550409 Td
+(B\) To structure content and provide accessibility) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 700.15771653543311 Td
+(C\) To create visual interfaces and style web pages) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+70.8661417322834666 674.6459055118109518 Td
+(D\) To handle user events and manipulate the DOM) Tj
+ET
+endstream
+endobj
+7 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 1271
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+56.6929133858267775 785.1970866141732586 Td
+(Answer Key) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 742.6774015748030706 Td
+(1.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+85.0393700787401627 742.6774015748030706 Td
+(B\) Promises) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 720.0002362204724022 Td
+(2.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+85.0393700787401627 720.0002362204724022 Td
+(C\) MEVN \(MongoDB, Express, Ruby, Node\)) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 697.3230708661417339 Td
+(3.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+85.0393700787401627 697.3230708661417339 Td
+(C\) To style and layout web pages) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 674.6459055118109518 Td
+(4.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+85.0393700787401627 674.6459055118109518 Td
+(D\) Improved website accessibility, readability, and maintainability) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 651.9687401574802834 Td
+(5.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+85.0393700787401627 651.9687401574802834 Td
+(B\) To structure content and provide accessibility) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R 7 0 R ]
+/Count 3
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+21 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+22 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 9 0 R
+/F2 10 0 R
+/F3 11 0 R
+/F4 12 0 R
+/F5 13 0 R
+/F6 14 0 R
+/F7 15 0 R
+/F8 16 0 R
+/F9 17 0 R
+/F10 18 0 R
+/F11 19 0 R
+/F12 20 0 R
+/F13 21 0 R
+/F14 22 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+23 0 obj
+<<
+/Producer (jsPDF 3.0.3)
+/CreationDate (D:20251126222358-05'00')
+>>
+endobj
+24 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 25
+0000000000 65535 f 
+0000005694 00000 n 
+0000007527 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000003315 00000 n 
+0000003452 00000 n 
+0000004234 00000 n 
+0000004371 00000 n 
+0000005763 00000 n 
+0000005888 00000 n 
+0000006019 00000 n 
+0000006153 00000 n 
+0000006291 00000 n 
+0000006415 00000 n 
+0000006544 00000 n 
+0000006676 00000 n 
+0000006812 00000 n 
+0000006940 00000 n 
+0000007067 00000 n 
+0000007196 00000 n 
+0000007329 00000 n 
+0000007431 00000 n 
+0000007779 00000 n 
+0000007865 00000 n 
+trailer
+<<
+/Size 25
+/Root 24 0 R
+/Info 23 0 R
+/ID [ <630517A9A8D05D08E17CC2FBB368380B> <630517A9A8D05D08E17CC2FBB368380B> ]
+>>
+startxref
+7969
+%%EOF
