@@ -5,6 +5,8 @@ import heroImage from "../assets/hero.png";
 import quizcraft from "../assets/logo_quizcraft.png";
 import Header from "./Header";
 import Footer from "./Footer";
+import { FaLinkedin, FaGithub, FaEnvelope } from "./SocialIcons";
+import { MaryJainImage, BipinImage, GreeshmaImage, AryaImage } from "./teamImages";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -304,10 +306,10 @@ const LandingPage = () => {
           <div className="auth-container">
             <div className="auth-card">
               <div className="auth-image-section">
-                <img src={heroImage} alt="QuizCraft Mascot" className="sally-image" />
+                <img src={heroImage} alt="QuizCraft Mascot" className="sally-image" loading="lazy" />
               </div>
               
-              {err && <div className="error-message">{err}</div>}
+              {err && <div className="error-message" role="alert">{err}</div>}
               
               {!showSignup ? (
                 <>
@@ -324,7 +326,9 @@ const LandingPage = () => {
                         value={loginForm.username}
                         onChange={(e) => setLoginForm({...loginForm, username: e.target.value})}
                         required
+                        aria-describedby="email-help"
                       />
+                      <small id="email-help" className="sr-only">Enter your email address or username</small>
                     </div>
                     
                     <div className="form-group">
@@ -337,11 +341,14 @@ const LandingPage = () => {
                           value={loginForm.password}
                           onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
                           required
+                          aria-describedby="password-help"
                         />
+                        <small id="password-help" className="sr-only">Enter your password</small>
                         <button
                           type="button"
                           className="password-toggle"
                           onClick={() => setShowPw(!showPw)}
+                          aria-label={showPw ? "Hide password" : "Show password"}
                         >
                           {showPw ? "👁️" : "👁️‍🗨️"}
                         </button>
@@ -350,7 +357,7 @@ const LandingPage = () => {
                     
                     <div className="form-options">
                       <label className="checkbox-label">
-                        <input type="checkbox" />
+                        <input type="checkbox" id="remember" />
                         <span>Remember me</span>
                       </label>
                       <a href="/forgot-password" className="forgot-link">Forgot password?</a>
@@ -366,7 +373,7 @@ const LandingPage = () => {
                   </div>
                   
                   <button className="auth-button google" onClick={handleGoogleSignIn}>
-                    <svg width="18" height="18" viewBox="0 0 18 18">
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                       <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                       <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
                       <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
@@ -395,7 +402,9 @@ const LandingPage = () => {
                         value={signupForm.name}
                         onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
                         required
+                        aria-describedby="name-help"
                       />
+                      <small id="name-help" className="sr-only">Enter your full name</small>
                     </div>
                     
                     <div className="form-group">
@@ -407,7 +416,9 @@ const LandingPage = () => {
                         value={signupForm.email}
                         onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
                         required
+                        aria-describedby="email-help"
                       />
+                      <small id="email-help" className="sr-only">Enter a valid email address</small>
                     </div>
                     
                     <div className="form-group">
@@ -421,11 +432,14 @@ const LandingPage = () => {
                           onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
                           required
                           minLength="6"
+                          aria-describedby="password-help"
                         />
+                        <small id="password-help" className="sr-only">Password must be at least 6 characters</small>
                         <button
                           type="button"
                           className="password-toggle"
                           onClick={() => setShowPw(!showPw)}
+                          aria-label={showPw ? "Hide password" : "Show password"}
                         >
                           {showPw ? "👁️" : "👁️‍🗨️"}
                         </button>
@@ -442,7 +456,7 @@ const LandingPage = () => {
                   </div>
                   
                   <button className="auth-button google" onClick={handleGoogleSignIn}>
-                    <svg width="18" height="18" viewBox="0 0 18 18">
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                       <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                       <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
                       <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
@@ -488,11 +502,11 @@ const LandingPage = () => {
               </p>
               
               <div className="stats-grid">
-                <div className="stat-card">
+                <div className="stat-card stat-item">
                   <div className="stat-number">10x</div>
                   <div className="stat-label">Faster Than Manual</div>
                 </div>
-                <div className="stat-card">
+                <div className="stat-card stat-item">
                   <div className="stat-number">95%</div>
                   <div className="stat-label">Accuracy Rate</div>
                 </div>
@@ -502,29 +516,38 @@ const LandingPage = () => {
             <div className="team-showcase">
               <h3 className="team-title">Meet Our Team</h3>
               <div className="team-grid">
+
                 <div className="team-card">
-                  <div className="team-avatar">BK</div>
-                  <h4 className="team-name">Bipin Kuinkel</h4>
-                  <p className="team-role">Front-End Developer</p>
-                  <p className="team-description">User interface design, frontend development, interactive components, and documentation</p>
-                </div>
-                <div className="team-card">
-                  <div className="team-avatar">MJ</div>
+                  <div className="team-avatar">
+                    <img src={MaryJainImage} alt="Mary Jain Joshy"  />
+                  </div>
                   <h4 className="team-name">Mary Jain Joshy</h4>
                   <p className="team-role">Full-Stack & Operations</p>
                   <p className="team-description">Backend systems, frontend development, system integration, and production deployment</p>
                 </div>
                 <div className="team-card">
-                  <div className="team-avatar">GP</div>
+                  <div className="team-avatar">
+                    <img src={GreeshmaImage} alt="Greeshma Prasad" />
+                  </div>
                   <h4 className="team-name">Greeshma Prasad</h4>
                   <p className="team-role">Backend & AI Developer</p>
                   <p className="team-description">AI integration, backend systems, UI wireframes, architecture design, and version control</p>
                 </div>
                 <div className="team-card">
-                  <div className="team-avatar">AR</div>
+                  <div className="team-avatar">
+                    <img src={AryaImage} alt="Arya Reghu" />
+                  </div>
                   <h4 className="team-name">Arya Reghu</h4>
                   <p className="team-role">Authentication & Testing</p>
                   <p className="team-description">Product conceptualization, Google OAuth, database setup, data flow handling, and presentations</p>
+                </div>
+                  <div className="team-card">
+                  <div className="team-avatar">
+                    <img src={BipinImage} alt="Bipin Kuinkel" />
+                  </div>
+                  <h4 className="team-name">Bipin Kuinkel</h4>
+                  <p className="team-role">Front-End Developer</p>
+                  <p className="team-description">User interface design, frontend development, interactive components, and documentation</p>
                 </div>
               </div>
             </div>
@@ -648,12 +671,12 @@ const LandingPage = () => {
       {/* CTA Section */}
       <section className="cta-section">
         <div className="cta-container">
-          <h2 className="cta-title">Ready to Transform Your Teaching?</h2>
+          <h2 className="cta-title">Experience Effortless Quiz Creation</h2>
           <p className="cta-description">
-            Join educators worldwide who are saving time and creating better assessments with QuizCraft
+            Empower your classroom or training with instant, AI-generated quizzes. Start building smarter assessments today!
           </p>
           <button className="cta-button" onClick={() => setShowSignup(true)}>
-            Get Started Free
+            Try QuizCraft Now
           </button>
         </div>
       </section>
@@ -663,7 +686,7 @@ const LandingPage = () => {
         <div className="footer-content">
           <div className="footer-section">
             <div className="footer-logo">
-              <div className="logo-icon">Q</div>
+              <div className="logo-icon" aria-hidden="true">Q</div>
               <span>QuizCraft</span>
             </div>
             <p className="footer-description">
@@ -689,6 +712,14 @@ const LandingPage = () => {
             <h4>Contact</h4>
             <a href="mailto:support@quizcraft.com">support@quizcraft.com</a>
             <Link to="/contact">Contact Us</Link>
+            <div style={{ marginTop: '0.5rem' }}>
+              <h5 style={{ color: '#fff', fontWeight: 600, marginBottom: '0.5rem', fontSize: '1rem', letterSpacing: '0.02em' }}>Follow Us</h5>
+              <div className="footer-socials" style={{ display: 'flex', gap: '0.75rem' }}>
+                <a href="https://www.linkedin.com/company/quizcraft" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><FaLinkedin /></a>
+                <a href="https://github.com/quizcraft" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><FaGithub /></a>
+                <a href="mailto:support@quizcraft.com" aria-label="Email"><FaEnvelope /></a>
+              </div>
+            </div>
           </div>
         </div>
         

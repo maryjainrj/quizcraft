@@ -1,3 +1,25 @@
+/* Subtle fade-in animation for sections */
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Card hover effect */
+.card, .team-card, .feature-card {
+  transition: transform 0.2s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
+}
+.card:hover, .team-card:hover, .feature-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(64,24,157,0.10);
+  z-index: 2;
+}
 /* Landing Page Styles */
 * {
   box-sizing: border-box;
@@ -60,7 +82,7 @@
 
 /* Hero Section */
 .hero-section {
-  padding: 6rem 2rem 4rem;
+  padding: 4rem 2rem 3rem;
   background: #f7fafc;
   min-height: 100vh;
   display: flex;
@@ -147,19 +169,24 @@
 .hero-features {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .feature-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* subtle shadow, no color corners */
   transition: transform 0.3s, box-shadow 0.3s;
   animation: fadeInUp 0.6s ease-out backwards;
+  margin-left: 0;
+}
+
+.feature-item > div {
+  margin-left: 1.25rem;
 }
 
 .feature-item:nth-child(1) { animation-delay: 0.2s; }
@@ -182,13 +209,8 @@
   }
 }
 
-.feature-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
 .feature-item h3 {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #2d3748;
   margin-bottom: 0.25rem;
@@ -197,6 +219,7 @@
 .feature-item p {
   font-size: 0.875rem;
   color: #718096;
+  margin: 0;
 }
 
 /* Auth Container */
@@ -271,6 +294,7 @@
   font-size: 0.875rem;
   margin-bottom: 1rem;
   text-align: center;
+  role: "alert";
 }
 
 .auth-title {
@@ -334,6 +358,7 @@
   padding: 0.25rem;
   opacity: 0.6;
   transition: opacity 0.2s;
+  aria-label: "Toggle password visibility";
 }
 
 .password-toggle:hover {
@@ -483,7 +508,7 @@
 
 /* About Section */
 .about-section {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem;
   background: white;
 }
 
@@ -573,18 +598,20 @@
   margin-top: 3rem;
 }
 
-.stat-card {
-  background: #40189D;
-  padding: 2rem 1.5rem;
-  border-radius: 16px;
-  text-align: center;
-  color: white;
-}
-
-.stat-number {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
+.auth-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 32px rgba(64,24,157,0.10);
+  padding: 3rem 3rem 2.5rem 3rem;
+  max-width: 540px;
+  width: 100%;
+  margin: 2.5rem 0 0 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .stat-label {
@@ -629,17 +656,40 @@
   box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
 }
 
+/* --- TEAM AVATAR OVERRIDE --- */
 .team-avatar {
-  width: 80px;
-  height: 80px;
+  width: auto;
+  height: auto;
+  min-width: unset;
+  min-height: unset;
+  max-width: unset;
+  max-height: unset;
+  display: block;
+  margin: 0 auto 1.5rem auto;
+  overflow: visible;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+}
+.team-avatar img {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 700;
+  display: block;
+  margin: 0 auto;
+  background: none;
+  box-shadow: 0 8px 40px rgba(64,24,157,0.12);
+  border: none;
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 600px) {
+  .team-avatar img {
+    width: 120px;
+    height: 120px;
+  }
 }
 
 .team-name {
@@ -663,9 +713,25 @@
   margin: 0;
 }
 
+.team-socials {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.team-socials a {
+  color: #40189D;
+  font-size: 1.25rem;
+  transition: color 0.2s;
+}
+
+.team-socials a:hover {
+  color: #2d3748;
+}
+
 /* Features Section */
 .features-section {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem;
   background: #f7fafc;
 }
 
@@ -688,11 +754,6 @@
   box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
 }
 
-.feature-card-icon {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-}
-
 .feature-card h3 {
   font-size: 1.375rem;
   font-weight: 700;
@@ -708,7 +769,7 @@
 
 /* How It Works Section */
 .how-section {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem;
   background: white;
 }
 
@@ -721,14 +782,14 @@
   margin: 0 auto;
 }
 
-.step-card {
-  background: #f7fafc;
-  padding: 2.5rem;
-  border-radius: 20px;
+.stat-card {
+  background: #40189D;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
   text-align: center;
-  position: relative;
+  color: #fff;
+  transition: transform 0.3s ease;
 }
-
 .step-number {
   width: 60px;
   height: 60px;
@@ -763,10 +824,11 @@
 }
 
 /* CTA Section */
+
 .cta-section {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem;
   background: #40189D;
-  color: white;
+  color: #fff;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -916,6 +978,16 @@
   color: #667eea;
 }
 
+.footer-socials a {
+  color: #40189D;
+  font-size: 1.25rem;
+  transition: color 0.2s;
+}
+
+.footer-socials a:hover {
+  color: #2d3748;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .hero-container {
@@ -946,41 +1018,84 @@
 }
 
 @media (max-width: 768px) {
+  /* Remove margin override and add padding to landing-page for sticky header */
+  .landing-page {
+    padding-top: 56px;
+  }
   .header-nav {
     display: none;
   }
 
-  .hero-title {
-    font-size: 2.5rem;
+  .hero-section {
+    padding: 2.5rem 0.5rem 1.5rem 0.5rem;
+    min-height: unset;
+    display: block;
   }
-
+  .hero-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 100vw;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+  }
+  .hero-content {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .auth-container {
+    width: 100%;
+    max-width: 100vw;
+    margin: 0 auto;
+    padding: 0 0.5rem;
+    z-index: 2;
+  }
+  .auth-card {
+    max-width: 100vw;
+    margin: 2rem auto 0 auto;
+    padding: 2rem 1rem 1.5rem 1rem;
+    box-sizing: border-box;
+  }
+  .hero-title {
+    font-size: 2rem;
+    word-break: break-word;
+  }
   .hero-description {
     font-size: 1rem;
+    max-width: 100%;
+    word-break: break-word;
   }
-
   .section-title {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
-
   .features-grid {
     grid-template-columns: 1fr;
   }
-
   .stats-grid {
     grid-template-columns: 1fr;
   }
-
   .footer-content {
     grid-template-columns: 1fr;
   }
-
   .footer-bottom {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
   }
-
   .cta-title {
-    font-size: 2rem;
+    font-size: 1.25rem;
+  }
+  .hero-features {
+    gap: 0.75rem;
+  }
+  .feature-item {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
