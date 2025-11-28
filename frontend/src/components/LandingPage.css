@@ -93,7 +93,7 @@
   max-width: 1280px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 450px;
+  grid-template-columns: 1fr 600px;
   gap: 4rem;
   align-items: center;
 }
@@ -1099,3 +1099,67 @@
     box-sizing: border-box;
   }
 }
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .hero-container {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .auth-container {
+    max-width: 450px;
+    margin: 0 auto;
+  }
+
+  .auth-card {
+    margin: 2rem auto 0 auto;
+  }
+
+  .about-content {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-container {
+    grid-template-columns: 1fr;
+  }
+
+  .step-arrow {
+    display: none;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero-title {
+    font-size: 2.75rem;
+  }
+
+  .section-title {
+    font-size: 2rem;
+  }
+}
+/* Hide the big Sally logo on tablets and mobile */
+@media (max-width: 1024px) {
+  .auth-image-section,
+  .sally-image {
+    display: none !important;
+  }
+
+  /* Optional: reduce top padding inside the card so it doesn't look empty */
+  .auth-card {
+    padding-top: 2rem !important;
+  }
+
+  /* Bring the title closer when logo is hidden */
+  .auth-title {
+    margin-top: 0 !important;
+  }
+}
+
+/* If you only want to hide it on phones (not tablets), use 768px instead */

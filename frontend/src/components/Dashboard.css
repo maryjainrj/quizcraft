@@ -1925,3 +1925,576 @@ html, body {
   }
 }
 
+/* ================================================================= */
+/*                  FULLY RESPONSIVE DASHBOARD FIX                   */
+/*             Works perfectly on Mobile + Tablet + Desktop          */
+/* ================================================================= */
+
+@media (max-width: 1024px) {
+  /* Tablet adjustments */
+  .dashboard-page {
+    padding: 1.5rem;
+  }
+
+  .feed-header--center-with-cta,
+  .feed-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .feed-title {
+    font-size: 1.75rem;
+  }
+
+  .quiz-options {
+    gap: 1.5rem;
+  }
+
+  .quiz-card {
+    width: 280px;
+  }
+
+  .empty-state {
+    padding: 2.5rem 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Turn sidebar into top horizontal nav */
+  .dashboard-wrapper {
+    flex-direction: column;
+    padding-top: 70px;
+  }
+
+  .dashboard-sidebar {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    padding: 0.75rem 1rem;
+    z-index: 999;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .nav-btn {
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    min-width: 76px;
+    font-size: 0.85rem;
+    gap: 0.4rem;
+  }
+
+  .nav-btn span {
+    font-size: 0.75rem;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Main content starts below the horizontal sidebar */
+  .dashboard-page {
+    margin-left: 0 !important;
+    padding: 1.25rem 1rem;
+    padding-top: 140px; /* Space for fixed header + horizontal sidebar */
+  }
+
+  /* Cards & grids go full width */
+  .quiz-options,
+  .quiz-feed,
+  .source-grid,
+  .questions-container {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .quiz-card,
+  .quiz-item-card,
+  .source-card,
+  .question-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  .feed-title {
+    font-size: 1.6rem;
+  }
+
+  .empty-state {
+    padding: 2rem 1.5rem;
+  }
+
+  .empty-state__img {
+    width: 120px;
+  }
+
+  .primary-btn {
+    min-width: auto;
+    width: 100%;
+    padding: 1rem 2rem;
+  }
+
+  .upload-dropzone,
+  .file-list,
+  .progress-container,
+  .alert,
+  .info-message {
+    max-width: none;
+  }
+
+  /* Modals full width with safe padding */
+  .modal,
+  .modal-content {
+    width: 95vw;
+    max-width: none;
+    margin: 1rem;
+  }
+
+  /* Toast on mobile */
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    top: 70px;
+    transform: none;
+  }
+
+  .toast {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small phones */
+  .dashboard-page {
+    padding: 1rem 0.75rem;
+    padding-top: 130px;
+  }
+
+  .feed-title {
+    font-size: 1.5rem;
+  }
+
+  .quiz-item-title {
+    font-size: 1rem;
+  }
+
+  .stat-item {
+    gap: 0.1rem;
+  }
+
+  .stat-value {
+    font-size: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+  }
+
+  .nav-btn {
+    min-width: 64px;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .nav-btn span {
+    font-size: 0.7rem;
+  }
+
+  .donate-fab {
+    bottom: 16px;
+    right: 16px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .donate-fab__text {
+    display: none; /* Hide text, keep only heart on very small screens */
+  }
+
+  .empty-state {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .empty-state__title {
+    font-size: 1.3rem;
+  }
+
+  .empty-state__desc {
+    font-size: 0.95rem;
+  }
+
+  /* Make buttons full-width in flows */
+  .flow__actions {
+    flex-direction: column;
+  }
+
+  .flow__actions button {
+    width: 100%;
+  }
+
+  /* Question preview on edit */
+  .question-card-header {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .question-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Ensure horizontal sidebar doesn’t get hidden behind content */
+.dashboard-sidebar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+/* Hide header logo + brand text on Tablet & Mobile */
+@media (max-width: 1024px) {
+  .header-brand,
+  .header-logo,
+  .header-brand-text {
+    display: none !important;
+  }
+
+  /* Optional: add a little left padding so the first nav item doesn't stick to the edge */
+  .header-nav {
+    margin-left: 0 !important;
+  }
+}
+
+/* If you only want to hide on phones (not tablets), use 768px instead */
+/*
+@media (max-width: 768px) {
+  .header-brand,
+  .header-logo,
+  .header-brand-text {
+    display: none !important;
+  }
+}
+*/
+/* Fix huge top gap on Quizzes page (mobile/tablet) when sidebar is hidden */
+@media (max-width: 768px) {
+  body.hide-sidebar .dashboard-page {
+    padding-top: 1.25rem !important;
+  }
+}
+/* Mobile + Tablet: full-width buttons, stacked vertically */
+@media (max-width: 768px) {
+  .flow__actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+
+  /* Back button – full width but slightly smaller */
+  .flow__actions .secondary-btn {
+    width: 100%;
+    max-width: 380px;
+    padding: 0.9rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  /* Primary button (Add New Quiz) – full width, prominent */
+  .flow__actions .primary-btn {
+    width: 100%;
+    max-width: 380px;
+    padding: 1.1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  /* Disabled state still looks good */
+  .flow__actions .primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* Optional: even tighter on very small phones */
+@media (max-width: 480px) {
+  .flow__actions {
+    margin-top: 2rem;
+    gap: 0.9rem;
+  }
+
+  .flow__actions .primary-btn,
+  .flow__actions .secondary-btn {
+    max-width: none; /* full width of screen with safe padding */
+  }
+}
+/* Existing file list item */
+.file-list {
+  list-style: none;
+  max-width: 680px;
+  margin: 0.75rem auto 0;
+  padding: 0;
+}
+
+.file-item {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;               /* ← Allows wrapping on small screens */
+  gap: 0.75rem 1rem;             /* ← Vertical & horizontal spacing when wrapped */
+}
+
+.file-item__name {
+  color: #04103B;
+  font-weight: 500;
+  flex: 1;
+  min-width: 160px;              /* Prevents name from shrinking too much */
+  word-break: break-word;        /* Long names wrap nicely */
+}
+
+.file-item__size {
+  color: #808080;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* Badge (PDF/DOC) spacing */
+.file-item .badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Remove button – better spacing */
+.file-item button {
+  margin-left: 1rem;
+  background: none;
+  border: none;
+  color: #e11d48;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.file-item button:hover {
+  background: #fee2e2;
+}
+@media (max-width: 768px) {
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .file-item__name {
+    width: 100%;
+    word-break: break-word;
+    font-weight: 600;
+  }
+
+  .file-item > div,
+  .file-item > span,
+  .file-item > button {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .file-item__size,
+  .file-item .badge {
+    margin-left: auto;
+    font-size: 0.85rem;
+  }
+
+  .file-item button {
+    margin-top: 0.5rem;
+    justify-content: center;
+    background: #fee2e2;
+    color: #e11d48;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+}
+
+/* ====================== QUIZ PREVIEW – MOBILE & TABLET ====================== */
+@media (max-width: 768px) {
+  .QuizPreviewPage > div {
+    padding: 1rem !important;
+    max-width: 100% !important;
+  }
+
+  /* Header */
+  h1.text-2xl {
+    font-size: 1.6rem !important;
+    line-height: 1.3;
+  }
+
+  /* Question cards – full width, better spacing */
+  .space-y-4 > div {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Question number */
+  .space-y-4 > div > span:first-child {
+    font-size: 1.1rem;
+    font-weight: 700;
+    min-width: auto !important;
+  }
+
+  /* Question text */
+  .space-y-4 > div > div > p {
+    font-size: 1rem !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Options list */
+  ul.space-y-2 li {
+    font-size: 0.95rem;
+    padding: 0.4rem 0;
+  }
+
+  /* True/False buttons */
+  .flex.gap-8 {
+    gap: 1rem !important;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .flex.gap-8 label {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  /* Fill in blank */
+  .ml-6.mt-2 > div {
+    max-width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  /* Action buttons (Edit/Delete) */
+  .flex.gap-2 {
+    margin-top: 0.5rem;
+    align-self: flex-end;
+  }
+
+  /* Answer section when expanded */
+  .border-t.pt-4 .flex.items-start {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem !important;
+  }
+
+  .border-t.pt-4 span.font-semibold {
+    font-size: 1rem;
+  }
+
+  /* Settings grid – stack everything */
+  .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Settings cards */
+  .bg-white.px-3.py-2 {
+    padding: 0.75rem !important;
+  }
+
+  /* Bottom action buttons */
+  .mt-6.flex.justify-between {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mt-6.flex.justify-between > div {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .mt-6 button {
+    width: 100%;
+    padding: 0.9rem 1rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* Search info bar */
+  .mb-4.p-3.bg-yellow-50 {
+    padding: 0.75rem !important;
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .QuizPreviewPage > div {
+    padding: 0.75rem !important;
+  }
+
+  h1.text-2xl {
+    font-size: 1.5rem !important;
+  }
+
+  .space-y-4 > div {
+    padding: 0.9rem !important;
+  }
+
+  .flex.gap-8 label {
+    min-width: 100px;
+    font-size: 0.95rem;
+  }
+
+  /* Make edit/delete icons bigger for touch */
+  .flex.gap-2 button {
+    padding: 0.75rem !important;
+  }
+
+  /* Make True/False circles bigger */
+  .w-6.h-6 {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+
+  .group-hover\\:w-3.group-hover\\:h-3 {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+  }
+}
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  button, [role="button"], label {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
