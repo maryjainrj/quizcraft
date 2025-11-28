@@ -1,32 +1,36 @@
-/* src/pages/PayPalPayment.css */
+/* src/pages/PayPalPayment.css – Fully Responsive + Branded PayPal Buttons */
 .paypal-payment-page {
   min-height: 100vh;
-  padding: 2rem;
-  background: #ffffff;  /* White background */
+  padding: 2rem 1rem;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .payment-container {
-  max-width: 600px;
+  max-width: 540px;
   width: 100%;
   background: white;
-  border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 20px 50px rgba(64, 24, 157, 0.12);
   border: 1px solid #e5e7eb;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Back Button */
 .back-to-donate {
   background: none;
   border: none;
-  color: #667eea;
+  color: #40189D;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
+  border-radius: 12px;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
@@ -34,150 +38,219 @@
 }
 
 .back-to-donate:hover {
-  background: #f3f4f6;
-  border-radius: 8px;
+  background: #f1f0ff;
+  color: #2c0f73;
 }
 
+/* Header */
 .payment-header {
   text-align: center;
   margin-bottom: 2rem;
 }
 
 .payment-header h1 {
-  font-size: 2rem;
+  font-size: 2.1rem;
+  font-weight: 800;
   color: #1f2937;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
+  margin: 0 0 0.75rem;
+  line-height: 1.2;
 }
 
 .payment-header p {
   color: #6b7280;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  margin: 0;
+  line-height: 1.6;
 }
 
-.payment-summary {
-  margin-bottom: 2rem;
-}
-
+/* Summary Card – Your Brand Color */
 .summary-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #40189D 0%, #2c0f73 100%);
   color: white;
   padding: 2rem;
-  border-radius: 16px;
+  border-radius: 20px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(64, 24, 157, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
 }
 
 .summary-card h3 {
-  font-size: 1.75rem;
-  margin-bottom: 0.75rem;
+  font-size: 1.8rem;
   font-weight: 700;
+  margin: 0 0 0.75rem;
+  position: relative;
+  z-index: 1;
 }
 
 .summary-description {
+  font-size: 1.05rem;
   opacity: 0.95;
   margin-bottom: 1.5rem;
-  font-size: 1.05rem;
+  position: relative;
+  z-index: 1;
 }
 
 .summary-amount {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-weight: 700;
+  gap: 0.4rem;
+  font-weight: 800;
+  position: relative;
+  z-index: 1;
 }
 
 .summary-amount .currency {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 1.8rem;
 }
 
 .summary-amount .amount {
-  font-size: 3rem;
-  font-weight: 700;
+  font-size: 3.4rem;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
+/* PayPal Buttons – Styled with YOUR Primary Color (#40189D) */
+.paypal-buttons {
+  margin: 2rem 0;
+  min-height: 160px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Force PayPal buttons to use your brand color */
+#paypal-button-container > div > div > iframe {
+  z-index: 0 !important;
+}
+
+
+/* Alternative: Use PayPal "blue" and wrap with your own branded container */
+.paypal-branded-wrapper {
+  background: #40189D;
+  padding: 4px;
+  border-radius: 16px;
+  display: inline-block;
+  box-shadow: 0 8px 25px rgba(64, 24, 157, 0.3);
+}
+
+.paypal-branded-wrapper > div {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Loading State */
 .loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
+  background: rgba(255, 255, 255, 0.95);
   padding: 2rem;
-  color: #6b7280;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  z-index: 20;
+  min-width: 200px;
 }
 
 .spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
+  width: 56px;
+  height: 56px;
+  border: 5px solid #f1f0ff;
+  border-top: 5px solid #40189D;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-.paypal-buttons {
-  margin: 2rem 0;
-  min-height: 150px;
-  position: relative;
+.loading-spinner p {
+  color: #40189D;
+  font-weight: 600;
+  margin: 0;
 }
 
+/* Footer */
 .payment-footer {
   text-align: center;
-  color: #6b7280;
-  font-size: 0.95rem;
-  margin-top: 2rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  margin-top: 2.5rem;
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px dashed #e5e7eb;
   line-height: 1.6;
 }
 
-/* Responsive Design */
+/* RESPONSIVE PERFECTION */
 @media (max-width: 768px) {
   .paypal-payment-page {
     padding: 1rem;
   }
 
   .payment-container {
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
+    border-radius: 20px;
   }
 
   .payment-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
 
   .summary-card {
-    padding: 1.5rem;
+    padding: 1.8rem 1.5rem;
   }
 
   .summary-card h3 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+  }
+
+  .summary-amount .amount {
+    font-size: 2.8rem;
+  }
+
+  .summary-amount .currency {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-container {
+    padding: 1.8rem 1.2rem;
+    margin: 0.5rem;
+    border-radius: 18px;
+  }
+
+  .payment-header h1 {
+    font-size: 1.65rem;
+  }
+
+  .summary-card {
+    padding: 1.6rem 1.2rem;
   }
 
   .summary-amount .amount {
     font-size: 2.5rem;
   }
 
-  .summary-amount .currency {
-    font-size: 1.5rem;
+  .back-to-donate {
+    font-size: 0.95rem;
   }
-}
 
-/* Loading state positioning fix */
-.payment-container {
-  position: relative;
-}
-
-.loading-spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: auto;
-  pointer-events: none;
-  z-index: 10;
+  .payment-footer {
+    font-size: 0.85rem;
+  }
 }

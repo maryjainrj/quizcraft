@@ -323,3 +323,34 @@
     padding: 0.25rem 0.5rem;
   }
 }
+/* ============================================= */
+/*  HIDE BIG LOGO ON TABLET & MOBILE (≤1024px)   */
+/*  Only show clean mobile header with hamburger */
+/* ============================================= */
+
+@media (max-width: 1024px) {
+  /* Hide the main desktop logo completely on tablet & mobile */
+  .logo-section,
+  .logo-image {
+    display: none !important;
+  }
+
+  /* Optional: center the mobile header content nicely */
+  .header-content {
+    justify-content: center; /* Centers the mobile menu button when logo is gone */
+    padding: 0 1rem;
+  }
+
+  /* If you want to show a SMALL logo inside the mobile bar instead (optional) */
+  .mobile-header-bar::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 32px;
+    background-image: url('../assets/logo_quizcraft.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-right: 12px;
+  }
+}
