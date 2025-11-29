@@ -194,3 +194,29 @@
     width: 100%;
   }
 }
+
+/* Ensure readable text in the modal input */
+.modal-body .modal-input {
+  background-color: #ffffff !important;
+  color: #111827 !important;   /* dark gray text */
+  caret-color: #40189D;         /* optional: purple caret */
+}
+
+/* Placeholder stays subtle */
+.modal-body .modal-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Keep focus state bright */
+.modal-body .modal-input:focus {
+  background-color: #ffffff;
+}
+
+/* Optional: fix Chrome autofill doing weird colors */
+.modal-body .modal-input:-webkit-autofill,
+.modal-body .modal-input:-webkit-autofill:hover,
+.modal-body .modal-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+}
