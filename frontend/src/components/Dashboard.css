@@ -496,8 +496,8 @@
 }
 
 .quiz-item-card {
-  display: flex;
-  flex-direction: column;
+  /* display: flex; */
+  /* flex-direction: column; */
   background: #fff;
   border-radius: 16px;
   border: 2px solid #f0f0f0;
@@ -539,7 +539,7 @@
 }
 
 .quiz-stats {
-  display: flex;
+  /* display: flex; */
   gap: 1.5rem;
   flex: 1;
 }
@@ -2496,5 +2496,101 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+}
+
+/* Quiz item card - ensure proper layout */
+.quiz-item-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  border: 2px solid #f0f0f0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 1.25rem;
+  position: relative;
+  overflow: visible;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.5s ease-out backwards;
+}
+
+/* Quiz stats - horizontal row */
+.quiz-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+/* Mobile: Keep everything in column, prevent row layout */
+@media (max-width: 768px) {
+  .quiz-item-card {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  .quiz-card-header {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .quiz-stats {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 2rem;
+  }
+
+  .quiz-item-main {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Footer stacks vertically on mobile */
+  .quiz-item-footer {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  
+  .quiz-item-meta {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .time-stamp {
+    width: 100%;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .quiz-item-card {
+    padding: 1rem;
+  }
+
+  .quiz-stats {
+    gap: 1.5rem;
+  }
+
+  .quiz-item-footer {
+    gap: 0.5rem;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.55rem;
   }
 }
