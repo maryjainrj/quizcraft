@@ -97,6 +97,8 @@ export default function WrittenText() {
 
   const [pastedText, setPastedText] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
   const [settings, setSettings] = useState({
     language: "english",
     type: ["mcq"], // ['mcq','tf','fill']
@@ -146,12 +148,39 @@ export default function WrittenText() {
         </button>
         <button
           className="primary-btn"
-          disabled={!hasEnoughText}
+          disabled={!hasEnoughText || isGeneratingQuiz}
           onClick={() => setShowSettings(true)}
         >
           Create New Quiz
         </button>
       </div>
+
+      {/* Quiz Generation Progress Bar */}
+      {isGeneratingQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex flex-col items-center">
+              {/* Spinner */}
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+              
+              {/* Title */}
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Generating Your Quiz</h3>
+              
+              {/* Progress message */}
+              <p className="text-gray-600 text-center mb-4">{generationProgress}</p>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full animate-pulse"></div>
+              </div>
+              
+              <p className="text-sm text-gray-500 mt-4 text-center">
+                This may take a few moments...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <QuizSettingsModal
         open={showSettings}
@@ -161,17 +190,22 @@ export default function WrittenText() {
         showPageRange={false}
         onCreate={async (vals) => {
           setShowSettings(false);
+          setIsGeneratingQuiz(true);
+          setGenerationProgress("Preparing content...");
+          
           try {
             let allTexts = pastedText.trim();
             
             // Apply keyword filter if specified (page range not applicable for pasted text)
             if (vals.keywords && vals.keywords.trim()) {
+              setGenerationProgress("Applying filters...");
               console.log('Applying keyword filter:', vals.keywords);
               allTexts = filterTextByKeywords(allTexts, vals.keywords);
             }
             
             // Validate that we still have text after filtering
             if (!allTexts || allTexts.length < MIN_PASTE_CHARS) {
+              setIsGeneratingQuiz(false);
               alert('No content found matching your keywords. Please adjust your filter.');
               setShowSettings(true);
               return;
@@ -181,8 +215,14 @@ export default function WrittenText() {
             const perType = Math.ceil(vals.count / selectedTypes.length);
             let allQuestions = [];
 
-            for (const t of selectedTypes) {
+            for (let i = 0; i < selectedTypes.length; i++) {
+              const t = selectedTypes[i];
               const questionType = t === "mcq" ? "multiple-choice" : t === "tf" ? "true-false" : "fill-in-blank";
+              
+              setGenerationProgress(
+                `Generating ${questionType} questions (${i + 1}/${selectedTypes.length})...`
+              );
+              
               const { questions: raw } = await generateQuiz(allTexts, {
                 questionCount: perType,
                 questionType,
@@ -197,8 +237,12 @@ export default function WrittenText() {
               allQuestions = [...allQuestions, ...processed];
             }
 
+            setGenerationProgress("Finalizing quiz...");
+
             allQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, vals.count).map((q, i) => ({ ...q, id: i + 1 }));
 
+            setIsGeneratingQuiz(false);
+            
             navigate("/dashboard/quiz-preview", {
               state: {
                 questions: allQuestions,
@@ -213,6 +257,7 @@ export default function WrittenText() {
               },
             });
           } catch (e) {
+            setIsGeneratingQuiz(false);
             alert(e.message || "Failed to generate quiz");
           }
         }}

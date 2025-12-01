@@ -730,6 +730,58 @@
 }
 .danger-btn:hover { background: #be123c; }
 
+/* Detail page responsive */
+@media (max-width: 768px) {
+  .detail-header {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .detail-heading {
+    order: 2;
+  }
+  
+  .back-btn {
+    order: 1;
+    align-self: flex-start;
+    margin-right: 0;
+  }
+  
+  .detail-actions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-header {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-heading h1 {
+    font-size: 1.25rem;
+  }
+  
+  .detail-heading p {
+    font-size: 0.8rem;
+  }
+  
+  .detail-actions {
+    width: 100%;
+  }
+  
+  .detail-actions button {
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .danger-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
 /* ===== Generic modal ===== */
 .modal-overlay {
   position: fixed;
