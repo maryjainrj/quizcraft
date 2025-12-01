@@ -139,9 +139,31 @@ try {
 }
 
 // ---------- Google Cloud Vision ----------
-const visionClient = new vision.ImageAnnotatorClient({
-  keyFilename: path.join(__dirname, "service-account.json"),
-});
+let visionClient = null;
+try {
+  const serviceAccountPath = path.join(__dirname, "service-account.json");
+  console.log("🔍 Looking for service account at:", serviceAccountPath);
+  console.log("📁 File exists:", fs.existsSync(serviceAccountPath));
+  
+  if (fs.existsSync(serviceAccountPath)) {
+    visionClient = new vision.ImageAnnotatorClient({
+      keyFilename: serviceAccountPath,
+    });
+    console.log("✅ Google Vision Client initialized with service account");
+  } else {
+    // Try using GOOGLE_APPLICATION_CREDENTIALS environment variable
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      visionClient = new vision.ImageAnnotatorClient();
+      console.log("✅ Google Vision Client initialized with GOOGLE_APPLICATION_CREDENTIALS env var");
+    } else {
+      console.warn("⚠️  service-account.json not found and GOOGLE_APPLICATION_CREDENTIALS not set");
+      console.warn("⚠️  Scanned document OCR will not work");
+    }
+  }
+} catch (err) {
+  console.error("❌ Failed to initialize Vision API client:", err.message);
+  visionClient = null;
+}
 
 // ---------- OCR helpers ----------
 class NodeCanvasFactory {
@@ -161,14 +183,36 @@ class NodeCanvasFactory {
 }
 
 async function googleVisionOCR(imageBuffer) {
-  const imageBase64 = imageBuffer.toString("base64");
-  const [result] = await visionClient.documentTextDetection({
-    image: { content: imageBase64 },
-  });
-  return result.fullTextAnnotation ? result.fullTextAnnotation.text : "";
+  if (!visionClient) {
+    throw new Error("Vision API client not initialized. Check service-account.json or GOOGLE_APPLICATION_CREDENTIALS.");
+  }
+  
+  try {
+    const imageBase64 = imageBuffer.toString("base64");
+    const [result] = await visionClient.documentTextDetection({
+      image: { content: imageBase64 },
+    });
+    
+    if (!result) {
+      console.warn("⚠️  No result from Vision API");
+      return "";
+    }
+    
+    const text = result.fullTextAnnotation ? result.fullTextAnnotation.text : "";
+    console.log("✅ OCR successful, extracted", text.length, "characters");
+    return text;
+  } catch (err) {
+    console.error("❌ Vision API OCR error:", err.message);
+    throw err;
+  }
 }
 
 async function extractTextFromScannedPDF(pdfBuffer) {
+  if (!visionClient) {
+    console.warn("⚠️  Vision API client not available for scanned PDF");
+    return "[Scanned PDF OCR skipped: Vision API not configured]";
+  }
+
   const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
   const pdfDocument = await loadingTask.promise;
   let fullText = "";
@@ -198,14 +242,20 @@ async function extractTextFromScannedPDF(pdfBuffer) {
       } else {
         const imageBuffer = canvasAndContext.canvas.toBuffer();
         try {
+          console.log(`📄 Running Vision API OCR on page ${pageNum}...`);
           ocrText = await googleVisionOCR(imageBuffer);
+          if (!ocrText.trim()) {
+            ocrText = "[No text detected on this page]";
+          }
         } catch (ocrErr) {
+          console.error(`❌ OCR failed for page ${pageNum}:`, ocrErr.message);
           ocrText = "[OCR failed for this page: " + ocrErr.message + "]";
         }
       }
       fullText += `\n--- Page ${pageNum} ---\n${ocrText}`;
       canvasFactory.destroy(canvasAndContext);
     } catch (pageErr) {
+      console.error(`❌ Page rendering failed for page ${pageNum}:`, pageErr.message);
       fullText += `\n--- Page ${pageNum} ---\n[Page rendering failed: ${pageErr.message}]`;
     }
   }
@@ -235,12 +285,16 @@ function preprocessImage(imageBuffer) {
 
 const performOCR = async (imageBuffer) => {
   try {
+    if (!visionClient) {
+      throw new Error("Vision API client not initialized");
+    }
     // If you want preprocessing:
     // const processed = preprocessImage(imageBuffer);
     // return await googleVisionOCR(processed);
     return await googleVisionOCR(imageBuffer);
   } catch (err) {
-    return "[OCR failed: " + err.message + "]";
+    console.error("❌ performOCR error:", err.message);
+    throw err;
   }
 };
 
@@ -291,22 +345,34 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     const fileType = req.file.mimetype;
     let extractedText = "";
 
-    console.log(`Processing file: ${req.file.originalname}, type: ${fileType}`);
+    console.log(`\n📤 Processing file: ${req.file.originalname}, type: ${fileType}`);
 
     // Handle PDF files
     if (fileType === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       try {
+        console.log("🔍 Attempting pdf-parse text extraction...");
         const pdfData = await pdfParse(dataBuffer);
         extractedText = pdfData.text;
+        console.log(`✅ pdf-parse extracted ${extractedText.length} characters`);
+        
         if (!extractedText.trim()) {
+          console.log("⚠️  No text in pdf-parse, attempting OCR on scanned document...");
           extractedText = await extractTextFromScannedPDF(dataBuffer);
           if (!extractedText.trim())
             extractedText = "No text found in scanned PDF (OCR).";
         }
       } catch (error) {
-        console.error("PDF text extraction failed:", error);
-        extractedText = "Failed to extract text from PDF.";
+        console.error("❌ PDF text extraction failed:", error.message);
+        console.log("🔄 Attempting OCR fallback for scanned PDF...");
+        try {
+          extractedText = await extractTextFromScannedPDF(dataBuffer);
+          if (!extractedText.trim())
+            extractedText = "Failed to extract text from PDF.";
+        } catch (ocrError) {
+          console.error("❌ OCR fallback also failed:", ocrError.message);
+          extractedText = "Failed to extract text from PDF: " + error.message;
+        }
       }
     } 
     // Handle Word documents (.doc, .docx)
@@ -351,8 +417,15 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     }
     // Handle images
     else {
+      console.log("🖼️  Processing image file with OCR...");
       const imageBuffer = fs.readFileSync(filePath);
-      extractedText = await performOCR(imageBuffer);
+      try {
+        extractedText = await performOCR(imageBuffer);
+        console.log(`✅ Image OCR extracted ${extractedText.length} characters`);
+      } catch (err) {
+        console.error("❌ Image OCR failed:", err.message);
+        extractedText = "[Image OCR failed: " + err.message + "]";
+      }
     }
 
     fs.unlinkSync(filePath);
