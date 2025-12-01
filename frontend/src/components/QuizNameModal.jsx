@@ -1,9 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './QuizNameModal.css';
 
 const QuizNameModal = ({ open, onClose, onSave, defaultName = '' }) => {
   const [quizName, setQuizName] = useState(defaultName);
   const [error, setError] = useState('');
+  const inputRef = useRef(null);
+
+  // Auto-focus when modal opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 100);
+    }
+  }, [open]);
+
+  // Update quizName when defaultName changes
+  useEffect(() => {
+    if (open) {
+      setQuizName(defaultName);
+      setError('');
+    }
+  }, [defaultName, open]);
 
   const handleSave = () => {
     const trimmedName = quizName.trim();
@@ -41,6 +60,7 @@ const QuizNameModal = ({ open, onClose, onSave, defaultName = '' }) => {
             Quiz Name <span className="required">*</span>
           </label>
           <input
+            ref={inputRef}
             id="quiz-name"
             type="text"
             className="modal-input"
