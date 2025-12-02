@@ -446,30 +446,43 @@ const LandingPage = () => {
     st.el = null;
     st.handler = null;
 
-    if (isAuthed) return; // When authed, leave Header behaviour alone.
-
     const el = findHeaderCta();
     if (!el) return;
 
-    // Update label to mirror form mode
+    // If authed: show Dashboard and navigate there
+    if (isAuthed) {
+      try {
+        el.textContent = "Dashboard";
+        el.setAttribute("aria-label", "Dashboard");
+        el.setAttribute("href", "/dashboard");
+      } catch {}
+      const goDash = (e) => {
+        // ensure client-side route, no full reload
+        e.preventDefault();
+        e.stopPropagation();
+        navigate("/dashboard");
+      };
+      el.addEventListener("click", goDash, true);
+      st.el = el;
+      st.handler = goDash;
+      return;
+    }
+
+    // Not authed: mirror Sign in / Sign up toggle
     try {
       el.textContent = labelForCurrentMode();
       el.setAttribute("aria-label", labelForCurrentMode());
     } catch {}
 
     const handler = (e) => {
-      // Intercept only if not authed
-      if (isAuthed) return;
       // Prevent any nav the Header link might do
       e.preventDefault();
       e.stopPropagation();
-      // Toggle the auth mode to mirror the in-form switch
       if (showSignup) {
         switchToLogin();
       } else {
         switchToSignup();
       }
-      // Update the label right away
       try {
         el.textContent = labelForCurrentMode();
         el.setAttribute("aria-label", labelForCurrentMode());
@@ -484,11 +497,10 @@ const LandingPage = () => {
   // Re-attach whenever auth state or toggle mode changes
   useEffect(() => {
     attachHeaderCta();
-  }, [isAuthed, showSignup]);
+  }, [isAuthed, showSignup, navigate]);
 
   // Observe DOM changes (Header re-renders) and re-attach if needed
   useEffect(() => {
-    if (isAuthed) return; // nothing to do when authed
     const st = headerCtaStateRef.current;
 
     const ensureAttached = () => {
@@ -521,7 +533,34 @@ const LandingPage = () => {
       st.el = null;
       st.handler = null;
     };
-  }, [isAuthed]); // Only set up observer when needed
+  }, []); // observe regardless of auth state
+
+  // === ref to auth container so we can scroll to it ===
+  const authContainerRef = useRef(null);
+
+  // === CTA click -> toggle to Signup, then smooth-scroll & focus ===
+  const handleCtaClick = () => {
+    switchToSignup();
+    setTimeout(() => {
+      const target =
+        authContainerRef.current ||
+        document.querySelector(".auth-container") ||
+        document.querySelector(".hero-section");
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      const firstInput =
+        (authContainerRef.current &&
+          authContainerRef.current.querySelector("#name")) ||
+        document.querySelector("#name") ||
+        document.querySelector("#signup-email");
+      if (firstInput && typeof firstInput.focus === "function") {
+        firstInput.focus();
+      }
+    }, 0);
+  };
 
   return (
     <>
@@ -583,7 +622,7 @@ const LandingPage = () => {
 
             {/* Right Side - Login/Signup Form (hidden when authed) */}
             {!isAuthed && (
-              <div className="auth-container">
+              <div className="auth-container" ref={authContainerRef}>
                 <div className="auth-card">
                   <div className="auth-image-section">
                     <img
@@ -721,7 +760,7 @@ const LandingPage = () => {
                           />
                           <path
                             fill="#FBBC05"
-                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
+                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55  0 9s.348 2.825.957 4.039l3.007-2.332z"
                           />
                           <path
                             fill="#EA4335"
@@ -877,7 +916,7 @@ const LandingPage = () => {
                           />
                           <path
                             fill="#FBBC05"
-                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
+                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55  0 9s.348 2.825.957 4.039l3.007-2.332z"
                           />
                           <path
                             fill="#EA4335"
@@ -1117,7 +1156,7 @@ const LandingPage = () => {
               Empower your classroom or training with instant, AI-generated
               quizzes. Start building smarter assessments today!
             </p>
-            <button className="cta-button" onClick={switchToSignup}>
+            <button className="cta-button" onClick={handleCtaClick}>
               Try QuizCraft Now
             </button>
           </div>
