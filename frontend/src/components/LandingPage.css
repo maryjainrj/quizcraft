@@ -1174,7 +1174,7 @@ color: #111827;
 .section-subtitle,
 .feature-card p,
 .step-card p,
-.stat-label,
+/* REMOVED .stat-label here */
 .cta-description,
 .footer-description,
 .footer-section a,
@@ -1185,8 +1185,7 @@ color: #111827;
 
 /* If your card text is on slightly tinted backgrounds, ensure the bg is light */
 .feature-card,
-.step-card,
-.stat-card {
+.step-card {
   background-color: #ffffff; /* keep cards pure white for max contrast */
 }
 
@@ -1211,7 +1210,7 @@ color: #111827;
 .features-section span,
 .how-section p,
 .how-section span,
-.stats-grid .stat-label,
+/* REMOVED .stats-grid .stat-label to avoid forcing dark inside purple cards */
 .cta-section p
  {
   color: #111827 !important;  /* dark slate, strong contrast */
@@ -1234,8 +1233,7 @@ color: #111827;
 
 /* Make sure cards are pure white so the dark text passes */
 .feature-card,
-.step-card,
-.stat-card {
+.step-card {
   background-color: #ffffff !important;
 }
 
@@ -1246,15 +1244,10 @@ color: #111827;
   color: #111827 !important;
 }
 
-.stats-grid .stat-number {
-  color: #111827 !important;           /* dark text */
-  background-color: transparent !important;
-  opacity: 1 !important;
-}
-
-.stats-grid .stat-label {
-  color: #111827 !important;
-}
+/* REMOVED overrides that forced dark/transparent stats:
+.stats-grid .stat-number { ... }
+.stats-grid .stat-label  { ... }
+*/
 
 .how-section .step-arrow {
   color: #111827 !important;           
@@ -1323,5 +1316,3 @@ color: #111827;
 .header-nav .nav-link-primary:focus-visible {
   color: #ffffff !important;
 }
-
-

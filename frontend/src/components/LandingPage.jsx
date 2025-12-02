@@ -974,7 +974,7 @@ const LandingPage = () => {
                     <div className="stat-label">Faster Than Manual</div>
                   </div>
                   <div className="stat-card stat-item">
-                    <div className="stat-number">95%</div>
+                    <div className="stat-number">100%</div>
                     <div className="stat-label">Accuracy Rate</div>
                   </div>
                 </div>
