@@ -356,13 +356,18 @@
   cursor: pointer;
   font-size: 1.25rem;
   padding: 0.25rem;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  aria-label: "Toggle password visibility";
+  color: #111827;              /* dark icon for strong contrast */
+  opacity: 1;                  /* no transparency */
+}
+
+/* good keyboard focus outline */
+.password-toggle:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
 }
 
 .password-toggle:hover {
-  opacity: 1;
+  opacity: 1;                  /* keep full contrast on hover too */
 }
 
 .form-group input:focus {
@@ -495,7 +500,7 @@
 .switch-link {
   background: none;
   border: none;
-  color: #667eea;
+color: #111827; 
   font-weight: 600;
   cursor: pointer;
   margin-left: 0.25rem;
@@ -912,7 +917,7 @@
   margin-bottom: 3rem;
 }
 
-.footer-section h4 {
+.footer-section h3 {
   color: white;
   font-weight: 700;
   margin-bottom: 1rem;
@@ -1162,4 +1167,161 @@
   }
 }
 
-/* If you only want to hide it on phones (not tablets), use 768px instead */
+/* === Accessibility: fix low contrast text === */
+
+/* General body text on light backgrounds */
+.hero-description,
+.section-subtitle,
+.feature-card p,
+.step-card p,
+.stat-label,
+.cta-description,
+.footer-description,
+.footer-section a,
+.footer-bottom p,
+.footer-bottom .footer-links a {
+  color: #111827; /* dark slate, passes contrast on white/light cards */
+}
+
+/* If your card text is on slightly tinted backgrounds, ensure the bg is light */
+.feature-card,
+.step-card,
+.stat-card {
+  background-color: #ffffff; /* keep cards pure white for max contrast */
+}
+
+/* if any small helper text is very light, make it darker too */
+.form-group label,
+.form-options span,
+.forgot-link {
+  color: #111827;
+}
+
+/* ================================
+   ACCESSIBILITY CONTRAST FIXES
+   (only overrides colors, no layout)
+   ================================ */
+
+/* Body-style text on light sections */
+.hero-description,
+.hero-features p,
+.about-section p,
+.about-section span,
+.features-section p,
+.features-section span,
+.how-section p,
+.how-section span,
+.stats-grid .stat-label,
+.cta-section p
+ {
+  color: #111827 !important;  /* dark slate, strong contrast */
+}
+.landing-footer p,
+.landing-footer a {
+  color: #e5e7eb  !important;  /* dark slate, strong contrast */
+}
+
+
+/* Text inside the feature / step / stat cards */
+.features-section .feature-card p,
+.features-section .feature-card span,
+.how-section .step-card p,
+.how-section .step-card span,
+.stats-grid .stat-card p,
+.stats-grid .stat-card span {
+  color: #111827 !important;
+}
+
+/* Make sure cards are pure white so the dark text passes */
+.feature-card,
+.step-card,
+.stat-card {
+  background-color: #ffffff !important;
+}
+
+/* Small helper text that might still be light */
+.form-group label,
+.form-options span,
+.forgot-link {
+  color: #111827 !important;
+}
+
+.stats-grid .stat-number {
+  color: #111827 !important;           /* dark text */
+  background-color: transparent !important;
+  opacity: 1 !important;
+}
+
+.stats-grid .stat-label {
+  color: #111827 !important;
+}
+
+.how-section .step-arrow {
+  color: #111827 !important;           
+  background-color: transparent !important;
+  opacity: 1 !important;
+}
+
+
+.auth-subtitle {
+  color: #111827 !important;  /* darker gray for good contrast */
+}
+
+.divider,
+.divider span {
+  color: #111827 !important;   /* or use #40189D if you want purple */
+  font-weight: 600;
+}
+/* === Final contrast fixes === */
+
+.divider span {
+  color: #111827 !important;   /* dark slate */
+  font-weight: 600;
+}
+
+
+.cta-section .cta-description {
+  color: #F9FAFB !important;   /* near-white */
+}
+/* Header nav – improve contrast for links */
+.header-nav a,
+.header-nav a:link,
+.header-nav a:visited {
+  color: #111827 !important;   
+  font-weight: 600;
+}
+
+.header-nav a:hover,
+.header-nav a:focus {
+  color: #2EAE71 !important; 
+}
+
+.nav-link-primary {
+  background-color: #40189D;   /*  purple */
+  color: #ffffff;              /* white text */
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+
+
+.nav-link-primary:hover,
+.nav-link-primary:focus-visible {
+  background-color: #2e0f80;   /* slightly darker purple */
+  color: #ffffff;
+}
+/* Force the Sign In button text to be white only for that button */
+.header-nav .nav-link-primary,
+.header-nav .nav-link-primary:link,
+.header-nav .nav-link-primary:visited {
+  color: #ffffff !important;
+}
+
+/* Optional: keep it white on hover/focus too */
+.header-nav .nav-link-primary:hover,
+.header-nav .nav-link-primary:focus-visible {
+  color: #ffffff !important;
+}
+
+
