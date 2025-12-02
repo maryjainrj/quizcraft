@@ -75,6 +75,58 @@ const LandingPage = () => {
   // Refs for Google
   const codeClientRef = useRef(null);
 
+  // === NEW: track auth + detect logout immediately ===
+  const [isAuthed, setIsAuthed] = useState(false);
+
+  const isSessionValid = () => {
+    try {
+      const token = localStorage.getItem("token");
+      const expiry = Number(localStorage.getItem("sessionExpiry") || 0);
+      return Boolean(token) && expiry > Date.now();
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const check = () => {
+      const authed = isSessionValid();
+      setIsAuthed((prev) => {
+        // if user was authed and now not -> refresh so the form is visible at once
+        if (prev && !authed) {
+          window.location.reload();
+        }
+        return authed;
+      });
+    };
+
+    // initial check
+    check();
+
+    // heartbeat for same-tab logout
+    const id = window.setInterval(check, 500);
+
+    // when returning to the tab
+    const onVis = () => {
+      if (!document.hidden) check();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    // cross-tab logout support
+    const onStorage = (e) => {
+      if (e.key === "token" || e.key === "sessionExpiry" || e.key === null) {
+        check();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   // ---------- Clear any prefilled data on mount ----------
   useEffect(() => {
     setLoginForm({ username: "", password: "" });
@@ -378,7 +430,17 @@ const LandingPage = () => {
       <div className="landing-page">
         {/* Hero Section with Login */}
         <section className="hero-section">
-          <div className="hero-container">
+          <div
+            className="hero-container"
+            style={
+              isAuthed
+                ? {
+                    gridTemplateColumns: "1fr", // single column
+                    justifyItems: "center",     // center the left content
+                  }
+                : undefined
+            }
+          >
             {/* Left Side - Hero Content */}
             <div className="hero-content">
               <div className="hero-badge">AI-Powered Quiz Generation</div>
@@ -415,77 +477,52 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Right Side - Login/Signup Form */}
-            <div className="auth-container">
-              <div className="auth-card">
-                <div className="auth-image-section">
-                  <img
-                    src={heroImage}
-                    alt="QuizCraft Mascot"
-                    className="sally-image"
-                    loading="lazy"
-                  />
-                </div>
-
-                {err && (
-                  <div className="error-message" role="alert">
-                    {err}
+            {/* Right Side - Login/Signup Form (hidden when authed) */}
+            {!isAuthed && (
+              <div className="auth-container">
+                <div className="auth-card">
+                  <div className="auth-image-section">
+                    <img
+                      src={heroImage}
+                      alt="QuizCraft Mascot"
+                      className="sally-image"
+                      loading="lazy"
+                    />
                   </div>
-                )}
 
-                {!showSignup ? (
-                  <>
-                    <h2 className="auth-title">Welcome Back</h2>
-                    <p className="auth-subtitle">
-                      Sign in to continue to QuizCraft
-                    </p>
+                  {err && (
+                    <div className="error-message" role="alert">
+                      {err}
+                    </div>
+                  )}
 
-                    <form
-                      className="auth-form"
-                      onSubmit={handleLoginSubmit}
-                      autoComplete="off"
-                    >
-                      {/* hidden decoys to swallow browser autofill */}
-                      <input type="hidden" autoComplete="username" />
-                      <input type="hidden" autoComplete="current-password" />
+                  {!showSignup ? (
+                    <>
+                      <h2 className="auth-title">Welcome Back</h2>
+                      <p className="auth-subtitle">
+                        Sign in to continue to QuizCraft
+                      </p>
 
-                      <div className="form-group">
-                        <label htmlFor="email">Email or Username</label>
-                        <input
-                          type="text"
-                          id="email"
-                          placeholder="Enter your email or username"
-                          value={loginForm.username}
-                          onChange={(e) =>
-                            setLoginForm({
-                              ...loginForm,
-                              username: e.target.value,
-                            })
-                          }
-                          required
-                          autoComplete="off"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          aria-describedby="email-help"
-                        />
-                        <small id="email-help" className="sr-only">
-                          Enter your email address or username
-                        </small>
-                      </div>
+                      <form
+                        className="auth-form"
+                        onSubmit={handleLoginSubmit}
+                        autoComplete="off"
+                      >
+                        {/* hidden decoys to swallow browser autofill */}
+                        <input type="hidden" autoComplete="username" />
+                        <input type="hidden" autoComplete="current-password" />
 
-                      <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <div className="password-input-wrapper">
+                        <div className="form-group">
+                          <label htmlFor="email">Email or Username</label>
                           <input
-                            type={showPw ? "text" : "password"}
-                            id="password"
-                            placeholder="Enter your password"
-                            value={loginForm.password}
+                            type="text"
+                            id="email"
+                            placeholder="Enter your email or username"
+                            value={loginForm.username}
                             onChange={(e) =>
                               setLoginForm({
                                 ...loginForm,
-                                password: e.target.value,
+                                username: e.target.value,
                               })
                             }
                             required
@@ -493,243 +530,270 @@ const LandingPage = () => {
                             autoCapitalize="none"
                             autoCorrect="off"
                             spellCheck={false}
-                            aria-describedby="password-help"
+                            aria-describedby="email-help"
                           />
-                          <small id="password-help" className="sr-only">
-                            Enter your password
+                          <small id="email-help" className="sr-only">
+                            Enter your email address or username
                           </small>
-                          <button
-                            type="button"
-                            className="password-toggle"
-                            onClick={() => setShowPw(!showPw)}
-                            aria-label={
-                              showPw ? "Hide password" : "Show password"
-                            }
-                          >
-                            {showPw ? "👁️" : "👁️‍🗨️"}
-                          </button>
                         </div>
-                      </div>
 
-                      <div className="form-options">
-                        <label className="checkbox-label">
-                          <input type="checkbox" id="remember" />
-                          <span>Remember me</span>
-                        </label>
-                        <a href="/forgot-password" className="forgot-link">
-                          Forgot password?
-                        </a>
+                        <div className="form-group">
+                          <label htmlFor="password">Password</label>
+                          <div className="password-input-wrapper">
+                            <input
+                              type={showPw ? "text" : "password"}
+                              id="password"
+                              placeholder="Enter your password"
+                              value={loginForm.password}
+                              onChange={(e) =>
+                                setLoginForm({
+                                  ...loginForm,
+                                  password: e.target.value,
+                                })
+                              }
+                              required
+                              autoComplete="off"
+                              autoCapitalize="none"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              aria-describedby="password-help"
+                            />
+                            <small id="password-help" className="sr-only">
+                              Enter your password
+                            </small>
+                            <button
+                              type="button"
+                              className="password-toggle"
+                              onClick={() => setShowPw(!showPw)}
+                              aria-label={
+                                showPw ? "Hide password" : "Show password"
+                              }
+                            >
+                              {showPw ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="form-options">
+                          <label className="checkbox-label">
+                            <input type="checkbox" id="remember" />
+                            <span>Remember me</span>
+                          </label>
+                          <a href="/forgot-password" className="forgot-link">
+                            Forgot password?
+                          </a>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="auth-button primary"
+                          disabled={submitting}
+                        >
+                          {submitting ? "Signing In..." : "Sign In"}
+                        </button>
+                      </form>
+
+                      <div className="divider">
+                        <span>OR</span>
                       </div>
 
                       <button
-                        type="submit"
-                        className="auth-button primary"
-                        disabled={submitting}
+                        className="auth-button google"
+                        onClick={handleGoogleSignIn}
                       >
-                        {submitting ? "Signing In..." : "Sign In"}
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 18 18"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fill="#4285F4"
+                            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
+                          />
+                        </svg>
+                        Continue with Google
                       </button>
-                    </form>
 
-                    <div className="divider">
-                      <span>OR</span>
-                    </div>
+                      <p className="auth-switch">
+                        Don't have an account?{" "}
+                        <button onClick={switchToSignup} className="switch-link">
+                          Sign up
+                        </button>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="auth-title">Create Account</h2>
+                      <p className="auth-subtitle">
+                        Start creating quizzes in minutes
+                      </p>
 
-                    <button
-                      className="auth-button google"
-                      onClick={handleGoogleSignIn}
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 18 18"
-                        aria-hidden="true"
+                      <form
+                        className="auth-form"
+                        onSubmit={handleSignupSubmit}
+                        autoComplete="off"
                       >
-                        <path
-                          fill="#4285F4"
-                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
-                        />
-                      </svg>
-                      Continue with Google
-                    </button>
+                        {/* hidden decoys for autofill */}
+                        <input type="hidden" autoComplete="email" />
+                        <input type="hidden" autoComplete="username" />
+                        <input type="hidden" autoComplete="new-password" />
 
-                    <p className="auth-switch">
-                      Don't have an account?{" "}
-                      <button onClick={switchToSignup} className="switch-link">
-                        Sign up
-                      </button>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="auth-title">Create Account</h2>
-                    <p className="auth-subtitle">
-                      Start creating quizzes in minutes
-                    </p>
-
-                    <form
-                      className="auth-form"
-                      onSubmit={handleSignupSubmit}
-                      autoComplete="off"
-                    >
-                      {/* hidden decoys for autofill */}
-                      <input type="hidden" autoComplete="email" />
-                      <input type="hidden" autoComplete="username" />
-                      <input type="hidden" autoComplete="new-password" />
-
-                      <div className="form-group">
-                        <label htmlFor="name">Full Name</label>
-                        <input
-                          type="text"
-                          id="name"
-                          placeholder="Enter your name"
-                          value={signupForm.name}
-                          onChange={(e) =>
-                            setSignupForm({
-                              ...signupForm,
-                              name: e.target.value,
-                            })
-                          }
-                          required
-                          autoComplete="off"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          aria-describedby="name-help"
-                        />
-                        <small id="name-help" className="sr-only">
-                          Enter your full name
-                        </small>
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="signup-email">Email Address</label>
-                        <input
-                          type="email"
-                          id="signup-email"
-                          placeholder="Enter your email"
-                          value={signupForm.email}
-                          onChange={(e) =>
-                            setSignupForm({
-                              ...signupForm,
-                              email: e.target.value,
-                            })
-                          }
-                          required
-                          autoComplete="off"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          aria-describedby="email-help"
-                        />
-                        <small id="email-help" className="sr-only">
-                          Enter a valid email address
-                        </small>
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="signup-password">Password</label>
-                        <div className="password-input-wrapper">
+                        <div className="form-group">
+                          <label htmlFor="name">Full Name</label>
                           <input
-                            type={showPw ? "text" : "password"}
-                            id="signup-password"
-                            placeholder="Create a password"
-                            value={signupForm.password}
+                            type="text"
+                            id="name"
+                            placeholder="Enter your name"
+                            value={signupForm.name}
                             onChange={(e) =>
                               setSignupForm({
                                 ...signupForm,
-                                password: e.target.value,
+                                name: e.target.value,
                               })
                             }
                             required
-                            minLength={8}
                             autoComplete="off"
                             autoCapitalize="none"
                             autoCorrect="off"
                             spellCheck={false}
-                            aria-describedby="password-help"
+                            aria-describedby="name-help"
                           />
-                          <small id="password-help" className="sr-only">
-                            Password must be at least 8 characters and contain
-                            letters and numbers
+                          <small id="name-help" className="sr-only">
+                            Enter your full name
                           </small>
-                          <button
-                            type="button"
-                            className="password-toggle"
-                            onClick={() => setShowPw(!showPw)}
-                            aria-label={
-                              showPw ? "Hide password" : "Show password"
-                            }
-                          >
-                            {showPw ? "👁️" : "👁️‍🗨️"}
-                          </button>
                         </div>
+
+                        <div className="form-group">
+                          <label htmlFor="signup-email">Email Address</label>
+                          <input
+                            type="email"
+                            id="signup-email"
+                            placeholder="Enter your email"
+                            value={signupForm.email}
+                            onChange={(e) =>
+                              setSignupForm({
+                                ...signupForm,
+                                email: e.target.value,
+                              })
+                            }
+                            required
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            aria-describedby="email-help"
+                          />
+                          <small id="email-help" className="sr-only">
+                            Enter a valid email address
+                          </small>
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="signup-password">Password</label>
+                          <div className="password-input-wrapper">
+                            <input
+                              type={showPw ? "text" : "password"}
+                              id="signup-password"
+                              placeholder="Create a password"
+                              value={signupForm.password}
+                              onChange={(e) =>
+                                setSignupForm({
+                                  ...signupForm,
+                                  password: e.target.value,
+                                })
+                              }
+                              required
+                              minLength={8}
+                              autoComplete="off"
+                              autoCapitalize="none"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              aria-describedby="password-help"
+                            />
+                            <small id="password-help" className="sr-only">
+                              Password must be at least 8 characters and contain
+                              letters and numbers
+                            </small>
+                            <button
+                              type="button"
+                              className="password-toggle"
+                              onClick={() => setShowPw(!showPw)}
+                              aria-label={
+                                showPw ? "Hide password" : "Show password"
+                              }
+                            >
+                              {showPw ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="auth-button primary"
+                          disabled={submitting}
+                        >
+                          {submitting ? "Creating Account..." : "Create Account"}
+                        </button>
+                      </form>
+
+                      <div className="divider">
+                        <span>OR</span>
                       </div>
 
                       <button
-                        type="submit"
-                        className="auth-button primary"
-                        disabled={submitting}
+                        className="auth-button google"
+                        onClick={handleGoogleSignIn}
                       >
-                        {submitting ? "Creating Account..." : "Create Account"}
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 18 18"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fill="#4285F4"
+                            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.540-1.837.860-3.048.860-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
+                          />
+                        </svg>
+                        Continue with Google
                       </button>
-                    </form>
 
-                    <div className="divider">
-                      <span>OR</span>
-                    </div>
-
-                    <button
-                      className="auth-button google"
-                      onClick={handleGoogleSignIn}
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 18 18"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill="#4285F4"
-                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
-                        />
-                      </svg>
-                      Continue with Google
-                    </button>
-
-                    <p className="auth-switch">
-                      Already have an account?{" "}
-                      <button onClick={switchToLogin} className="switch-link">
-                        Sign in
-                      </button>
-                    </p>
-                  </>
-                )}
+                      <p className="auth-switch">
+                        Already have an account?{" "}
+                        <button onClick={switchToLogin} className="switch-link">
+                          Sign in
+                        </button>
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
