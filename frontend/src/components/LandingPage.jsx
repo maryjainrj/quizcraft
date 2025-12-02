@@ -75,7 +75,7 @@ const LandingPage = () => {
   // Refs for Google
   const codeClientRef = useRef(null);
 
-  // === NEW: track auth + detect logout immediately ===
+  // Track auth
   const [isAuthed, setIsAuthed] = useState(false);
 
   const isSessionValid = () => {
@@ -92,7 +92,6 @@ const LandingPage = () => {
     const check = () => {
       const authed = isSessionValid();
       setIsAuthed((prev) => {
-        // if user was authed and now not -> refresh so the form is visible at once
         if (prev && !authed) {
           window.location.reload();
         }
@@ -100,19 +99,14 @@ const LandingPage = () => {
       });
     };
 
-    // initial check
     check();
-
-    // heartbeat for same-tab logout
     const id = window.setInterval(check, 500);
 
-    // when returning to the tab
     const onVis = () => {
       if (!document.hidden) check();
     };
     document.addEventListener("visibilitychange", onVis);
 
-    // cross-tab logout support
     const onStorage = (e) => {
       if (e.key === "token" || e.key === "sessionExpiry" || e.key === null) {
         check();
@@ -419,6 +413,116 @@ const LandingPage = () => {
     setLoginForm({ username: "", password: "" });
   };
 
+  // ======= HEADER CTA MIRROR (no Header changes needed) =======
+  const headerCtaStateRef = useRef({
+    el: null,
+    handler: null,
+    observer: null,
+  });
+
+  // Find a reasonable header CTA candidate without editing Header.jsx
+  const findHeaderCta = () => {
+    // Priority: explicit data attribute if you added it; fallback to common selectors
+    return (
+      document.querySelector('[data-auth-cta]') ||
+      document.querySelector('.header-nav .nav-link-primary') ||
+      document.querySelector('a[href="/signin"], a[href="/login"]') ||
+      null
+    );
+  };
+
+  const labelForCurrentMode = () => (showSignup ? "Sign in" : "Sign up");
+
+  const attachHeaderCta = () => {
+    const st = headerCtaStateRef.current;
+
+    // Clean up old listener if any
+    if (st.el && st.handler) {
+      try {
+        st.el.removeEventListener("click", st.handler, true);
+      } catch {}
+    }
+
+    st.el = null;
+    st.handler = null;
+
+    if (isAuthed) return; // When authed, leave Header behaviour alone.
+
+    const el = findHeaderCta();
+    if (!el) return;
+
+    // Update label to mirror form mode
+    try {
+      el.textContent = labelForCurrentMode();
+      el.setAttribute("aria-label", labelForCurrentMode());
+    } catch {}
+
+    const handler = (e) => {
+      // Intercept only if not authed
+      if (isAuthed) return;
+      // Prevent any nav the Header link might do
+      e.preventDefault();
+      e.stopPropagation();
+      // Toggle the auth mode to mirror the in-form switch
+      if (showSignup) {
+        switchToLogin();
+      } else {
+        switchToSignup();
+      }
+      // Update the label right away
+      try {
+        el.textContent = labelForCurrentMode();
+        el.setAttribute("aria-label", labelForCurrentMode());
+      } catch {}
+    };
+
+    el.addEventListener("click", handler, true);
+    st.el = el;
+    st.handler = handler;
+  };
+
+  // Re-attach whenever auth state or toggle mode changes
+  useEffect(() => {
+    attachHeaderCta();
+  }, [isAuthed, showSignup]);
+
+  // Observe DOM changes (Header re-renders) and re-attach if needed
+  useEffect(() => {
+    if (isAuthed) return; // nothing to do when authed
+    const st = headerCtaStateRef.current;
+
+    const ensureAttached = () => {
+      const current = st.el;
+      const candidate = findHeaderCta();
+      if (candidate && candidate !== current) {
+        attachHeaderCta();
+      } else if (!candidate && current) {
+        attachHeaderCta();
+      }
+    };
+
+    const obs = new MutationObserver(() => ensureAttached());
+    obs.observe(document.body, { childList: true, subtree: true });
+    st.observer = obs;
+
+    // Initial attempt
+    ensureAttached();
+
+    return () => {
+      try {
+        obs.disconnect();
+      } catch {}
+      st.observer = null;
+      if (st.el && st.handler) {
+        try {
+          st.el.removeEventListener("click", st.handler, true);
+        } catch {}
+      }
+      st.el = null;
+      st.handler = null;
+    };
+  }, [isAuthed]); // Only set up observer when needed
+
   return (
     <>
       <Header />
@@ -435,8 +539,8 @@ const LandingPage = () => {
             style={
               isAuthed
                 ? {
-                    gridTemplateColumns: "1fr", // single column
-                    justifyItems: "center",     // center the left content
+                    gridTemplateColumns: "1fr",
+                    justifyItems: "center",
                   }
                 : undefined
             }
@@ -769,7 +873,7 @@ const LandingPage = () => {
                           />
                           <path
                             fill="#34A853"
-                            d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.540-1.837.860-3.048.860-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                            d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
                           />
                           <path
                             fill="#FBBC05"
