@@ -149,55 +149,57 @@ export default function QuizSettingsModal({
             />
           </div>
 
-          {/* Page range – compact single row */}
-          <div className="qs-field">
-            <label className="qs-sublabel">Page range (optional)</label>
-            <div className="qs-inline-range">
-              <div className="qs-range-item">
-                <span className="qs-inline-label">From</span>
-                <input
-                  type="number"
-                  min={1}
-                  inputMode="numeric"
-                  className="qs-input qs-input--num"
-                  placeholder="3"
-                  value={values.pageFrom ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === "") return setValues(s => ({ ...s, pageFrom: "" }));
-                    const n = parseInt(raw, 10);
-                    if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageFrom: n }));
-                  }}
-                  aria-label="Page from"
-                />
+            {/* Page range – compact single row (hidden for pasted text flows) */}
+            {showPageRange && (
+              <div className="qs-field">
+                <label className="qs-sublabel">Page range (optional)</label>
+                <div className="qs-inline-range">
+                  <div className="qs-range-item">
+                    <span className="qs-inline-label">From</span>
+                    <input
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      className="qs-input qs-input--num"
+                      placeholder="3"
+                      value={values.pageFrom ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") return setValues(s => ({ ...s, pageFrom: "" }));
+                        const n = parseInt(raw, 10);
+                        if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageFrom: n }));
+                      }}
+                      aria-label="Page from"
+                    />
+                  </div>
+
+                  <span className="qs-inline-dash">—</span>
+
+                  <div className="qs-range-item">
+                    <span className="qs-inline-label">To</span>
+                    <input
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      className="qs-input qs-input--num"
+                      placeholder="12"
+                      value={values.pageTo ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") return setValues(s => ({ ...s, pageTo: "" }));
+                        const n = parseInt(raw, 10);
+                        if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageTo: n }));
+                      }}
+                      aria-label="Page to"
+                    />
+                  </div>
+                </div>
+
+                <p className="qs-hint">
+                  Leave blank to include all pages. If both provided, the generator should prefer that range.
+                </p>
               </div>
-
-              <span className="qs-inline-dash">—</span>
-
-              <div className="qs-range-item">
-                <span className="qs-inline-label">To</span>
-                <input
-                  type="number"
-                  min={1}
-                  inputMode="numeric"
-                  className="qs-input qs-input--num"
-                  placeholder="12"
-                  value={values.pageTo ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === "") return setValues(s => ({ ...s, pageTo: "" }));
-                    const n = parseInt(raw, 10);
-                    if (!Number.isNaN(n) && n >= 1) setValues(s => ({ ...s, pageTo: n }));
-                  }}
-                  aria-label="Page to"
-                />
-              </div>
-            </div>
-
-            <p className="qs-hint">
-              Leave blank to include all pages. If both provided, the generator should prefer that range.
-            </p>
-          </div>
+            )}
 
           {(hasKeyword || hasRange) && (
             <div className="qs-filter-preview">

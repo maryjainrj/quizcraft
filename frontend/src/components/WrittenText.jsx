@@ -106,6 +106,9 @@ export default function WrittenText() {
     count: 5,
     pageRange: "",
     keywords: "",
+    focusArea: "general",
+    answerFormat: "brief",
+    excludeTopics: "",
   });
 
   const hasEnoughText = pastedText.trim().length >= MIN_PASTE_CHARS;
@@ -228,6 +231,9 @@ export default function WrittenText() {
                 questionType,
                 difficulty: vals.difficulty,
                 language: vals.language,
+                focusArea: vals.focusArea,
+                answerFormat: vals.answerFormat,
+                excludeTopics: vals.excludeTopics,
               });
               const processed = raw.map((q) => {
                 const base = { ...q, type: questionType };
@@ -242,17 +248,26 @@ export default function WrittenText() {
             allQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, vals.count).map((q, i) => ({ ...q, id: i + 1 }));
 
             setIsGeneratingQuiz(false);
+
+            // Pasted text has no real pages; expose friendly labels so preview shows page info like file flows
+            const pageRangeLabel = "All (pasted text)";
+            const sourcePages = ["Pasted text"];
             
             navigate("/dashboard/quiz-preview", {
               state: {
                 questions: allQuestions,
-                fileNames: [],
+                fileNames: ["Pasted text"],
                 pasted: true,
                 settings: { 
                   questionTypes: selectedTypes, 
                   difficulty: vals.difficulty, 
                   count: vals.count,
                   keywords: vals.keywords,
+                  focusArea: vals.focusArea,
+                  answerFormat: vals.answerFormat,
+                  excludeTopics: vals.excludeTopics,
+                  pageRange: pageRangeLabel,
+                  sourcePages,
                 },
               },
             });
