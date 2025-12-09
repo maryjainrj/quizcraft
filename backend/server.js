@@ -13,7 +13,15 @@ const mammoth = require("mammoth"); // For Word documents
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const { createCanvas, Image } = require("canvas");
+const { createCanvas, Image, loadImage } = require("canvas");
+let sharp;
+try {
+  sharp = require('sharp');
+  console.log(' sharp loaded for image preprocessing');
+} catch (e) {
+  console.warn(' sharp not installed — image preprocessing will use canvas fallback');
+  sharp = null;
+}
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const vision = require("@google-cloud/vision");
 const configRoutes = require('./routes/config');
@@ -30,7 +38,7 @@ const { graphqlHTTP } = require("express-graphql");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-// 🔗 NEW: question set REST routes
+//  NEW: question set REST routes
 const questionSetRoutes = require("./routes/questionSetRoutes");
 
 // ---------- Config ----------
@@ -38,6 +46,15 @@ const PORT = process.env.PORT || 5000;
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
+
+// When set to '1', suppress Vision logs and only print handwritten (Tesseract) text
+const LOG_HANDWRITTEN_ONLY = String(process.env.LOG_HANDWRITTEN_ONLY || "0") === "1";
+
+// Tesseract performance/config
+const TESSERACT_TIMEOUT_MS = Number(process.env.TESSERACT_TIMEOUT_MS || 10000); // ms
+const TESSERACT_MAX_DIM = Number(process.env.TESSERACT_MAX_DIM || 1200); // max width/height for images passed to tesseract
+const TESSERACT_PSM = Number(process.env.TESSERACT_PSM || 3); // page segmentation mode for tesseract
+const PDF_RENDER_SCALE = Number(process.env.PDF_RENDER_SCALE || 2.0); // default render scale (reduce if images are huge)
 
 // Google OAuth
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -82,13 +99,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/config', configRoutes);
 app.use('/api/auth', authRoutes);
 
-// 🔍 SMALL REQUEST LOGGER (helps you see if /api/questionsets/mine hits this server)
+//  SMALL REQUEST LOGGER (helps you see if /api/questionsets/mine hits this server)
 app.use((req, res, next) => {
   console.log("REQ:", req.method, req.url);
   next();
 });
 
-// 🔗 MOUNT QUESTION SET ROUTES (THIS IS WHAT /api/questionsets/mine USES)
+//  MOUNT QUESTION SET ROUTES (THIS IS WHAT /api/questionsets/mine USES)
 app.use("/api/questionsets", questionSetRoutes);
 
 // ---------- MongoDB ----------
@@ -142,26 +159,26 @@ try {
 let visionClient = null;
 try {
   const serviceAccountPath = path.join(__dirname, "service-account.json");
-  console.log("🔍 Looking for service account at:", serviceAccountPath);
-  console.log("📁 File exists:", fs.existsSync(serviceAccountPath));
+  console.log(" Looking for service account at:", serviceAccountPath);
+  console.log(" File exists:", fs.existsSync(serviceAccountPath));
   
   if (fs.existsSync(serviceAccountPath)) {
     visionClient = new vision.ImageAnnotatorClient({
       keyFilename: serviceAccountPath,
     });
-    console.log("✅ Google Vision Client initialized with service account");
+    console.log(" Google Vision Client initialized with service account");
   } else {
     // Try using GOOGLE_APPLICATION_CREDENTIALS environment variable
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       visionClient = new vision.ImageAnnotatorClient();
-      console.log("✅ Google Vision Client initialized with GOOGLE_APPLICATION_CREDENTIALS env var");
+      console.log(" Google Vision Client initialized with GOOGLE_APPLICATION_CREDENTIALS env var");
     } else {
-      console.warn("⚠️  service-account.json not found and GOOGLE_APPLICATION_CREDENTIALS not set");
-      console.warn("⚠️  Scanned document OCR will not work");
+      console.warn("  service-account.json not found and GOOGLE_APPLICATION_CREDENTIALS not set");
+      console.warn("  Scanned document OCR will not work");
     }
   }
 } catch (err) {
-  console.error("❌ Failed to initialize Vision API client:", err.message);
+  console.error(" Failed to initialize Vision API client:", err.message);
   visionClient = null;
 }
 
@@ -186,41 +203,58 @@ async function googleVisionOCR(imageBuffer) {
   if (!visionClient) {
     throw new Error("Vision API client not initialized. Check service-account.json or GOOGLE_APPLICATION_CREDENTIALS.");
   }
-  
+
   try {
     const imageBase64 = imageBuffer.toString("base64");
     const [result] = await visionClient.documentTextDetection({
       image: { content: imageBase64 },
     });
-    
+
     if (!result) {
-      console.warn("⚠️  No result from Vision API");
+      console.warn("  No result from Vision API");
       return "";
     }
-    
-    const text = result.fullTextAnnotation ? result.fullTextAnnotation.text : "";
-    console.log("✅ OCR successful, extracted", text.length, "characters");
-    return text;
+
+    let text = result.fullTextAnnotation ? result.fullTextAnnotation.text : "";
+    // Only log Vision results when not in handwritten-only logging mode
+    if (!LOG_HANDWRITTEN_ONLY) {
+      const preview = String(text || '').slice(0, 300).replace(/\n/g, ' ');
+      console.log(" Vision OCR returned", (text || '').length, "chars");
+      if (preview) console.log(" Preview:", preview.slice(0, 100) + "...");
+    }
+
+    return text || "";
   } catch (err) {
-    console.error("❌ Vision API OCR error:", err.message);
+    console.error(" Vision API OCR error:", err.message);
     throw err;
   }
 }
 
 async function extractTextFromScannedPDF(pdfBuffer) {
   if (!visionClient) {
-    console.warn("⚠️  Vision API client not available for scanned PDF");
+    console.warn("  Vision API client not available for scanned PDF");
     return "[Scanned PDF OCR skipped: Vision API not configured]";
   }
+  // Ensure pdfjs gets a Uint8Array (it rejects Node Buffer)
+  const uint8Buffer =
+    pdfBuffer instanceof Uint8Array ? pdfBuffer : new Uint8Array(pdfBuffer);
 
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+  const loadingTask = pdfjsLib.getDocument({ data: uint8Buffer });
   const pdfDocument = await loadingTask.promise;
+  
+  console.log(` PDF loaded successfully. Pages: ${pdfDocument.numPages}`);
+  
   let fullText = "";
 
   for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
     try {
+      console.log(`\n Processing page ${pageNum}/${pdfDocument.numPages}...`);
+      
       const page = await pdfDocument.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 2.5 });
+      const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
+      
+      console.log(` Page ${pageNum} viewport: ${Math.round(viewport.width)}x${Math.round(viewport.height)}`);
+      
       const canvasFactory = new NodeCanvasFactory();
       const canvasAndContext = canvasFactory.create(
         viewport.width,
@@ -230,39 +264,96 @@ async function extractTextFromScannedPDF(pdfBuffer) {
       await page
         .render({
           canvasContext: canvasAndContext.context,
-          viewport,
-          canvasFactory,
+          viewport: viewport,
+          canvasFactory: canvasFactory,
         })
         .promise;
 
       const { width, height } = canvasAndContext.canvas;
       let ocrText = "";
+
       if (width < 10 || height < 10) {
+        console.warn(`  Page ${pageNum} too small: ${width}x${height}`);
         ocrText = "[Skipped: Page image too small for OCR]";
       } else {
         const imageBuffer = canvasAndContext.canvas.toBuffer();
+        console.log(`  Canvas rendered, image size: ${Math.round(imageBuffer.length / 1024)}KB`);
+
+        // Preprocess the rendered image to improve OCR accuracy (grayscale/normalize/threshold)
+        let preparedBuffer = imageBuffer;
         try {
-          console.log(`📄 Running Vision API OCR on page ${pageNum}...`);
-          ocrText = await googleVisionOCR(imageBuffer);
-          if (!ocrText.trim()) {
-            ocrText = "[No text detected on this page]";
+          preparedBuffer = await preprocessImage(imageBuffer);
+        } catch (preErr) {
+          console.warn('Image preprocessing failed, using raw canvas buffer:', preErr.message || preErr);
+          preparedBuffer = imageBuffer;
+        }
+
+        try {
+          //  STEP 1: Try Google Vision first
+          console.log(` Running Vision API OCR on page ${pageNum}...`);
+          ocrText = await googleVisionOCR(preparedBuffer);
+          console.log(` Vision OCR returned ${ocrText.length} characters`);
+
+          //  STEP 2: If Vision returns empty/short text, use Tesseract
+          // This is CRITICAL for handwritten notes!
+          if (!ocrText.trim() || ocrText.length < 20) {
+            console.log(`  Vision OCR empty/short (${ocrText.length} chars), trying Tesseract for handwriting...`);
+            try {
+              const resized = await resizeImageBufferIfNeeded(imageBuffer);
+              const { text: tessText, durationMs, timedOut } = await runTesseractWithTimeout(resized);
+              ocrText = tessText || "[No text detected on this page]";
+              console.log(` Tesseract extracted ${ocrText.length} characters (took ${durationMs}ms${timedOut ? ', TIMED OUT' : ''})`);
+              try {
+                console.log(`\n[HANDWRITTEN] Page ${pageNum} content:\n${ocrText}\n`);
+              } catch (e) {
+                console.log(`[HANDWRITTEN] Page ${pageNum} (error printing content):`, e.message);
+              }
+            } catch (tErr) {
+              console.error(` Tesseract failed on page ${pageNum}:`, tErr.message || tErr);
+              ocrText = `[Tesseract failed: ${tErr && tErr.message ? tErr.message : 'unknown'}]`;
+            }
           }
         } catch (ocrErr) {
-          console.error(`❌ OCR failed for page ${pageNum}:`, ocrErr.message);
+          console.error(` OCR failed for page ${pageNum}:`, ocrErr.message);
           ocrText = "[OCR failed for this page: " + ocrErr.message + "]";
         }
       }
+
       fullText += `\n--- Page ${pageNum} ---\n${ocrText}`;
       canvasFactory.destroy(canvasAndContext);
+      
+      console.log(` Page ${pageNum}/${pdfDocument.numPages} completed`);
     } catch (pageErr) {
-      console.error(`❌ Page rendering failed for page ${pageNum}:`, pageErr.message);
+      console.error(` Page rendering failed for page ${pageNum}:`, pageErr.message);
       fullText += `\n--- Page ${pageNum} ---\n[Page rendering failed: ${pageErr.message}]`;
     }
   }
+
   return fullText;
 }
 
 function preprocessImage(imageBuffer) {
+  // Use `sharp` when available for better preprocessing (grayscale, normalize, sharpen, threshold)
+  if (sharp) {
+    return sharp(imageBuffer)
+      .greyscale()
+      .normalize()
+      .sharpen()
+      .threshold(160)
+      .toBuffer()
+      .catch((e) => {
+        console.warn('sharp preprocessing failed, falling back to canvas:', e.message);
+        // fallback to canvas below
+        const img = new Image();
+        img.src = imageBuffer;
+        const canvas = createCanvas(img.width, img.height);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        return canvas.toBuffer();
+      });
+  }
+
+  // Canvas fallback (less advanced): simple contrast boost + return buffer
   const img = new Image();
   img.src = imageBuffer;
   const canvas = createCanvas(img.width, img.height);
@@ -271,10 +362,7 @@ function preprocessImage(imageBuffer) {
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
   for (let i = 0; i < imageData.data.length; i += 4) {
     const avg =
-      (imageData.data[i] +
-        imageData.data[i + 1] +
-        imageData.data[i + 2]) /
-      3;
+      (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
     const contrast = 1.5;
     const newVal = Math.min(255, Math.max(0, contrast * (avg - 128) + 128));
     imageData.data[i] = imageData.data[i + 1] = imageData.data[i + 2] = newVal;
@@ -283,17 +371,100 @@ function preprocessImage(imageBuffer) {
   return canvas.toBuffer();
 }
 
+async function resizeImageBufferIfNeeded(imageBuffer, maxDim = TESSERACT_MAX_DIM) {
+  try {
+    const img = await loadImage(imageBuffer);
+    const w = img.width;
+    const h = img.height;
+    const largest = Math.max(w, h);
+    if (largest <= maxDim) return imageBuffer;
+
+    const scale = maxDim / largest;
+    const nw = Math.round(w * scale);
+    const nh = Math.round(h * scale);
+    const canvas = createCanvas(nw, nh);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, nw, nh);
+    // return as JPEG to reduce size and speed up Tesseract
+    return canvas.toBuffer('image/jpeg', { quality: 0.8 });
+  } catch (e) {
+    console.warn('resizeImageBufferIfNeeded failed, returning original buffer:', e.message);
+    return imageBuffer;
+  }
+}
+
+async function runTesseractWithTimeout(imageBuffer, timeoutMs = TESSERACT_TIMEOUT_MS) {
+  const Tesseract = require('tesseract.js');
+  const start = Date.now();
+
+  const recognizePromise = (async () => {
+    const result = await Tesseract.recognize(imageBuffer, 'eng', { tessedit_pageseg_mode: TESSERACT_PSM });
+    return result && result.data && result.data.text ? result.data.text : '';
+  })();
+
+  const timeoutPromise = new Promise((_, reject) => {
+    const id = setTimeout(() => {
+      // We cannot reliably terminate the internal worker when using the high-level API,
+      // so just reject. This prevents hanging the request but may leave background work.
+      reject(new Error('Tesseract recognition timed out'));
+    }, timeoutMs);
+  });
+
+  try {
+    const text = await Promise.race([recognizePromise, timeoutPromise]);
+    const duration = Date.now() - start;
+    return { text: text || '', durationMs: duration, timedOut: false };
+  } catch (err) {
+    const duration = Date.now() - start;
+    return { text: '', durationMs: duration, timedOut: true };
+  }
+}
+
 const performOCR = async (imageBuffer) => {
   try {
-    if (!visionClient) {
-      throw new Error("Vision API client not initialized");
+    let text = "";
+    let usedHandwriting = false;
+    let durationMs = 0;
+    let timedOut = false;
+
+    if (visionClient) {
+      try {
+        text = await googleVisionOCR(imageBuffer);
+      } catch (e) {
+        console.warn('Vision OCR failed for image:', e.message);
+        text = "";
+      }
     }
-    // If you want preprocessing:
-    // const processed = preprocessImage(imageBuffer);
-    // return await googleVisionOCR(processed);
-    return await googleVisionOCR(imageBuffer);
+
+    if (!text.trim() || text.length < 20) {
+      usedHandwriting = true;
+      try {
+        const resized = await resizeImageBufferIfNeeded(imageBuffer);
+        let prepped = resized;
+        try {
+          prepped = await preprocessImage(resized);
+        } catch (e) {
+          // ignore and use resized
+        }
+        const result = await runTesseractWithTimeout(prepped);
+        durationMs = result.durationMs || 0;
+        timedOut = !!result.timedOut;
+        text = result.text || "";
+        console.log(` Tesseract (image) extracted ${String(text).length} characters (took ${durationMs}ms${timedOut ? ', TIMED OUT' : ''})`);
+        try {
+          console.log(`\n[HANDWRITTEN] Image content:\n${text}\n`);
+        } catch (e) {
+          console.log('[HANDWRITTEN] Image (error printing):', e.message);
+        }
+      } catch (e) {
+        console.error(' Tesseract image OCR failed:', e.message || e);
+        text = "";
+      }
+    }
+
+    return { text: text || "", usedHandwriting, durationMs, timedOut };
   } catch (err) {
-    console.error("❌ performOCR error:", err.message);
+    console.error(" performOCR error:", err.message || err);
     throw err;
   }
 };
@@ -344,33 +515,44 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     const filePath = req.file.path;
     const fileType = req.file.mimetype;
     let extractedText = "";
+    let handwritingMeta = null;
 
-    console.log(`\n📤 Processing file: ${req.file.originalname}, type: ${fileType}`);
+    console.log(`\n Processing file: ${req.file.originalname}, type: ${fileType}`);
 
     // Handle PDF files
     if (fileType === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
       try {
-        console.log("🔍 Attempting pdf-parse text extraction...");
+        console.log(" Attempting pdf-parse text extraction...");
         const pdfData = await pdfParse(dataBuffer);
         extractedText = pdfData.text;
-        console.log(`✅ pdf-parse extracted ${extractedText.length} characters`);
+        console.log(` pdf-parse extracted ${extractedText.length} characters`);
         
         if (!extractedText.trim()) {
-          console.log("⚠️  No text in pdf-parse, attempting OCR on scanned document...");
-          extractedText = await extractTextFromScannedPDF(dataBuffer);
+          console.log("  No text in pdf-parse, attempting OCR on scanned document...");
+          const uint8Buffer = Buffer.isBuffer(dataBuffer)
+            ? new Uint8Array(dataBuffer)
+            : dataBuffer instanceof Uint8Array
+            ? dataBuffer
+            : new Uint8Array(dataBuffer);
+          extractedText = await extractTextFromScannedPDF(uint8Buffer);
           if (!extractedText.trim())
             extractedText = "No text found in scanned PDF (OCR).";
         }
       } catch (error) {
-        console.error("❌ PDF text extraction failed:", error.message);
-        console.log("🔄 Attempting OCR fallback for scanned PDF...");
+        console.error(" PDF text extraction failed:", error.message);
+        console.log(" Attempting OCR fallback for scanned PDF...");
         try {
-          extractedText = await extractTextFromScannedPDF(dataBuffer);
+          const uint8Buffer = Buffer.isBuffer(dataBuffer)
+            ? new Uint8Array(dataBuffer)
+            : dataBuffer instanceof Uint8Array
+            ? dataBuffer
+            : new Uint8Array(dataBuffer);
+          extractedText = await extractTextFromScannedPDF(uint8Buffer);
           if (!extractedText.trim())
             extractedText = "Failed to extract text from PDF.";
         } catch (ocrError) {
-          console.error("❌ OCR fallback also failed:", ocrError.message);
+          console.error(" OCR fallback also failed:", ocrError.message);
           extractedText = "Failed to extract text from PDF: " + error.message;
         }
       }
@@ -417,24 +599,36 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     }
     // Handle images
     else {
-      console.log("🖼️  Processing image file with OCR...");
+      console.log("  Processing image file with OCR...");
       const imageBuffer = fs.readFileSync(filePath);
       try {
-        extractedText = await performOCR(imageBuffer);
-        console.log(`✅ Image OCR extracted ${extractedText.length} characters`);
+        const ocrResult = await performOCR(imageBuffer);
+        if (ocrResult && typeof ocrResult === 'object') {
+          extractedText = ocrResult.text || "";
+          handwritingMeta = {
+            usedHandwriting: !!ocrResult.usedHandwriting,
+            durationMs: Number(ocrResult.durationMs || 0),
+            timedOut: !!ocrResult.timedOut,
+          };
+        } else {
+          extractedText = String(ocrResult || "");
+        }
+        console.log(` Image OCR extracted ${String(extractedText).length} characters`);
       } catch (err) {
-        console.error("❌ Image OCR failed:", err.message);
-        extractedText = "[Image OCR failed: " + err.message + "]";
+        console.error(" Image OCR failed:", err.message || err);
+        extractedText = "[Image OCR failed: " + (err && err.message ? err.message : String(err)) + "]";
       }
     }
 
     fs.unlinkSync(filePath);
-    res.json({
+    const responseBody = {
       success: true,
       text: extractedText || "No text found in the file.",
       filename: req.file.originalname,
       fileSize: req.file.size,
-    });
+    };
+    if (handwritingMeta) responseBody.handwriting = handwritingMeta;
+    res.json(responseBody);
   } catch (error) {
     console.error("Error processing file:", error);
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);

@@ -71,8 +71,19 @@ const QuizPreviewPage = () => {
   };
 
   const handleEditStart = (index) => {
+    console.log('Edit start:', index, 'localQuestions[index]:', localQuestions[index]);
+    const src = localQuestions[index] || {};
     setEditingIndex(index);
-    setTempQuestion({ ...localQuestions[index] });
+    setTempQuestion({
+      // Ensure the edit form has expected fields even if some are missing
+      question: src.question || '',
+      type: src.type || 'multiple-choice',
+      options: Array.isArray(src.options) ? src.options.slice() : (src.options ? [src.options] : []),
+      correctAnswer: src.correctAnswer || '',
+      sourcePages: Array.isArray(src.sourcePages) ? src.sourcePages.slice() : (src.sourcePages ? [src.sourcePages] : []),
+      // spread any other properties so we don't lose data
+      ...src,
+    });
   };
 
   const handleEditSave = () => {
@@ -367,7 +378,7 @@ const QuizPreviewPage = () => {
                             type="text"
                             value={tempQuestion.question || ''}
                             onChange={(e) => setTempQuestion(prev => ({ ...prev, question: e.target.value }))}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                           />
                         </div>
 
@@ -388,7 +399,7 @@ const QuizPreviewPage = () => {
                                         options: prev.options.map((o, j) => j === idx ? e.target.value : o)
                                       }));
                                     }}
-                                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                                   />
                                 </div>
                               );
@@ -397,7 +408,7 @@ const QuizPreviewPage = () => {
                             <select
                               value={tempQuestion.correctAnswer || ''}
                               onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                             >
                               <option value="">Select Option</option>
                               {tempQuestion.options?.map((_, idx) => (
@@ -415,7 +426,7 @@ const QuizPreviewPage = () => {
                             <select
                               value={tempQuestion.correctAnswer || ''}
                               onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                             >
                               <option value="TRUE">True</option>
                               <option value="FALSE">False</option>
@@ -430,7 +441,7 @@ const QuizPreviewPage = () => {
                               type="text"
                               value={tempQuestion.correctAnswer || ''}
                               onChange={(e) => setTempQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                             />
                           </div>
                         )}

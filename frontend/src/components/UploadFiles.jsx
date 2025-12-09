@@ -209,6 +209,7 @@ export default function UploadFiles() {
   const [progress, setProgress] = useState(0);
   const [extractionError, setExtractionError] = useState("");
   const [fileInfos, setFileInfos] = useState({});
+  const [fileProcessing, setFileProcessing] = useState({});
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -328,6 +329,9 @@ export default function UploadFiles() {
           }
         }
 
+        // mark this file as processing (per-file loader)
+        setFileProcessing((p) => ({ ...p, [fileName]: { busy: true, status: 'Uploading / extracting...' } }));
+
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch(`${API_BASE}/api/upload`, {
@@ -335,13 +339,27 @@ export default function UploadFiles() {
           body: fd,
         });
         const data = await res.json();
-        if (res.ok && data.success) newExtractedTexts[fileName] = data.text || "";
-        else
+
+        if (res.ok && data.success) {
+          newExtractedTexts[fileName] = data.text || "";
+          // if backend returned handwriting metadata, surface it in UI
+          if (data.handwriting) {
+            const { usedHandwriting, durationMs, timedOut } = data.handwriting;
+            const status = usedHandwriting
+              ? timedOut
+                ? `Handwritten OCR timed out after ${Math.round(durationMs)}ms`
+                : `Handwritten OCR completed (${Math.round(durationMs)}ms)`
+              : 'OCR completed';
+            setFileProcessing((p) => ({ ...p, [fileName]: { busy: false, status } }));
+          } else {
+            setFileProcessing((p) => ({ ...p, [fileName]: { busy: false, status: 'Extraction completed' } }));
+          }
+        } else {
+          setFileProcessing((p) => ({ ...p, [fileName]: { busy: false, status: 'Extraction failed' } }));
           setExtractionError(
-            `Failed to extract text from ${fileName}: ${
-              data.error || data.message || "Unknown error"
-            }`
+            `Failed to extract text from ${fileName}: ${data.error || data.message || "Unknown error"}`
           );
+        }
       }
 
       setExtractedTexts(newExtractedTexts);
@@ -379,6 +397,11 @@ export default function UploadFiles() {
       delete n[fileName];
       return n;
     });
+    setFileProcessing((prev) => {
+      const n = { ...prev };
+      delete n[fileName];
+      return n;
+    });
     setFiles((prev) => prev.filter((f) => f.name !== fileName));
   };
 
@@ -390,6 +413,7 @@ export default function UploadFiles() {
     setExtractionError("");
     setProgress(0);
     setIsDragActive(false);
+    setFileProcessing({});
   };
 
   const uploadsReady =
@@ -458,10 +482,21 @@ export default function UploadFiles() {
 
               {previews[f.name] === "pdf" && <span className="badge">PDF</span>}
               {previews[f.name] === "doc" && <span className="badge">DOC</span>}
+              <div style={{ marginLeft: "auto", display: 'flex', alignItems: 'center', gap: 8 }}>
+                {fileProcessing[f.name]?.busy && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="w-5 h-5 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" aria-hidden></div>
+                    <small style={{ color: '#555' }}>{fileProcessing[f.name]?.status || 'Processing...'}</small>
+                  </div>
+                )}
+                {!fileProcessing[f.name]?.busy && fileProcessing[f.name]?.status && (
+                  <small style={{ color: '#333', marginRight: 8 }}>{fileProcessing[f.name].status}</small>
+                )}
 
-              <button onClick={() => handleClearFile(f.name)} style={{ marginLeft: "auto" }}>
-                Remove
-              </button>
+                <button onClick={() => handleClearFile(f.name)}>
+                  Remove
+                </button>
+              </div>
             </li>
           ))}
         </ul>
