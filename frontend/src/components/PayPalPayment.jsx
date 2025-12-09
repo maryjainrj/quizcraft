@@ -8,6 +8,8 @@ const PayPalPayment = () => {
   const location = useLocation();
   const paypalRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [failureMessage, setFailureMessage] = useState("");
 
   const packageData = location.state?.package;
 
@@ -79,7 +81,10 @@ const PayPalPayment = () => {
 
           onError: (err) => {
             console.error("PayPal Error:", err);
-            alert("Payment failed. Please try again.");
+            // Show an in-app failure screen instead of an alert
+            setFailureMessage(err?.message || "Payment failed. Please try again.");
+            setPaymentFailed(true);
+            setIsLoading(false);
           },
         })
         .render(paypalRef.current)
@@ -133,6 +138,28 @@ const PayPalPayment = () => {
             Your donation keeps QuizCraft free for everyone. Thank you for believing in us!
           </p>
         </div>
+        {paymentFailed && (
+          <div
+            className="payment-failed-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => navigate("/dashboard")}
+            style={{ cursor: "pointer" }}
+          >
+            <div className="payment-failed-card" onClick={(e) => e.stopPropagation()}>
+              <h2>Payment Failed</h2>
+              <p>{failureMessage || "Payment failed. Click below to return to your dashboard."}</p>
+              <div className="payment-failed-actions">
+                <button
+                  className="primary-btn"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

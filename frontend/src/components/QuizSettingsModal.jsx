@@ -30,6 +30,23 @@ export default function QuizSettingsModal({
     }
   }, []);
 
+  // Keep numeric page inputs in sync with `pageRange` string so callers
+  // (UploadFiles.jsx) that expect `pageRange` receive the selected range.
+  React.useEffect(() => {
+    const pf = values.pageFrom;
+    const pt = values.pageTo;
+
+    if ((pf || pf === 0) && (pt || pt === 0)) {
+      const range = `${pf}-${pt}`;
+      if (values.pageRange !== range) {
+        setValues((s) => ({ ...s, pageRange: range }));
+      }
+    } else if (!pf && !pt && values.pageRange) {
+      // Clear pageRange when numeric inputs are cleared
+      setValues((s) => ({ ...s, pageRange: '' }));
+    }
+  }, [values.pageFrom, values.pageTo]);
+
   // Handle checkbox toggle for multiple question types
   const handleTypeToggle = (typeValue) => {
     setValues((s) => {
